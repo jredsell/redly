@@ -126,7 +126,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
         <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
             <div className="sidebar-header" style={{ height: 'auto', padding: '16px', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                         <div
                             style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                             onClick={onGoHome}
@@ -138,21 +138,19 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                         <button
                             onClick={disconnectWorkspace}
                             style={{
-                                background: 'var(--bg-secondary)',
+                                background: 'transparent',
                                 border: '1px solid var(--border-color)',
                                 color: 'var(--text-secondary)',
                                 fontSize: '11px',
                                 fontWeight: 500,
-                                padding: '4px 8px',
+                                padding: '2px 6px',
                                 borderRadius: '4px',
                                 cursor: 'pointer',
-                                marginTop: '4px',
-                                marginLeft: '32px',
                                 display: 'inline-block',
                                 transition: 'all 0.2s ease'
                             }}
                             onMouseEnter={(e) => { e.target.style.background = 'var(--bg-hover)'; e.target.style.borderColor = 'var(--accent-color)'; }}
-                            onMouseLeave={(e) => { e.target.style.background = 'var(--bg-secondary)'; e.target.style.borderColor = 'var(--border-color)'; }}
+                            onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.borderColor = 'var(--border-color)'; }}
                         >
                             Change Workspace
                         </button>

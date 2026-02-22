@@ -25,8 +25,25 @@ jobs:
       env:
         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+    - name: Get App Version
+      id: get_version
+      run: |
+        $version = (Get-Content package.json | ConvertFrom-Json).version
+        echo "VERSION=$version" >> $env:GITHUB_ENV
+      shell: pwsh
+
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
         name: Redly-Portable-EXE
         path: dist-electron/Redly-Portable.exe
+
+    - name: Create GitHub Release
+      uses: ncipollo/release-action@v1
+      with:
+        artifacts: "dist-electron/Redly-Portable.exe"
+        tag: "v${{ env.VERSION }}"
+        name: "Redly Portable v${{ env.VERSION }}"
+        body: "Redly Portable App Update check integration enabled. Fixed visual UI bugs."
+        allowUpdates: true
+        token: ${{ secrets.GITHUB_TOKEN }}
