@@ -65,6 +65,15 @@ export default function HelpModal({ isOpen, onClose }) {
 
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><FolderPlus size={14} /> New Folder <span style={{ fontSize: '0.85em', opacity: 0.7 }}>(Contextual)</span></span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>F</kbd></div>
+
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Go Home</span>
+                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>H</kbd></div>
+
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Change Workspace</span>
+                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>W</kbd></div>
+
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Help</span>
+                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>/</kbd></div>
                         </div>
                     </div>
 

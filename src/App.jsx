@@ -8,7 +8,7 @@ import WelcomeScreen from './components/WelcomeScreen';
 import { Menu, Sun, Moon } from 'lucide-react';
 
 function App() {
-  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle } = useNotes();
+  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
@@ -31,9 +31,22 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'h') {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.ProseMirror')) {
+        return;
+      }
+      if (e.altKey && e.key === '/') {
         e.preventDefault();
         setHelpOpen(prev => !prev);
+      }
+      if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'h') {
+        e.preventDefault();
+        setActiveFileId(null);
+        setShowTasks(false);
+        setSidebarOpen(false);
+      }
+      if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'w') {
+        e.preventDefault();
+        disconnectWorkspace();
       }
     };
     window.addEventListener('keydown', handleKeyDown);
@@ -41,7 +54,7 @@ function App() {
       setShowTasks(false);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeFileId, showTasks]);
+  }, [activeFileId, showTasks, disconnectWorkspace]);
 
   if (isInitializing) {
     return (

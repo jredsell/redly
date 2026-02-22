@@ -153,10 +153,12 @@ export default function WelcomeScreen({ openHelp }) {
                 </button>
             </div>
 
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', display: 'flex', gap: '24px', marginBottom: '24px' }}>
+            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px', marginBottom: '24px' }}>
                 <span><strong>Alt+N</strong> New Note</span>
                 <span><strong>Alt+F</strong> New Folder</span>
-                <span><strong>Alt+H</strong> Help</span>
+                <span><strong>Alt+H</strong> Home</span>
+                <span><strong>Alt+W</strong> Workspace</span>
+                <span><strong>Alt+/</strong> Help</span>
             </div>
 
             {recentFiles.length > 0 && (

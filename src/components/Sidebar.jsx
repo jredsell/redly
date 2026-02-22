@@ -135,7 +135,25 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                             <img src={logo} alt="Redly Logo" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
                             <span style={{ fontWeight: 800, color: 'var(--accent-color)' }}>redly</span>
                         </div>
-                        <button onClick={disconnectWorkspace} style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', fontSize: '10px', textAlign: 'left', padding: '2px 0 0 32px', cursor: 'pointer' }}>
+                        <button
+                            onClick={disconnectWorkspace}
+                            style={{
+                                background: 'var(--bg-secondary)',
+                                border: '1px solid var(--border-color)',
+                                color: 'var(--text-secondary)',
+                                fontSize: '11px',
+                                fontWeight: 500,
+                                padding: '4px 8px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                marginTop: '4px',
+                                marginLeft: '32px',
+                                display: 'inline-block',
+                                transition: 'all 0.2s ease'
+                            }}
+                            onMouseEnter={(e) => { e.target.style.background = 'var(--bg-hover)'; e.target.style.borderColor = 'var(--accent-color)'; }}
+                            onMouseLeave={(e) => { e.target.style.background = 'var(--bg-secondary)'; e.target.style.borderColor = 'var(--border-color)'; }}
+                        >
                             Change Workspace
                         </button>
                     </div>
