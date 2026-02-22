@@ -10,17 +10,13 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "electron:dev": "concurrently -k \"cross-env BROWSER=none npm run dev\" \"wait-on tcp:5173 && electron .\"",
-    "electron:build": "npm run build && electron-builder"
+    "electron:build": "npm run build && electron-packager . Redly --platform=win32 --arch=x64 --out=dist-electron --overwrite --ignore=\"^/src$|^/node_modules$|^/dist-electron$\""
   },
   "build": {
     "appId": "com.redly.app",
     "productName": "Redly",
     "directories": {
       "output": "dist-electron"
-    },
-    "win": {
-      "target": "nsis",
-      "icon": "redly_logo.png"
     }
   },
   "dependencies": {
@@ -50,6 +46,7 @@
     "cross-env": "^10.1.0",
     "electron": "^40.6.0",
     "electron-builder": "^26.8.1",
+    "electron-packager": "^17.1.2",
     "eslint": "^9.39.1",
     "eslint-plugin-react-hooks": "^7.0.1",
     "eslint-plugin-react-refresh": "^0.4.24",
