@@ -1,12 +1,11 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { getSavedWorkspaceHandle, saveWorkspaceHandle, clearWorkspaceHandle, verifyPermission, getNodes, createNode, updateNode, deleteNode, buildTree } from '../lib/db';
+import { getSavedWorkspaceHandle, saveWorkspaceHandle, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree } from '../lib/db';
 
 const NotesContext = createContext(undefined);
 
 export const NotesProvider = ({ children }) => {
     const [nodes, setNodes] = useState([]);
     const [workspaceHandle, setWorkspaceHandle] = useState(null);
-    const [pendingHandle, setPendingHandle] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
 
     const [activeFileId, setActiveFileId] = useState(() => {
@@ -31,15 +30,9 @@ export const NotesProvider = ({ children }) => {
             try {
                 const savedHandle = await getSavedWorkspaceHandle();
                 if (savedHandle) {
-                    const permission = await savedHandle.queryPermission({ mode: 'readwrite' });
-                    if (permission === 'granted') {
-                        setWorkspaceHandle(savedHandle);
-                        const allNodes = await getNodes(savedHandle);
-                        setNodes(allNodes);
-                    } else {
-                        // We have the handle but not the permission. Requires user gesture.
-                        setPendingHandle(savedHandle);
-                    }
+                    setWorkspaceHandle(savedHandle);
+                    const allNodes = await getNodes(savedHandle);
+                    setNodes(allNodes);
                 }
             } catch (e) {
                 console.error("Initialization failed", e);
@@ -62,35 +55,20 @@ export const NotesProvider = ({ children }) => {
 
     const selectWorkspace = async () => {
         try {
-            const rootHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
-
-            let handle = rootHandle;
-            if (rootHandle.name !== 'redly') {
-                handle = await rootHandle.getDirectoryHandle('redly', { create: true });
+            const rootPath = await window.electronAPI.showOpenDialog();
+            if (!rootPath) {
+                setIsInitializing(false);
+                return;
             }
 
-            await saveWorkspaceHandle(handle);
-            setWorkspaceHandle(handle);
+            await saveWorkspaceHandle(rootPath);
+            setWorkspaceHandle(rootPath);
             setIsInitializing(true);
-            const allNodes = await getNodes(handle);
+            const allNodes = await getNodes(rootPath);
             setNodes(allNodes);
         } catch (e) {
-            if (e.name !== 'AbortError') {
-                console.error("Picker error", e);
-                const isFirefox = navigator.userAgent.toLowerCase().includes('firefox');
-                const isSafari = /^((?!chrome|android).)*safari/i.test(navigator.userAgent);
-
-                let errorMsg = e.message || 'Unknown error';
-                if (!window.showDirectoryPicker) {
-                    errorMsg = "Your browser does not support the File System Access API. Please use Google Chrome, Microsoft Edge, Brave, or Opera.";
-                } else if (isFirefox || isSafari) {
-                    errorMsg = "Firefox and Safari do not support this feature yet. Please use Chrome or Edge.";
-                } else if (e.name === 'SecurityError') {
-                    errorMsg = "Security Error: The browser blocked access. This often happens if you try to select a restricted system folder (like 'C:\\' or 'Downloads'). Step inside a normal folder first.";
-                }
-
-                alert(`Could not open directory:\n\n${errorMsg}\n\nTechnical details: ${e.name}`);
-            }
+            console.error("Picker error", e);
+            alert(`Could not open directory:\n\n${e.message}`);
         } finally {
             setIsInitializing(false);
         }
@@ -99,29 +77,10 @@ export const NotesProvider = ({ children }) => {
     const disconnectWorkspace = async () => {
         await clearWorkspaceHandle();
         setWorkspaceHandle(null);
-        setPendingHandle(null);
         setNodes([]);
         setActiveFileId(null);
         setLastInteractedNodeId(null);
         setExpandedFolders(new Set());
-    };
-
-    const restoreWorkspace = async () => {
-        if (!pendingHandle) return;
-        setIsInitializing(true);
-        try {
-            const hasPermission = await verifyPermission(pendingHandle);
-            if (hasPermission) {
-                setWorkspaceHandle(pendingHandle);
-                setPendingHandle(null);
-                const allNodes = await getNodes(pendingHandle);
-                setNodes(allNodes);
-            }
-        } catch (e) {
-            console.error("Restore failed", e);
-        } finally {
-            setIsInitializing(false);
-        }
     };
 
     useEffect(() => {
@@ -266,9 +225,7 @@ export const NotesProvider = ({ children }) => {
         handleImport,
         isInitializing,
         workspaceHandle,
-        pendingHandle,
         selectWorkspace,
-        restoreWorkspace,
         disconnectWorkspace,
         globalAddingState,
         setGlobalAddingState,

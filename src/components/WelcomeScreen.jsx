@@ -4,7 +4,7 @@ import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardD
 import logo from '../assets/logo.png';
 
 export default function WelcomeScreen({ openHelp }) {
-    const { addNode, nodes, setActiveFileId, workspaceHandle, pendingHandle, selectWorkspace, restoreWorkspace } = useNotes();
+    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace } = useNotes();
     const [showRecent, setShowRecent] = useState(true);
 
     const recentFiles = nodes
@@ -28,8 +28,6 @@ export default function WelcomeScreen({ openHelp }) {
     };
 
     if (!workspaceHandle) {
-        const isSupported = 'showDirectoryPicker' in window;
-
         return (
             <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -46,71 +44,26 @@ export default function WelcomeScreen({ openHelp }) {
                     Notes and tasks, <em style={{ color: 'var(--accent-color)', fontWeight: '600', fontStyle: 'normal' }}>redly</em> available.
                 </p>
 
-                {!isSupported && (
-                    <div style={{
-                        background: 'rgba(239, 68, 68, 0.1)', border: '1px solid #ef4444', color: '#ef4444',
-                        padding: '12px 16px', borderRadius: '8px', marginBottom: '24px', maxWidth: '500px',
-                        fontSize: '14px', lineHeight: '1.5', textAlign: 'left'
-                    }}>
-                        <b>⚠️ Unsupported Browser Detected</b><br />
-                        Redly uses the Native File System API to save secure files directly to your device. This feature requires a Chromium-based browser. Firefox and Safari are not currently supported.<br /><br />
-                        <i>If you are using <b>Brave</b>:</i> Brave disables this API by default for privacy reasons. You must navigate to <b><code>brave://flags/#file-system-access-api</code></b> in your address bar, set it to <b>Enabled</b>, and relaunch your browser.
-                    </div>
-                )}
-
-                {pendingHandle ? (
-                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px', marginBottom: '48px' }}>
-                        <button
-                            onClick={restoreWorkspace}
-                            className="primary-action-btn"
-                            style={{
-                                background: 'var(--color-future)',
-                                color: 'white',
-                                border: 'none',
-                                padding: '16px 32px',
-                                borderRadius: '12px', fontSize: '18px', fontWeight: 'bold',
-                                cursor: 'pointer',
-                                boxShadow: '0 4px 14px 0 rgba(16, 185, 129, 0.39)',
-                                transition: 'transform 0.2s, box-shadow 0.2s',
-                                display: 'flex', alignItems: 'center', gap: '12px'
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                            onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                        >
-                            <ShieldCheck size={24} />
-                            Restore Access to "{pendingHandle.name}"
-                        </button>
-                        <button
-                            onClick={selectWorkspace}
-                            style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', textDecoration: 'underline', cursor: 'pointer', fontSize: '14px' }}
-                        >
-                            Select a different folder
-                        </button>
-                    </div>
-                ) : (
-                    <button
-                        onClick={selectWorkspace}
-                        disabled={!isSupported}
-                        className="primary-action-btn"
-                        style={{
-                            background: isSupported ? 'var(--accent-color)' : 'var(--bg-secondary)',
-                            color: isSupported ? 'white' : 'var(--text-tertiary)',
-                            border: isSupported ? 'none' : '1px solid var(--border-color)',
-                            padding: '16px 32px',
-                            borderRadius: '12px', fontSize: '18px', fontWeight: 'bold',
-                            cursor: isSupported ? 'pointer' : 'not-allowed',
-                            boxShadow: isSupported ? '0 4px 14px 0 rgba(0, 112, 243, 0.39)' : 'none',
-                            transition: 'transform 0.2s, box-shadow 0.2s',
-                            display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px',
-                            opacity: isSupported ? 1 : 0.7
-                        }}
-                        onMouseEnter={e => { if (isSupported) e.currentTarget.style.transform = 'translateY(-2px)'; }}
-                        onMouseLeave={e => { if (isSupported) e.currentTarget.style.transform = 'translateY(0)'; }}
-                    >
-                        <FolderPlus size={24} />
-                        Select Location (Creates 'redly' folder)
-                    </button>
-                )}
+                <button
+                    onClick={selectWorkspace}
+                    className="primary-action-btn"
+                    style={{
+                        background: 'var(--accent-color)',
+                        color: 'white',
+                        border: 'none',
+                        padding: '16px 32px',
+                        borderRadius: '12px', fontSize: '18px', fontWeight: 'bold',
+                        cursor: 'pointer',
+                        boxShadow: '0 4px 14px 0 rgba(0, 112, 243, 0.39)',
+                        transition: 'transform 0.2s, box-shadow 0.2s',
+                        display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
+                >
+                    <FolderPlus size={24} />
+                    Select Location (Creates 'redly' folder)
+                </button>
 
                 <div style={{
                     display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
@@ -118,9 +71,9 @@ export default function WelcomeScreen({ openHelp }) {
                 }}>
                     <div className="info-card">
                         <ShieldCheck size={28} style={{ color: 'var(--color-future)', marginBottom: '12px' }} />
-                        <h3 style={{ fontSize: '16px', marginBottom: '8px', fontWeight: '600' }}>Browser Permissions</h3>
+                        <h3 style={{ fontSize: '16px', marginBottom: '8px', fontWeight: '600' }}>Native App</h3>
                         <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
-                            Chrome or Edge will ask for permission to view and create files. Click <b>"Allow"</b> to give Redly secure, local access.
+                            Redly is now a fully native Desktop app. Your workspace is always accessible completely offline with zero browser permissions required.
                         </p>
                     </div>
                     <div className="info-card">
