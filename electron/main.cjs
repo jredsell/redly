@@ -9,12 +9,18 @@ function createWindow() {
     mainWindow = new BrowserWindow({
         width: 1200,
         height: 800,
+        show: false,
+        backgroundColor: '#0f172a', // Match Redly dark mode backdrop
         icon: path.join(__dirname, '../redly_logo.png'),
         webPreferences: {
             preload: path.join(__dirname, 'preload.cjs'),
             contextIsolation: true,
             nodeIntegration: false
         }
+    });
+
+    mainWindow.once('ready-to-show', () => {
+        mainWindow.show();
     });
 
     const isDev = process.env.VITE_DEV_SERVER_URL;
