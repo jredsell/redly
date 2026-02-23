@@ -3,27 +3,57 @@ import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: './',
+  base: '/redly/',
   plugins: [
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['redly_logo.png'],
+      includeAssets: ['favicon.ico', 'apple-touch-icon.png', 'mask-icon.svg'],
       manifest: {
-        name: 'Redly Workspace',
+        name: 'Redly',
         short_name: 'Redly',
-        description: 'Fast, offline-first notes and tasks',
-        theme_color: '#1e1e1e',
-        background_color: '#1e1e1e',
+        description: 'Offline-first Markdown knowledge base',
+        theme_color: '#2563eb',
+        background_color: '#0a1128',
         display: 'standalone',
         icons: [
-          { src: 'redly_logo.png', sizes: '192x192', type: 'image/png' },
-          { src: 'redly_logo.png', sizes: '512x512', type: 'image/png' }
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
         ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,html,png,svg,woff2}']
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'google-fonts-stylesheets',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 365,
+              },
+            },
+          }
+        ]
       }
     })
-  ]
+  ],
+  build: {
+    target: 'esnext'
+  }
 })

@@ -5,7 +5,7 @@ import FileTree from './FileTree';
 import logo from '../assets/logo.png';
 
 export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onGoHome }) {
-    const { tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll, editNode, handleExport, handleImport, isInitializing, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId, expandedFolders, toggleFolder, disconnectWorkspace } = useNotes();
+    const { tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll, editNode, isInitializing, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId, expandedFolders, toggleFolder, disconnectWorkspace } = useNotes();
     const [newName, setNewName] = useState('');
 
     const isAdding = globalAddingState.type;
@@ -109,18 +109,6 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleNewItem, getVisibleNodes, lastInteractedNodeId, expandedFolders, toggleFolder, setActiveFileId, setLastInteractedNodeId]);
-
-    const triggerImport = () => {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-        input.onchange = (e) => {
-            if (e.target.files && e.target.files[0]) {
-                handleImport(e.target.files[0]);
-            }
-        };
-        input.click();
-    };
 
     return (
         <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
@@ -228,39 +216,15 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                 justifyContent: 'center'
             }}>
                 <button
-                    onClick={handleExport}
-                    style={{
-                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                        background: 'var(--bg-accent)', border: 'none', padding: '6px', borderRadius: '4px',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
-                    }}
-                    disabled={isInitializing}
-                    title="Export backup"
-                >
-                    <Download size={14} /> Export
-                </button>
-                <button
-                    onClick={triggerImport}
-                    style={{
-                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                        background: 'var(--bg-accent)', border: 'none', padding: '6px', borderRadius: '4px',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
-                    }}
-                    disabled={isInitializing}
-                    title="Import backup"
-                >
-                    <Upload size={14} /> Import
-                </button>
-                <button
                     onClick={onOpenHelp}
                     style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: 'var(--bg-accent)', border: 'none', padding: '6px', borderRadius: '4px',
-                        color: 'var(--text-secondary)', cursor: 'pointer', minWidth: '32px'
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '14px'
                     }}
                     title="Shortcuts & Help"
                 >
-                    <HelpCircle size={15} />
+                    <HelpCircle size={16} /> Cheatsheet
                 </button>
             </div>
         </aside>
