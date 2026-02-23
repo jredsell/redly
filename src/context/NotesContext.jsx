@@ -17,6 +17,25 @@ export const NotesProvider = ({ children }) => {
 
     const [globalAddingState, setGlobalAddingState] = useState({ type: null, parentId: null });
     const [lastInteractedNodeId, setLastInteractedNodeId] = useState(null);
+    const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+    useEffect(() => {
+        const handleBeforeInstallPrompt = (e) => {
+            e.preventDefault();
+            setDeferredPrompt(e);
+        };
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+    }, []);
+
+    const installApp = async () => {
+        if (!deferredPrompt) return;
+        deferredPrompt.prompt();
+        const { outcome } = await deferredPrompt.userChoice;
+        if (outcome === 'accepted') {
+            setDeferredPrompt(null);
+        }
+    };
 
     // Initial load - check if user already has a workspace configured
     useEffect(() => {
@@ -155,7 +174,8 @@ export const NotesProvider = ({ children }) => {
     const value = {
         nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
         addNode, editNode, removeNode, isInitializing, workspaceHandle, selectWorkspace, disconnectWorkspace,
-        needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId
+        needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
+        installApp, isInstallable: !!deferredPrompt
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

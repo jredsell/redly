@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, Monitor } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 export default function WelcomeScreen({ openHelp }) {
-    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission } = useNotes();
+    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable } = useNotes();
     const [showRecent, setShowRecent] = useState(true);
 
     const recentFiles = nodes
@@ -85,6 +85,17 @@ export default function WelcomeScreen({ openHelp }) {
                             Pick a folder on your PC. Files are saved as visible <code>.md</code> documents. Great for backing up to Google Drive or Dropbox.
                         </p>
                     </button>
+
+                    {/* Option 3: Install App (Conditional) */}
+                    {isInstallable && (
+                        <button onClick={installApp} className="storage-option-btn" style={{ borderStyle: 'dashed' }}>
+                            <Monitor size={32} style={{ color: 'var(--color-today)', marginBottom: '16px' }} />
+                            <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Install as App</h3>
+                            <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
+                                Add Redly to your desktop or mobile home screen for a fast, native-like experience and easy access.
+                            </p>
+                        </button>
+                    )}
                 </div>
 
                 <style>{`
