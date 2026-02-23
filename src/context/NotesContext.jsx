@@ -30,7 +30,7 @@ export const NotesProvider = ({ children }) => {
                     setNeedsPermission(true);
                 }
             } catch (e) {
-                console.error("Initialization failed", e);
+                console.error("Initialisation failed", e);
             } finally {
                 setIsInitializing(false);
             }
@@ -44,7 +44,7 @@ export const NotesProvider = ({ children }) => {
         catch (e) { console.error('Failed to load nodes:', e); }
     }, [workspaceHandle]);
 
-    // NEW: Function to request permission on boot if returning to a local folder
+    // Function to request permission on boot if returning to a local folder
     const grantLocalPermission = async () => {
         if (await requestLocalPermission()) {
             setNeedsPermission(false);
@@ -53,7 +53,7 @@ export const NotesProvider = ({ children }) => {
         }
     };
 
-    // NEW: Updated to handle Tiers 1 and 2
+    // Updated to handle Tiers 1 and 2
     const selectWorkspace = async (mode = 'sandbox') => {
         try {
             await initWorkspace(mode);

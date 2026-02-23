@@ -4,35 +4,46 @@ const STORE_NAME = 'handles';
 
 const getDB = () => new Promise((resolve, reject) => {
   const req = indexedDB.open(DB_NAME, 1);
-  req.onupgradeneeded = (e) => e.target.result.createObjectStore(STORE_NAME);
+  req.onupgradeneeded = (e) => {
+    const db = e.target.result;
+    if (!db.objectStoreNames.contains(STORE_NAME)) {
+      db.createObjectStore(STORE_NAME);
+    }
+  };
   req.onsuccess = (e) => resolve(e.target.result);
   req.onerror = () => reject('IDB Error');
 });
 
 const setHandle = async (key, handle) => {
   const db = await getDB();
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(handle, key);
-    tx.oncomplete = () => resolve();
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.put(handle, key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject('Failed to save handle');
   });
 };
 
 export const getHandle = async (key) => {
   const db = await getDB();
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
-    const req = tx.objectStore(STORE_NAME).get(key);
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.get(key);
     req.onsuccess = () => resolve(req.result);
+    req.onerror = () => reject('Failed to retrieve handle');
   });
 };
 
 export const clearWorkspaceHandle = async () => {
   const db = await getDB();
-  return new Promise((resolve) => {
+  return new Promise((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).clear();
+    const store = tx.objectStore(STORE_NAME);
+    const req = store.clear();
     tx.oncomplete = () => resolve();
+    req.onerror = () => reject('Failed to clear handles');
   });
 };
 
@@ -40,15 +51,20 @@ export const clearWorkspaceHandle = async () => {
 let currentRootHandle = null;
 
 export const initWorkspace = async (mode) => {
-  if (mode === 'sandbox') {
-    currentRootHandle = await navigator.storage.getDirectory(); // OPFS
-    await setHandle('workspace_mode', 'sandbox');
-  } else if (mode === 'local') {
-    currentRootHandle = await window.showDirectoryPicker({ mode: 'readwrite' }); // Native Folder
-    await setHandle('workspace_mode', 'local');
-    await setHandle('local_root', currentRootHandle);
+  try {
+    if (mode === 'sandbox') {
+      currentRootHandle = await navigator.storage.getDirectory(); // OPFS
+      await setHandle('workspace_mode', 'sandbox');
+    } else if (mode === 'local') {
+      currentRootHandle = await window.showDirectoryPicker({ mode: 'readwrite' }); // Native Folder
+      await setHandle('workspace_mode', 'local');
+      await setHandle('local_root', currentRootHandle);
+    }
+    return true;
+  } catch (err) {
+    console.error('Initialisation failed:', err);
+    throw err;
   }
-  return true;
 };
 
 export const loadSavedWorkspace = async () => {
@@ -94,24 +110,29 @@ const getDirHandleFromPath = async (path, create = false) => {
 export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') => {
   if (!dirHandle) return [];
   const nodes = [];
-  for await (const entry of dirHandle.values()) {
-    const nodePath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
+  try {
+    for await (const entry of dirHandle.values()) {
+      const nodePath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
 
-    if (entry.kind === 'file' && entry.name.endsWith('.md')) {
-      const file = await entry.getFile();
-      const content = await file.text();
-      nodes.push({
-        id: nodePath,
-        name: entry.name.replace('.md', ''),
-        type: 'file',
-        parentId: currentPath || null,
-        content
-      });
-    } else if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
-      nodes.push({ id: nodePath, name: entry.name, type: 'folder', parentId: currentPath || null });
-      const children = await getNodes(entry, nodePath);
-      nodes.push(...children);
+      if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+        const file = await entry.getFile();
+        const content = await file.text();
+        nodes.push({
+          id: nodePath,
+          name: entry.name.replace('.md', ''),
+          type: 'file',
+          parentId: currentPath || null,
+          content,
+          updatedAt: file.lastModified
+        });
+      } else if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
+        nodes.push({ id: nodePath, name: entry.name, type: 'folder', parentId: currentPath || null });
+        const children = await getNodes(entry, nodePath);
+        nodes.push(...children);
+      }
     }
+  } catch (err) {
+    console.error('Failed to get nodes:', err);
   }
   return nodes;
 };
@@ -134,7 +155,6 @@ export const updateNode = async (rootPath, id, updates, oldNode) => {
 
   if (updates.name && updates.name !== oldNode.name) {
     // Note: The File System API doesn't have a simple "rename". We have to copy and delete.
-    // For now, if the name changes, we rewrite it.
     if (oldNode.type === 'file') {
       const oldFileHandle = await parentHandle.getFileHandle(`${oldNode.name}.md`);
       const file = await oldFileHandle.getFile();
