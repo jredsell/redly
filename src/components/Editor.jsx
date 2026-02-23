@@ -99,6 +99,13 @@ td.addRule('taskList', {
         return `${isChecked ? '[x]' : '[ ]'} ${content.trim()}\n`;
     }
 });
+td.addRule('fencedCodeBlock', {
+    filter: 'pre',
+    replacement: (content, node) => {
+        const code = node.querySelector('code')?.textContent || content;
+        return `\n\n\`\`\`\n${code}\n\`\`\`\n\n`;
+    }
+});
 
 const SLASH_OPTIONS = [
     { label: 'Heading 1', icon: 'H1', command: (editor) => editor.chain().focus().toggleHeading({ level: 1 }).run() },
@@ -227,8 +234,13 @@ export default function Editor({ fileId }) {
     useEffect(() => {
         const f = nodes.find(n => n.id === fileId);
         if (f && (!file || file.id !== fileId)) {
-            setFile(f); setLocalTitle(f.name || '');
-            if (editor) editor.commands.setContent(f.content || '', false);
+            setFile(f);
+            setLocalTitle(f.name || '');
+            if (editor) {
+                // IMPORTANT: Convert Markdown from storage to HTML for Tiptap
+                const html = md.render(f.content || '');
+                editor.commands.setContent(html, false);
+            }
         }
     }, [fileId, nodes, file, editor]);
 
@@ -261,10 +273,23 @@ export default function Editor({ fileId }) {
                 {/* Custom Bubble (Formatting) Menu */}
                 {bubbleMenu.isOpen && editor && (
                     <div className="custom-bubble-menu" style={{ position: 'fixed', top: bubbleMenu.top, left: bubbleMenu.left, zIndex: 100 }}>
-                        <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''}><Bold size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''}><Italic size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''}><Strikethrough size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''}><Code size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''} title="Heading 1"><Heading1 size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''} title="Heading 2"><Heading2 size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''} title="Heading 3"><Heading3 size={16} /></button>
+                        <button onClick={() => editor.chain().focus().setParagraph().run()} className={editor.isActive('paragraph') ? 'is-active' : ''} title="Text"><span style={{ fontSize: '12px', fontWeight: 'bold' }}>T</span></button>
+
+                        <div className="menu-separator" />
+
+                        <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Bold"><Bold size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''} title="Italic"><Italic size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''} title="Strikethrough"><Strikethrough size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''} title="Code"><Code size={16} /></button>
+
+                        <div className="menu-separator" />
+
+                        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''} title="Bullet List"><List size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''} title="Numbered List"><ListOrdered size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'is-active' : ''} title="Quote"><Quote size={16} /></button>
                     </div>
                 )}
 
@@ -338,6 +363,13 @@ export default function Editor({ fileId }) {
                 .custom-bubble-menu button.is-active {
                     background: var(--accent-color);
                     color: white;
+                }
+                .menu-separator {
+                    width: 1px;
+                    height: 20px;
+                    background: var(--border-color);
+                    align-self: center;
+                    margin: 0 4px;
                 }
                 .title-input {
                     background: transparent;
