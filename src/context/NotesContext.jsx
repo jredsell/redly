@@ -29,11 +29,17 @@ export const NotesProvider = ({ children }) => {
     }, []);
 
     const installApp = async () => {
+        console.log('installApp called, deferredPrompt available:', !!deferredPrompt);
         if (!deferredPrompt) return;
-        deferredPrompt.prompt();
-        const { outcome } = await deferredPrompt.userChoice;
-        if (outcome === 'accepted') {
-            setDeferredPrompt(null);
+        try {
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log('PWA Install User Choice Outcome:', outcome);
+            if (outcome === 'accepted') {
+                setDeferredPrompt(null);
+            }
+        } catch (err) {
+            console.error('PWA Install Prompt Failed:', err);
         }
     };
 

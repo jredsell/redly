@@ -1,5 +1,5 @@
 // --- Lightweight IndexedDB wrapper for Persistence ---
-const DB_NAME = 'RedlyDB';
+const DB_NAME = 'redly';
 const STORE_NAME = 'handles';
 
 const getDB = () => new Promise((resolve, reject) => {

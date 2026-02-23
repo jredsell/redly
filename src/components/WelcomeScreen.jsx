@@ -1,261 +1,255 @@
 import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, Monitor } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, Monitor, CloudUpload, ArrowRight } from 'lucide-react';
 import logo from '../assets/logo.png';
+
+const SHARED_STYLES = `
+    .welcome-container { 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        justify-content: center; 
+        min-height: 100vh; 
+        padding: 40px 20px; 
+        text-align: center; 
+        color: var(--text-primary); 
+        background-color: var(--bg-primary); 
+        overflow-y: auto; 
+    }
+    
+    .primary-action-btn { background: var(--accent-color); color: white; border: none; padding: 16px 32px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 14px 0 rgba(0, 112, 243, 0.39); transition: transform 0.2s, box-shadow 0.2s; display: flex; align-items: center; gap: 12px; }
+    .primary-action-btn:hover { transform: translateY(-2px); }
+    .primary-action-btn:active { transform: scale(0.98); }
+    .primary-action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    
+    .secondary-action-btn { background: transparent; border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; }
+    .secondary-action-btn:hover { background: var(--bg-secondary); border-color: var(--text-tertiary); }
+
+    .welcome-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; gap: 8px; width: 100%; border-bottom-width: 4px; }
+    .welcome-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
+    .welcome-card:active { transform: translateY(0); border-bottom-width: 1px; margin-top: 3px; }
+
+    .storage-option-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 24px; border-radius: 16px; cursor: pointer; text-align: left; max-width: 320px; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: flex-start; height: 100%; border-bottom-width: 4px; }
+    .storage-option-btn:hover { border-color: var(--accent-color); transform: translateY(-4px); }
+    .storage-option-btn:active { transform: translateY(0); border-bottom-width: 1px; margin-top: 3px; }
+
+    .modal-overlay { 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        background: rgba(0,0,0,0.85); 
+        backdrop-filter: blur(12px); 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        z-index: 100000; 
+        padding: 20px;
+    }
+    
+    .modal-content { 
+        background: var(--bg-primary); 
+        padding: 40px; 
+        border-radius: 32px; 
+        border: 1px solid var(--border-color); 
+        box-shadow: 0 30px 60px rgba(0,0,0,0.5); 
+        max-width: 500px; 
+        width: 100%; 
+        text-align: left; 
+        animation: modal-in 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes modal-in {
+        from { opacity: 0; transform: scale(0.9) translateY(20px); }
+        to { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .recent-file-chip { display: flex; align-items: flex-start; gap: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; text-align: left; width: 100%; }
+    .recent-file-chip:hover { border-color: var(--accent-color); background: var(--bg-hover); }
+
+    .badge-cloud { background: rgba(37, 99, 235, 0.1); color: var(--accent-color); padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; }
+`;
 
 export default function WelcomeScreen({ openHelp }) {
     const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable } = useNotes();
     const [showRecent, setShowRecent] = useState(true);
-    const [gdriveStep, setGDriveStep] = useState('idle'); // idle, config, loading
-    const [clientId, setClientId] = useState('747035091008-jcps855ub365ck2893203ucgce1hcn4h.apps.googleusercontent.com');
+    const [status, setStatus] = useState('idle'); // idle, checking, migrating, loading
+    const [showBackupModal, setShowBackupModal] = useState(false);
+
+    const CLIENT_ID = '747035091008-jcps855ub365ck2893203ucgce1hcn4h.apps.googleusercontent.com';
 
     const recentFiles = nodes
         .filter(n => n.type === 'file')
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
         .slice(0, 4);
 
-    const getPath = (node) => {
-        let path = [];
-        let current = node;
-        while (current && current.parentId) {
-            const parent = nodes.find(n => n.id === current.parentId);
-            if (parent) {
-                path.unshift(parent.name);
-                current = parent;
-            } else {
-                break;
-            }
+    const handleGDriveClick = async () => {
+        // If they already have nodes and are switching TO GDrive
+        if (nodes.length > 0 && workspaceHandle) {
+            setShowBackupModal(true);
+        } else {
+            initGDrive(false);
         }
-        return path.length > 0 ? path.join(' > ') + ' > ' : '';
     };
 
-    // --- RECONNECT SCREEN ---
-    // Shown when the user returns to the app and the browser needs them to re-approve the local folder
+    const initGDrive = async (shouldMigrate = false) => {
+        setStatus('loading');
+        setShowBackupModal(false);
+        try {
+            await selectWorkspace('gdrive', { clientId: CLIENT_ID, migrate: shouldMigrate });
+            setStatus('idle');
+        } catch (e) {
+            console.error('GDrive init failed:', e);
+            setStatus('idle');
+            alert('Cloud connection failed. Please try again.');
+        }
+    };
+
+    const renderLogo = (size = 80) => (
+        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
+            <img src={logo} alt="Redly Logo" style={{ width: `${size}px`, height: `${size}px`, borderRadius: '20px', boxShadow: 'var(--shadow-md)' }} />
+        </div>
+    );
+
+    const renderBackupModal = () => {
+        if (!showBackupModal) return null;
+        return (
+            <div className="modal-overlay">
+                <div className="modal-content">
+                    <div className="badge-cloud">Cloud Migration</div>
+                    <h3 style={{ fontSize: '26px', fontWeight: '800', marginBottom: '12px', letterSpacing: '-0.5px' }}>Move your notes to Cloud?</h3>
+                    <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', lineHeight: '1.6', fontSize: '15px' }}>
+                        We detected <strong>{nodes.length}</strong> items in your current storage. Would you like to back them up to Google Drive or start fresh?
+                    </p>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        <button onClick={() => initGDrive(true)} className="primary-action-btn" style={{ width: '100%', justifyContent: 'center' }}>
+                            <CloudUpload size={20} />
+                            Backup & Switch to Cloud
+                        </button>
+                        <button onClick={() => initGDrive(false)} className="secondary-action-btn" style={{ width: '100%', borderStyle: 'dashed' }}>
+                            Start Fresh in Cloud
+                        </button>
+                        <button onClick={() => setShowBackupModal(false)} className="secondary-action-btn" style={{ width: '100%', border: 'none' }}>
+                            Go Back
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    };
+
+    if (status === 'loading') {
+        return (
+            <div className="welcome-container">
+                <style>{SHARED_STYLES}</style>
+                {renderLogo()}
+                <h1 style={{ fontSize: '24px', fontWeight: '700' }}>Connecting to Cloud...</h1>
+                <p style={{ color: 'var(--text-tertiary)' }}>Please complete the authentication in the popup window.</p>
+            </div>
+        );
+    }
+
     if (needsPermission) {
         return (
             <div className="welcome-container">
-                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-                    <img src={logo} alt="Redly Logo" style={{ width: '80px', height: '80px', borderRadius: '20px', boxShadow: 'var(--shadow-md)' }} />
-                </div>
-                <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800' }}>Reconnect Workspace</h1>
-                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '550px', marginBottom: '40px', lineHeight: '1.5' }}>
-                    For your security, your browser requires you to verify access to your local folder each session.
+                <style>{SHARED_STYLES}</style>
+                {renderLogo()}
+                <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800', letterSpacing: '-0.5px' }}>Reconnect Workspace</h1>
+                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '40px', maxWidth: '500px' }}>
+                    Browser security requires you to re-verify access to your local <code>redly</code> folder for this session.
                 </p>
                 <button onClick={grantLocalPermission} className="primary-action-btn">
                     <Unlock size={24} />
-                    Grant Access
+                    Unlock Folder
                 </button>
-                <style>{`
-                    .welcome-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 40px 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-primary); overflow-y: auto; }
-                    .primary-action-btn { background: var(--accent-color); color: white; border: none; padding: 16px 32px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 14px 0 rgba(0, 112, 243, 0.39); transition: transform 0.2s, box-shadow 0.2s; display: flex; align-items: center; gap: 12px; }
-                    .primary-action-btn:active { transform: scale(0.98); }
-                    .primary-action-btn:hover { transform: translateY(-2px); }
-                `}</style>
             </div>
         );
     }
 
-    // --- NEW USER / NO WORKSPACE SCREEN ---
     if (!workspaceHandle) {
         return (
             <div className="welcome-container">
-                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-                    <img src={logo} alt="Redly Logo" style={{ width: '80px', height: '80px', borderRadius: '20px', boxShadow: 'var(--shadow-md)' }} />
-                </div>
-
-                <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800', letterSpacing: '-0.5px' }}>Welcome to Redly</h1>
-                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '550px', marginBottom: '40px', lineHeight: '1.5' }}>
-                    Your offline-first Markdown knowledge base.<br />
-                    Choose how you want to store your data today:
+                <style>{SHARED_STYLES}</style>
+                {renderLogo()}
+                <h1 style={{ fontSize: '42px', marginBottom: '12px', fontWeight: '900', letterSpacing: '-1.5px' }}>Redly</h1>
+                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '48px', maxWidth: '550px', lineHeight: '1.5' }}>
+                    Your private, offline-first Markdown knowledge base.
                 </p>
 
-                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '48px', maxWidth: '800px' }}>
-                    {/* Option 1: OPFS Sandbox */}
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
                     <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn">
-                        <Box size={32} style={{ color: 'var(--color-future)', marginBottom: '16px' }} />
-                        <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Private Browser Vault</h3>
-                        <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
-                            Instant setup, zero permissions. Files are hidden inside your browser's secure sandbox. Perfect for quick use or strict IT environments.
-                        </p>
+                        <Box size={32} style={{ color: 'var(--color-future)', marginBottom: '20px' }} />
+                        <h3 style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px' }}>Private Vault</h3>
+                        <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.5' }}>Store notes in a hidden, secure browser sandbox. Fast and zero-config.</p>
                     </button>
 
-                    {/* Option 2: Local Folder */}
                     <button onClick={() => selectWorkspace('local')} className="storage-option-btn">
-                        <HardDrive size={32} style={{ color: 'var(--accent-color)', marginBottom: '16px' }} />
-                        <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Local Device Folder</h3>
-                        <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
-                            Pick a folder on your PC. Files are saved as visible <code>.md</code> documents. Great for backing up to Google Drive or Dropbox.
-                        </p>
+                        <HardDrive size={32} style={{ color: 'var(--accent-color)', marginBottom: '20px' }} />
+                        <h3 style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px' }}>Local Folder</h3>
+                        <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.5' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
                     </button>
 
-                    {/* Option 3: Google Drive */}
-                    <button onClick={() => setGDriveStep('config')} className="storage-option-btn">
-                        <Monitor size={32} style={{ color: 'var(--color-today)', marginBottom: '16px' }} />
-                        <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Cloud Sync (Google Drive)</h3>
-                        <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
-                            Sync your notes across devices using your own Google Drive. Private, secure, and always available.
-                        </p>
+                    <button onClick={handleGDriveClick} className="storage-option-btn">
+                        <Monitor size={32} style={{ color: 'var(--color-today)', marginBottom: '20px' }} />
+                        <h3 style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px' }}>Cloud Sync</h3>
+                        <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.5' }}>Connect your Google Drive to sync notes across devices seamlessly.</p>
                     </button>
 
-                    {/* Option 4: Install App (Conditional) */}
                     {isInstallable && (
                         <button onClick={installApp} className="storage-option-btn" style={{ borderStyle: 'dashed' }}>
-                            <ShieldCheck size={32} style={{ color: 'var(--color-future)', marginBottom: '16px' }} />
-                            <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Install as App</h3>
-                            <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
-                                Add Redly to your desktop or mobile home screen for a fast, native-like experience and easy access.
-                            </p>
+                            <ShieldCheck size={32} style={{ color: 'var(--color-tomorrow)', marginBottom: '20px' }} />
+                            <h3 style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px' }}>Install as App</h3>
+                            <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.5' }}>Add Redly to your desktop or mobile home screen for the best experience.</p>
                         </button>
                     )}
                 </div>
-
-                {gdriveStep === 'config' && (
-                    <div className="modal-overlay">
-                        <div className="modal-content">
-                            <h3>Google Drive Setup</h3>
-                            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
-                                To use Google Drive, you need a Client ID from the Google Cloud Console.
-                            </p>
-                            <input
-                                type="text"
-                                placeholder="Enter Google Client ID"
-                                value={clientId}
-                                onChange={(e) => setClientId(e.target.value)}
-                                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                            />
-                            <div style={{ display: 'flex', gap: '12px' }}>
-                                <button onClick={() => setGDriveStep('idle')} className="secondary-action-btn">Cancel</button>
-                                <button
-                                    onClick={async () => {
-                                        if (!clientId) return;
-                                        setGDriveStep('loading');
-                                        try {
-                                            await selectWorkspace('gdrive', { clientId });
-                                            setGDriveStep('idle');
-                                        } catch (e) {
-                                            console.error(e);
-                                            setGDriveStep('config');
-                                            alert('Google Drive connection failed. Please check your Client ID and network.');
-                                        }
-                                    }}
-                                    className="primary-action-btn"
-                                    disabled={!clientId || gdriveStep === 'loading'}
-                                >
-                                    {gdriveStep === 'loading' ? 'Initialising...' : 'Continue'}
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                )}
-
-                <style>{`
-                    .welcome-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 40px 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-primary); overflow-y: auto; }
-                    .storage-option-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 24px; border-radius: 16px; cursor: pointer; text-align: left; max-width: 320px; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: flex-start; }
-                    .storage-option-btn:hover { border-color: var(--accent-color); transform: translateY(-4px); box-shadow: var(--shadow-md); }
-                `}</style>
+                {renderBackupModal()}
             </div>
         );
     }
 
-    // --- EXISTING USER DASHBOARD ---
     return (
         <div className="welcome-container">
-            <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-                <img src={logo} alt="Redly Logo" style={{ width: '80px', height: '80px', borderRadius: '20px', boxShadow: 'var(--shadow-md)' }} />
-            </div>
+            <style>{SHARED_STYLES}</style>
+            {renderLogo(60)}
+            <h1 style={{ fontSize: '32px', marginBottom: '32px', fontWeight: '800', letterSpacing: '-0.5px' }}>What's next?</h1>
 
-            <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800', letterSpacing: '-0.5px' }}>Welcome back to Redly</h1>
-            <p style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '550px', marginBottom: '40px', lineHeight: '1.5' }}>
-                Your offline-first Markdown knowledge base.<br />
-                Notes and tasks, <em style={{ color: 'var(--accent-color)', fontWeight: '600', fontStyle: 'normal' }}>redly</em> available.
-            </p>
-
-            <div style={{
-                display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
-                gap: '12px', width: '100%', maxWidth: '600px', marginBottom: '32px'
-            }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', width: '100%', maxWidth: '600px', marginBottom: '48px' }}>
                 <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card">
                     <FileText size={24} style={{ color: 'var(--accent-color)' }} />
-                    <div className="title">Create Note</div>
-                    <div className="desc">Start writing instantly</div>
+                    <span style={{ fontWeight: '600' }}>New Note</span>
                 </button>
-
                 <button onClick={() => addNode('New Folder', 'folder')} className="welcome-card">
                     <FolderPlus size={24} style={{ color: 'var(--color-future)' }} />
-                    <div className="title">Create Folder</div>
-                    <div className="desc">Organise your thoughts</div>
+                    <span style={{ fontWeight: '600' }}>New Folder</span>
                 </button>
-
                 <button onClick={openHelp} className="welcome-card">
                     <ListTodo size={24} style={{ color: 'var(--color-today)' }} />
-                    <div className="title">View Cheatsheet</div>
-                    <div className="desc">Learn Slash & Hotkeys</div>
+                    <span style={{ fontWeight: '600' }}>Help</span>
                 </button>
-            </div>
-
-            <div style={{ fontSize: '12px', color: 'var(--text-tertiary)', display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: '16px', marginBottom: '24px' }}>
-                <span><strong>Alt+N</strong> New Note</span>
-                <span><strong>Alt+F</strong> New Folder</span>
-                <span><strong>Alt+H</strong> Home</span>
-                <span><strong>Alt+W</strong> Workspace</span>
-                <span><strong>Alt+/</strong> Help</span>
             </div>
 
             {recentFiles.length > 0 && (
-                <div style={{ width: '100%', maxWidth: '600px', textAlign: 'left', display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-                    <button
-                        onClick={() => setShowRecent(!showRecent)}
-                        style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', padding: '8px 0', fontSize: '13px', fontWeight: '600' }}
-                    >
-                        <Clock size={16} /> Recent Files {showRecent ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </button>
-
-                    {showRecent && (
-                        <div style={{
-                            display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                            gap: '12px', padding: '12px 0', width: '100%'
-                        }}>
-                            {recentFiles.map(file => {
-                                const folderPath = getPath(file);
-                                return (
-                                    <button
-                                        key={file.id}
-                                        onClick={() => setActiveFileId(file.id)}
-                                        className="recent-file-chip"
-                                        title={`Last edited: ${file.updatedAt ? new Date(file.updatedAt).toLocaleString() : 'Recently'}`}
-                                    >
-                                        <FileText size={16} style={{ color: 'var(--accent-color)', flexShrink: 0, marginTop: '2px' }} />
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden', width: '100%' }}>
-                                            <span className="title">{file.name}</span>
-                                            <span className="path">
-                                                {folderPath ? folderPath.slice(0, -3) : 'Workspace'}
-                                            </span>
-                                        </div>
-                                    </button>
-                                );
-                            })}
-                        </div>
-                    )}
+                <div style={{ width: '100%', maxWidth: '600px', textAlign: 'left' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px' }}>
+                        <Clock size={14} /> Recent Notes
+                    </div>
+                    <div style={{ display: 'grid', gap: '12px' }}>
+                        {recentFiles.map(file => (
+                            <button key={file.id} onClick={() => setActiveFileId(file.id)} className="recent-file-chip">
+                                <FileText size={16} style={{ color: 'var(--accent-color)', marginTop: '2px' }} />
+                                <div style={{ overflow: 'hidden' }}>
+                                    <div style={{ fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</div>
+                                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{new Date(file.updatedAt).toLocaleDateString()}</div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
                 </div>
             )}
-
-            <style>{`
-                .welcome-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 40px 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-primary); overflow-y: auto; }
-                .welcome-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm); gap: 6px; }
-                .welcome-card:hover { border-color: var(--accent-color); transform: translateY(-2px); box-shadow: var(--shadow-md); }
-                .welcome-card .title { font-weight: 600; font-size: 15px; color: var(--text-primary); margin-top: 8px; }
-                .welcome-card .desc { font-size: 13px; color: var(--text-tertiary); }
-                .recent-file-chip { display: flex; align-items: flex-start; gap: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; text-align: left; width: 100%; height: 100%; }
-                .recent-file-chip:hover { border-color: var(--accent-color); background: var(--bg-hover); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
-                .recent-file-chip .title { font-size: 14px; color: var(--text-primary); font-weight: 600; margin-bottom: 2px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-                .recent-file-chip .path { color: var(--text-tertiary); font-size: 11px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-
-                .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
-                .modal-content { background: var(--bg-primary); padding: 32px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-lg); max-width: 400px; width: 90%; text-align: left; }
-                .modal-content h3 { font-size: 20px; font-weight: 800; margin-bottom: 12px; color: var(--text-primary); }
-                .secondary-action-btn { background: transparent; border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; }
-                .secondary-action-btn:hover { background: var(--bg-secondary); border-color: var(--text-tertiary); }
-            `}</style>
+            {renderBackupModal()}
         </div>
     );
 }

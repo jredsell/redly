@@ -169,36 +169,48 @@ export default function Editor({ fileId }) {
         content: '',
         onUpdate: ({ editor }) => debouncedSave({ content: editor.getHTML() }),
         onSelectionUpdate: ({ editor }) => {
-            const { from, empty } = editor.state.selection;
-            if (!empty) {
-                const coords = editor.view.coordsAtPos(from);
-                if (coords) {
-                    setBubbleMenu({ isOpen: true, top: coords.top - 50, left: coords.left });
-                    setSlashMenu(prev => ({ ...prev, isOpen: false }));
-                }
-            } else {
-                setBubbleMenu({ isOpen: false, top: 0, left: 0 });
-
-                const $pos = editor.state.doc.resolve(from);
-                const textBefore = $pos.parent.textBetween(0, $pos.parentOffset, '\n');
-                const match = textBefore.match(/(?:^|\s)\/([a-zA-Z0-9]*)$/);
-                if (match) {
-                    const query = match[1];
-                    const triggerIdx = from - query.length - 1;
-                    const coords = editor.view.coordsAtPos(triggerIdx);
-                    setSlashMenu(prev => ({
-                        isOpen: true,
-                        top: coords.bottom + 4,
-                        left: coords.left,
-                        query: query,
-                        triggerIdx: triggerIdx,
-                        selectedIndex: 0
-                    }));
+            try {
+                const { from, empty } = editor.state.selection;
+                if (!empty) {
+                    const coords = editor.view.coordsAtPos(from);
+                    if (coords && typeof coords.top === 'number' && typeof coords.left === 'number') {
+                        setBubbleMenu({ isOpen: true, top: coords.top - 50, left: coords.left });
+                        setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                    } else {
+                        setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+                    }
                 } else {
-                    setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                    setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+
+                    const $pos = editor.state.doc.resolve(from);
+                    const textBefore = $pos.parent.textBetween(0, $pos.parentOffset, '\n');
+                    const match = textBefore.match(/(?:^|\s)\/([a-zA-Z0-9]*)$/);
+                    if (match) {
+                        const query = match[1];
+                        const triggerIdx = from - query.length - 1;
+                        const coords = editor.view.coordsAtPos(triggerIdx);
+                        if (coords && typeof coords.bottom === 'number' && typeof coords.left === 'number') {
+                            setSlashMenu({
+                                isOpen: true,
+                                top: coords.bottom + 4,
+                                left: coords.left,
+                                query: query,
+                                triggerIdx: triggerIdx,
+                                selectedIndex: 0
+                            });
+                        } else {
+                            setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                        }
+                    } else {
+                        setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                    }
                 }
+            } catch (err) {
+                console.warn('Editor: Suppressed selection update error', err);
+                setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+                setSlashMenu(prev => ({ ...prev, isOpen: false }));
             }
-        }
+        },
     });
 
     const handleTitleChange = useCallback((e) => {

@@ -33,8 +33,8 @@ export const getAccessToken = async (clientId) => {
 
 export const initRootFolder = async (clientId) => {
     await getAccessToken(clientId);
-    // Search for "Redly" folder
-    const q = "name = 'Redly' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+    // Search for "redly" folder
+    const q = "name = 'redly' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
     const data = await driveRequest(`/files?q=${encodeURIComponent(q)}`);
 
     if (data.files && data.files.length > 0) {
@@ -44,7 +44,7 @@ export const initRootFolder = async (clientId) => {
         const res = await driveRequest('/files', {
             method: 'POST',
             body: JSON.stringify({
-                name: 'Redly',
+                name: 'redly',
                 mimeType: 'application/vnd.google-apps.folder'
             })
         });
