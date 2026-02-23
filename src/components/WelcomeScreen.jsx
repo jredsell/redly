@@ -1,15 +1,15 @@
 import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, Cloud, ShieldCheck } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 export default function WelcomeScreen({ openHelp }) {
-    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace } = useNotes();
+    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission } = useNotes();
     const [showRecent, setShowRecent] = useState(true);
 
     const recentFiles = nodes
         .filter(n => n.type === 'file')
-        .sort((a, b) => b.updatedAt - a.updatedAt)
+        .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
         .slice(0, 4);
 
     const getPath = (node) => {
@@ -27,13 +27,36 @@ export default function WelcomeScreen({ openHelp }) {
         return path.length > 0 ? path.join(' > ') + ' > ' : '';
     };
 
+    // --- RECONNECT SCREEN ---
+    // Shown when the user returns to the app and the browser needs them to re-approve the local folder
+    if (needsPermission) {
+        return (
+            <div className="welcome-container">
+                <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
+                    <img src={logo} alt="Redly Logo" style={{ width: '80px', height: '80px', borderRadius: '20px', boxShadow: 'var(--shadow-md)' }} />
+                </div>
+                <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800' }}>Reconnect Workspace</h1>
+                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '550px', marginBottom: '40px', lineHeight: '1.5' }}>
+                    For your security, your browser requires you to verify access to your local folder each session.
+                </p>
+                <button onClick={grantLocalPermission} className="primary-action-btn">
+                    <Unlock size={24} />
+                    Grant Access
+                </button>
+                <style>{`
+                    .welcome-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 40px 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-primary); overflow-y: auto; }
+                    .primary-action-btn { background: var(--accent-color); color: white; border: none; padding: 16px 32px; border-radius: 12px; font-size: 18px; font-weight: bold; cursor: pointer; box-shadow: 0 4px 14px 0 rgba(0, 112, 243, 0.39); transition: transform 0.2s, box-shadow 0.2s; display: flex; align-items: center; gap: 12px; }
+                    .primary-action-btn:active { transform: scale(0.98); }
+                    .primary-action-btn:hover { transform: translateY(-2px); }
+                `}</style>
+            </div>
+        );
+    }
+
+    // --- NEW USER / NO WORKSPACE SCREEN ---
     if (!workspaceHandle) {
         return (
-            <div style={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-                minHeight: '100%', padding: '40px 20px', textAlign: 'center', color: 'var(--text-primary)',
-                backgroundColor: 'var(--bg-primary)', overflowY: 'auto'
-            }}>
+            <div className="welcome-container">
                 <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
                     <img src={logo} alt="Redly Logo" style={{ width: '80px', height: '80px', borderRadius: '20px', boxShadow: 'var(--shadow-md)' }} />
                 </div>
@@ -41,76 +64,41 @@ export default function WelcomeScreen({ openHelp }) {
                 <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800', letterSpacing: '-0.5px' }}>Welcome to Redly</h1>
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', maxWidth: '550px', marginBottom: '40px', lineHeight: '1.5' }}>
                     Your offline-first Markdown knowledge base.<br />
-                    Notes and tasks, <em style={{ color: 'var(--accent-color)', fontWeight: '600', fontStyle: 'normal' }}>redly</em> available.
+                    Choose how you want to store your data today:
                 </p>
 
-                <button
-                    onClick={selectWorkspace}
-                    className="primary-action-btn"
-                    style={{
-                        background: 'var(--accent-color)',
-                        color: 'white',
-                        border: 'none',
-                        padding: '16px 32px',
-                        borderRadius: '12px', fontSize: '18px', fontWeight: 'bold',
-                        cursor: 'pointer',
-                        boxShadow: '0 4px 14px 0 rgba(0, 112, 243, 0.39)',
-                        transition: 'transform 0.2s, box-shadow 0.2s',
-                        display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '48px'
-                    }}
-                    onMouseEnter={e => e.currentTarget.style.transform = 'translateY(-2px)'}
-                    onMouseLeave={e => e.currentTarget.style.transform = 'translateY(0)'}
-                >
-                    <FolderPlus size={24} />
-                    Select Location (Creates 'redly' folder)
-                </button>
+                <div style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', justifyContent: 'center', marginBottom: '48px', maxWidth: '800px' }}>
+                    {/* Option 1: OPFS Sandbox */}
+                    <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn">
+                        <Box size={32} style={{ color: 'var(--color-future)', marginBottom: '16px' }} />
+                        <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Private Browser Vault</h3>
+                        <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
+                            Instant setup, zero permissions. Files are hidden inside your browser's secure sandbox. Perfect for quick use or strict IT environments.
+                        </p>
+                    </button>
 
-                <div style={{
-                    display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))',
-                    gap: '24px', width: '100%', maxWidth: '800px', textAlign: 'left'
-                }}>
-                    <div className="info-card">
-                        <ShieldCheck size={28} style={{ color: 'var(--color-future)', marginBottom: '12px' }} />
-                        <h3 style={{ fontSize: '16px', marginBottom: '8px', fontWeight: '600' }}>Native App</h3>
+                    {/* Option 2: Local Folder */}
+                    <button onClick={() => selectWorkspace('local')} className="storage-option-btn">
+                        <HardDrive size={32} style={{ color: 'var(--accent-color)', marginBottom: '16px' }} />
+                        <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Local Device Folder</h3>
                         <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
-                            Redly is now a fully native Desktop app. Your workspace is always accessible completely offline with zero browser permissions required.
+                            Pick a folder on your PC. Files are saved as visible <code>.md</code> documents. Great for backing up to Google Drive or Dropbox.
                         </p>
-                    </div>
-                    <div className="info-card">
-                        <HardDrive size={28} style={{ color: 'var(--accent-color)', marginBottom: '12px' }} />
-                        <h3 style={{ fontSize: '16px', marginBottom: '8px', fontWeight: '600' }}>True Portability</h3>
-                        <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
-                            Select a <b>USB flash drive</b> and a <code>redly</code> folder will be created so you can take your entire knowledge base anywhere.
-                        </p>
-                    </div>
-                    <div className="info-card">
-                        <Cloud size={28} style={{ color: 'var(--color-today)', marginBottom: '12px' }} />
-                        <h3 style={{ fontSize: '16px', marginBottom: '8px', fontWeight: '600' }}>Instant Cloud Sync</h3>
-                        <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
-                            Select a folder managed by <b>Google Drive</b> or <b>OneDrive</b> to automatically back up and sync your <code>.md</code> files remotely.
-                        </p>
-                    </div>
+                    </button>
                 </div>
 
                 <style>{`
-                    .info-card {
-                        background: var(--bg-secondary); border: 1px solid var(--border-color);
-                        padding: 24px; border-radius: 16px;
-                    }
-                    .primary-action-btn:active {
-                        transform: scale(0.98) !important;
-                    }
+                    .welcome-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 40px 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-primary); overflow-y: auto; }
+                    .storage-option-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 24px; border-radius: 16px; cursor: pointer; text-align: left; max-width: 320px; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: flex-start; }
+                    .storage-option-btn:hover { border-color: var(--accent-color); transform: translateY(-4px); box-shadow: var(--shadow-md); }
                 `}</style>
             </div>
         );
     }
 
+    // --- EXISTING USER DASHBOARD ---
     return (
-        <div style={{
-            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-            minHeight: '100%', padding: '40px 20px', textAlign: 'center', color: 'var(--text-primary)',
-            backgroundColor: 'var(--bg-primary)', overflowY: 'auto'
-        }}>
+        <div className="welcome-container">
             <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
                 <img src={logo} alt="Redly Logo" style={{ width: '80px', height: '80px', borderRadius: '20px', boxShadow: 'var(--shadow-md)' }} />
             </div>
@@ -125,28 +113,19 @@ export default function WelcomeScreen({ openHelp }) {
                 display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
                 gap: '12px', width: '100%', maxWidth: '600px', marginBottom: '32px'
             }}>
-                <button
-                    onClick={() => addNode('Untitled Note', 'file')}
-                    className="welcome-card"
-                >
+                <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card">
                     <FileText size={24} style={{ color: 'var(--accent-color)' }} />
                     <div className="title">Create Note</div>
                     <div className="desc">Start writing instantly</div>
                 </button>
 
-                <button
-                    onClick={() => addNode('New Folder', 'folder')}
-                    className="welcome-card"
-                >
+                <button onClick={() => addNode('New Folder', 'folder')} className="welcome-card">
                     <FolderPlus size={24} style={{ color: 'var(--color-future)' }} />
                     <div className="title">Create Folder</div>
                     <div className="desc">Organise your thoughts</div>
                 </button>
 
-                <button
-                    onClick={openHelp}
-                    className="welcome-card"
-                >
+                <button onClick={openHelp} className="welcome-card">
                     <ListTodo size={24} style={{ color: 'var(--color-today)' }} />
                     <div className="title">View Cheatsheet</div>
                     <div className="desc">Learn Slash & Hotkeys</div>
@@ -182,7 +161,7 @@ export default function WelcomeScreen({ openHelp }) {
                                         key={file.id}
                                         onClick={() => setActiveFileId(file.id)}
                                         className="recent-file-chip"
-                                        title={`Last edited: ${new Date(file.updatedAt).toLocaleString()}`}
+                                        title={`Last edited: ${file.updatedAt ? new Date(file.updatedAt).toLocaleString() : 'Recently'}`}
                                     >
                                         <FileText size={16} style={{ color: 'var(--accent-color)', flexShrink: 0, marginTop: '2px' }} />
                                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start', overflow: 'hidden', width: '100%' }}>
@@ -200,21 +179,12 @@ export default function WelcomeScreen({ openHelp }) {
             )}
 
             <style>{`
-                .welcome-card {
-                    display: flex; flex-direction: column; alignItems: center; justify-content: center;
-                    background: var(--bg-secondary); border: 1px solid var(--border-color);
-                    padding: 16px; border-radius: 12px; cursor: pointer;
-                    transition: all 0.2s ease; box-shadow: var(--shadow-sm); gap: 6px;
-                }
+                .welcome-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 40px 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-primary); overflow-y: auto; }
+                .welcome-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; box-shadow: var(--shadow-sm); gap: 6px; }
                 .welcome-card:hover { border-color: var(--accent-color); transform: translateY(-2px); box-shadow: var(--shadow-md); }
                 .welcome-card .title { font-weight: 600; font-size: 15px; color: var(--text-primary); margin-top: 8px; }
                 .welcome-card .desc { font-size: 13px; color: var(--text-tertiary); }
-                .recent-file-chip {
-                    display: flex; align-items: flex-start; gap: 12px;
-                    background: var(--bg-secondary); border: 1px solid var(--border-color);
-                    padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease;
-                    text-align: left; width: 100%; height: 100%;
-                }
+                .recent-file-chip { display: flex; align-items: flex-start; gap: 12px; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 12px 16px; border-radius: 8px; cursor: pointer; transition: all 0.2s ease; text-align: left; width: 100%; height: 100%; }
                 .recent-file-chip:hover { border-color: var(--accent-color); background: var(--bg-hover); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
                 .recent-file-chip .title { font-size: 14px; color: var(--text-primary); font-weight: 600; margin-bottom: 2px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                 .recent-file-chip .path { color: var(--text-tertiary); font-size: 11px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
