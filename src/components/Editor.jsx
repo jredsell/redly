@@ -172,8 +172,10 @@ export default function Editor({ fileId }) {
             const { from, empty } = editor.state.selection;
             if (!empty) {
                 const coords = editor.view.coordsAtPos(from);
-                setBubbleMenu({ isOpen: true, top: coords.top - 50, left: coords.left });
-                setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                if (coords) {
+                    setBubbleMenu({ isOpen: true, top: coords.top - 50, left: coords.left });
+                    setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                }
             } else {
                 setBubbleMenu({ isOpen: false, top: 0, left: 0 });
 

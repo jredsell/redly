@@ -16,19 +16,21 @@ export default defineConfig({
         theme_color: '#2563eb',
         background_color: '#0a1128',
         display: 'standalone',
+        scope: '/redly/',
+        start_url: '/redly/',
         icons: [
           {
-            src: 'pwa-192x192.png',
+            src: 'redly_logo.png',
             sizes: '192x192',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'redly_logo.png',
             sizes: '512x512',
             type: 'image/png'
           },
           {
-            src: 'pwa-512x512.png',
+            src: 'redly_logo.png',
             sizes: '512x512',
             type: 'image/png',
             purpose: 'any maskable'
