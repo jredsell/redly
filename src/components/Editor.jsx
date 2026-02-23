@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { Trash } from 'lucide-react';
-import { useEditor, EditorContent, ReactNodeViewRenderer, NodeViewWrapper } from '@tiptap/react';
+import { Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, List, ListOrdered, Quote } from 'lucide-react';
+import { useEditor, EditorContent, ReactNodeViewRenderer, NodeViewWrapper, BubbleMenu, FloatingMenu } from '@tiptap/react';
 import { Node, mergeAttributes, InputRule } from '@tiptap/core';
 import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
@@ -419,8 +419,126 @@ export default function Editor({ fileId }) {
                 </div>
             </div>
 
-            <div className="editor-body" style={{ flex: 1, overflowY: 'auto', padding: '24px' }} onKeyDownCapture={handleKeyDown}>
+            <div className="editor-body" style={{ flex: 1, overflowY: 'auto', padding: '24px', position: 'relative' }} onKeyDownCapture={handleKeyDown}>
+                {editor && (
+                    <>
+                        <BubbleMenu editor={editor} tippyOptions={{ duration: 100 }}>
+                            <div className="bubble-menu">
+                                <button
+                                    onClick={() => editor.chain().focus().toggleBold().run()}
+                                    className={editor.isActive('bold') ? 'is-active' : ''}
+                                    title="Bold"
+                                >
+                                    <Bold size={16} />
+                                </button>
+                                <button
+                                    onClick={() => editor.chain().focus().toggleItalic().run()}
+                                    className={editor.isActive('italic') ? 'is-active' : ''}
+                                    title="Italic"
+                                >
+                                    <Italic size={16} />
+                                </button>
+                                <button
+                                    onClick={() => editor.chain().focus().toggleStrike().run()}
+                                    className={editor.isActive('strike') ? 'is-active' : ''}
+                                    title="Strikethrough"
+                                >
+                                    <Strikethrough size={16} />
+                                </button>
+                                <button
+                                    onClick={() => editor.chain().focus().toggleCode().run()}
+                                    className={editor.isActive('code') ? 'is-active' : ''}
+                                    title="Inline Code"
+                                >
+                                    <Code size={16} />
+                                </button>
+                            </div>
+                        </BubbleMenu>
+
+                        <FloatingMenu editor={editor} tippyOptions={{ duration: 100 }}>
+                            <div className="floating-menu">
+                                <button
+                                    onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()}
+                                    className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''}
+                                    title="Heading 1"
+                                >
+                                    <Heading1 size={18} />
+                                </button>
+                                <button
+                                    onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}
+                                    className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''}
+                                    title="Heading 2"
+                                >
+                                    <Heading2 size={18} />
+                                </button>
+                                <button
+                                    onClick={() => editor.chain().focus().toggleBulletList().run()}
+                                    className={editor.isActive('bulletList') ? 'is-active' : ''}
+                                    title="Bullet List"
+                                >
+                                    <List size={18} />
+                                </button>
+                                <button
+                                    onClick={() => editor.chain().focus().toggleOrderedList().run()}
+                                    className={editor.isActive('orderedList') ? 'is-active' : ''}
+                                    title="Numbered List"
+                                >
+                                    <ListOrdered size={18} />
+                                </button>
+                                <button
+                                    onClick={() => editor.chain().focus().toggleBlockquote().run()}
+                                    className={editor.isActive('blockquote') ? 'is-active' : ''}
+                                    title="Quote"
+                                >
+                                    <Quote size={18} />
+                                </button>
+                            </div>
+                        </FloatingMenu>
+                    </>
+                )}
+
                 <EditorContent editor={editor} className="tiptap-container" />
+
+                <style>{`
+                    .bubble-menu, .floating-menu {
+                        display: flex;
+                        background-color: var(--bg-secondary);
+                        padding: 4px;
+                        border-radius: 8px;
+                        border: 1px solid var(--border-color);
+                        box-shadow: var(--shadow-md);
+                        gap: 2px;
+                        backdrop-filter: blur(8px);
+                        -webkit-backdrop-filter: blur(8px);
+                    }
+
+                    .bubble-menu button, .floating-menu button {
+                        background: transparent;
+                        border: none;
+                        border-radius: 4px;
+                        padding: 6px;
+                        color: var(--text-secondary);
+                        cursor: pointer;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        transition: all 0.2s ease;
+                    }
+
+                    .bubble-menu button:hover, .floating-menu button:hover {
+                        background-color: var(--bg-accent);
+                        color: var(--text-primary);
+                    }
+
+                    .bubble-menu button.is-active, .floating-menu button.is-active {
+                        background-color: var(--accent-color);
+                        color: white !important;
+                    }
+
+                    .floating-menu {
+                        padding: 6px;
+                    }
+                `}</style>
 
                 {slashMenu.isOpen && filteredOptions.length > 0 && (
                     <div style={{
