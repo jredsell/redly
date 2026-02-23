@@ -73,9 +73,9 @@ export const NotesProvider = ({ children }) => {
     };
 
     // Updated to handle Tiers 1 and 2
-    const selectWorkspace = async (mode = 'sandbox') => {
+    const selectWorkspace = async (mode = 'sandbox', options = {}) => {
         try {
-            await initWorkspace(mode);
+            await initWorkspace(mode, options);
             setWorkspaceHandle(true);
             setNodes(await getNodes());
         } catch (e) {
@@ -165,7 +165,7 @@ export const NotesProvider = ({ children }) => {
         const node = nodes.find(n => n.id === id);
         if (!node) return;
 
-        await deleteNode(null, id, node.type);
+        await deleteNode(null, id, node.type, node);
         if (activeFileId === id) setActiveFileId(null);
         if (lastInteractedNodeId === id) setLastInteractedNodeId(null);
         await loadNodes();

@@ -6,6 +6,8 @@ import logo from '../assets/logo.png';
 export default function WelcomeScreen({ openHelp }) {
     const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable } = useNotes();
     const [showRecent, setShowRecent] = useState(true);
+    const [gdriveStep, setGDriveStep] = useState('idle'); // idle, config, loading
+    const [clientId, setClientId] = useState('');
 
     const recentFiles = nodes
         .filter(n => n.type === 'file')
@@ -86,10 +88,19 @@ export default function WelcomeScreen({ openHelp }) {
                         </p>
                     </button>
 
-                    {/* Option 3: Install App (Conditional) */}
+                    {/* Option 3: Google Drive */}
+                    <button onClick={() => setGDriveStep('config')} className="storage-option-btn">
+                        <Monitor size={32} style={{ color: 'var(--color-today)', marginBottom: '16px' }} />
+                        <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Cloud Sync (Google Drive)</h3>
+                        <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
+                            Sync your notes across devices using your own Google Drive. Private, secure, and always available.
+                        </p>
+                    </button>
+
+                    {/* Option 4: Install App (Conditional) */}
                     {isInstallable && (
                         <button onClick={installApp} className="storage-option-btn" style={{ borderStyle: 'dashed' }}>
-                            <Monitor size={32} style={{ color: 'var(--color-today)', marginBottom: '16px' }} />
+                            <ShieldCheck size={32} style={{ color: 'var(--color-future)', marginBottom: '16px' }} />
                             <h3 style={{ fontSize: '18px', marginBottom: '8px', fontWeight: '600', color: 'var(--text-primary)' }}>Install as App</h3>
                             <p style={{ fontSize: '14px', color: 'var(--text-tertiary)', lineHeight: '1.5', margin: 0 }}>
                                 Add Redly to your desktop or mobile home screen for a fast, native-like experience and easy access.
@@ -97,6 +108,45 @@ export default function WelcomeScreen({ openHelp }) {
                         </button>
                     )}
                 </div>
+
+                {gdriveStep === 'config' && (
+                    <div className="modal-overlay">
+                        <div className="modal-content">
+                            <h3>Google Drive Setup</h3>
+                            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px' }}>
+                                To use Google Drive, you need a Client ID from the Google Cloud Console.
+                            </p>
+                            <input
+                                type="text"
+                                placeholder="Enter Google Client ID"
+                                value={clientId}
+                                onChange={(e) => setClientId(e.target.value)}
+                                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', marginBottom: '16px', backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                            />
+                            <div style={{ display: 'flex', gap: '12px' }}>
+                                <button onClick={() => setGDriveStep('idle')} className="secondary-action-btn">Cancel</button>
+                                <button
+                                    onClick={async () => {
+                                        if (!clientId) return;
+                                        setGDriveStep('loading');
+                                        try {
+                                            await selectWorkspace('gdrive', { clientId });
+                                            setGDriveStep('idle');
+                                        } catch (e) {
+                                            console.error(e);
+                                            setGDriveStep('config');
+                                            alert('Google Drive connection failed. Please check your Client ID and network.');
+                                        }
+                                    }}
+                                    className="primary-action-btn"
+                                    disabled={!clientId || gdriveStep === 'loading'}
+                                >
+                                    {gdriveStep === 'loading' ? 'Initialising...' : 'Continue'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <style>{`
                     .welcome-container { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100%; padding: 40px 20px; text-align: center; color: var(--text-primary); background-color: var(--bg-primary); overflow-y: auto; }
@@ -199,6 +249,12 @@ export default function WelcomeScreen({ openHelp }) {
                 .recent-file-chip:hover { border-color: var(--accent-color); background: var(--bg-hover); transform: translateY(-2px); box-shadow: var(--shadow-sm); }
                 .recent-file-chip .title { font-size: 14px; color: var(--text-primary); font-weight: 600; margin-bottom: 2px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
                 .recent-file-chip .path { color: var(--text-tertiary); font-size: 11px; width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+                .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(4px); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+                .modal-content { background: var(--bg-primary); padding: 32px; border-radius: 20px; border: 1px solid var(--border-color); box-shadow: var(--shadow-lg); max-width: 400px; width: 90%; text-align: left; }
+                .modal-content h3 { font-size: 20px; font-weight: 800; margin-bottom: 12px; color: var(--text-primary); }
+                .secondary-action-btn { background: transparent; border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; }
+                .secondary-action-btn:hover { background: var(--bg-secondary); border-color: var(--text-tertiary); }
             `}</style>
         </div>
     );
