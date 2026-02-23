@@ -69,9 +69,15 @@ async function checkForUpdates(manualCheck = false) {
                         });
                     }
                 } else if (manualCheck) {
-                    dialog.showErrorBox('Update Check Failed', 'Could not reach GitHub releases. Please check your connection.');
+                    dialog.showErrorBox('Update Check Failed', `Could not reach GitHub releases (Status ${response.statusCode}). Please check your connection or wait 1 hour for rate limits to reset.`);
                 }
             });
+        });
+
+        request.on('error', (error) => {
+            if (manualCheck) {
+                dialog.showErrorBox('Update Check Error', `Network Error: ${error.message}`);
+            }
         });
 
         // Custom User-Agent required by GitHub API
@@ -136,7 +142,7 @@ function setupApplicationMenu() {
                             type: 'info',
                             title: 'About Redly',
                             message: `Redly v${app.getVersion()}`,
-                            detail: "Your offline-first Markdown knowledge base.\n\nCreated by jredsell."
+                            detail: "Your offline-first Markdown knowledge base."
                         });
                     }
                 },

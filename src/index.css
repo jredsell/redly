@@ -296,14 +296,18 @@ body {
 }
 
 .markdown-preview pre {
-  background: var(--bg-accent);
+  background: var(--text-primary);
+  color: var(--bg-primary);
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
+  font-family: monospace;
+  margin: 1.5rem 0;
 }
 
 .markdown-preview pre code {
   background: transparent;
+  color: inherit;
   padding: 0;
 }
 
@@ -396,24 +400,34 @@ body {
   margin: 1.5rem 0;
 }
 
+/* --- UPDATED MULTI-LINE CODE BLOCK STYLES --- */
 .tiptap pre {
-  background: var(--bg-accent);
+  background: var(--text-primary);
+  /* Dark background even in light mode looks great */
+  color: var(--bg-primary);
+  /* Light text */
   padding: 16px;
   border-radius: 8px;
   overflow-x: auto;
-}
-
-.tiptap code {
-  background: var(--bg-accent);
-  padding: 0.2em 0.4em;
-  border-radius: 3px;
   font-family: monospace;
-  font-size: 0.9em;
+  margin: 1.5rem 0;
 }
 
 .tiptap pre code {
   background: transparent;
+  color: inherit;
   padding: 0;
+}
+
+/* --- UPDATED SINGLE-LINE INLINE CODE STYLES --- */
+.tiptap code {
+  background: var(--bg-accent);
+  color: var(--accent-color);
+  /* Give inline code a blue tint */
+  padding: 0.2em 0.4em;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 0.9em;
 }
 
 .tiptap ul,

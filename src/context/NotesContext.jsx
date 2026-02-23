@@ -1,38 +1,33 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { getSavedWorkspaceHandle, saveWorkspaceHandle, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree } from '../lib/db';
+import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree } from '../lib/db';
 
 const NotesContext = createContext(undefined);
 
 export const NotesProvider = ({ children }) => {
     const [nodes, setNodes] = useState([]);
-    const [workspaceHandle, setWorkspaceHandle] = useState(null);
+    const [workspaceHandle, setWorkspaceHandle] = useState(null); // 'active' flag
     const [isInitializing, setIsInitializing] = useState(true);
+    const [needsPermission, setNeedsPermission] = useState(false);
 
-    const [activeFileId, setActiveFileId] = useState(() => {
-        const saved = localStorage.getItem('redly_activeFileId');
-        return saved || null;
-    });
-
+    const [activeFileId, setActiveFileId] = useState(() => localStorage.getItem('redly_activeFileId') || null);
     const [expandedFolders, setExpandedFolders] = useState(() => {
         const saved = localStorage.getItem('redly_expandedFolders');
-        if (saved) {
-            try { return new Set(JSON.parse(saved)); } catch (e) { }
-        }
-        return new Set();
+        return saved ? new Set(JSON.parse(saved)) : new Set();
     });
 
     const [globalAddingState, setGlobalAddingState] = useState({ type: null, parentId: null });
     const [lastInteractedNodeId, setLastInteractedNodeId] = useState(null);
 
-    // Initial load
+    // Initial load - check if user already has a workspace configured
     useEffect(() => {
         const init = async () => {
             try {
-                const savedHandle = await getSavedWorkspaceHandle();
-                if (savedHandle) {
-                    setWorkspaceHandle(savedHandle);
-                    const allNodes = await getNodes(savedHandle);
-                    setNodes(allNodes);
+                const status = await loadSavedWorkspace();
+                if (status === true) {
+                    setWorkspaceHandle(true);
+                    setNodes(await getNodes());
+                } else if (status === 'requires_permission') {
+                    setNeedsPermission(true);
                 }
             } catch (e) {
                 console.error("Initialization failed", e);
@@ -45,77 +40,47 @@ export const NotesProvider = ({ children }) => {
 
     const loadNodes = useCallback(async () => {
         if (!workspaceHandle) return;
-        try {
-            const allNodes = await getNodes(workspaceHandle);
-            setNodes(allNodes);
-        } catch (e) {
-            console.error('Failed to load nodes:', e);
-        }
+        try { setNodes(await getNodes()); }
+        catch (e) { console.error('Failed to load nodes:', e); }
     }, [workspaceHandle]);
 
-    const selectWorkspace = async () => {
-        try {
-            const rootPath = await window.electronAPI.showOpenDialog();
-            if (!rootPath) {
-                setIsInitializing(false);
-                return;
-            }
+    // NEW: Function to request permission on boot if returning to a local folder
+    const grantLocalPermission = async () => {
+        if (await requestLocalPermission()) {
+            setNeedsPermission(false);
+            setWorkspaceHandle(true);
+            setNodes(await getNodes());
+        }
+    };
 
-            await saveWorkspaceHandle(rootPath);
-            setWorkspaceHandle(rootPath);
-            setIsInitializing(true);
-            const allNodes = await getNodes(rootPath);
-            setNodes(allNodes);
+    // NEW: Updated to handle Tiers 1 and 2
+    const selectWorkspace = async (mode = 'sandbox') => {
+        try {
+            await initWorkspace(mode);
+            setWorkspaceHandle(true);
+            setNodes(await getNodes());
         } catch (e) {
-            console.error("Picker error", e);
-            alert(`Could not open directory:\n\n${e.message}`);
-        } finally {
-            setIsInitializing(false);
+            console.error("Workspace selection error", e);
         }
     };
 
     const disconnectWorkspace = async () => {
         await clearWorkspaceHandle();
         setWorkspaceHandle(null);
+        setNeedsPermission(false);
         setNodes([]);
         setActiveFileId(null);
-        setLastInteractedNodeId(null);
         setExpandedFolders(new Set());
     };
 
     useEffect(() => {
-        if (activeFileId) {
-            localStorage.setItem('redly_activeFileId', activeFileId);
-        } else {
-            localStorage.removeItem('redly_activeFileId');
-        }
+        if (activeFileId) localStorage.setItem('redly_activeFileId', activeFileId);
+        else localStorage.removeItem('redly_activeFileId');
     }, [activeFileId]);
 
     useEffect(() => {
         localStorage.setItem('redly_expandedFolders', JSON.stringify(Array.from(expandedFolders)));
     }, [expandedFolders]);
-
-    // Auto-expand folders when a file becomes active
-    useEffect(() => {
-        if (!activeFileId || nodes.length === 0) return;
-        setExpandedFolders(prev => {
-            const next = new Set(prev);
-            let currentId = activeFileId;
-            let modified = false;
-
-            while (currentId) {
-                const node = nodes.find(n => n.id === currentId);
-                if (!node || !node.parentId) break;
-
-                if (!next.has(node.parentId)) {
-                    next.add(node.parentId);
-                    modified = true;
-                }
-                currentId = node.parentId;
-            }
-            return modified ? next : prev;
-        });
-    }, [activeFileId, nodes]);
 
     const tree = buildTree(nodes);
 
@@ -128,19 +93,12 @@ export const NotesProvider = ({ children }) => {
         });
     };
 
-    const expandAll = () => {
-        const folderIds = nodes.filter(n => n.type === 'folder').map(n => n.id);
-        setExpandedFolders(new Set(folderIds));
-    };
-
-    const collapseAll = () => {
-        setExpandedFolders(new Set());
-    };
+    const expandAll = () => setExpandedFolders(new Set(nodes.filter(n => n.type === 'folder').map(n => n.id)));
+    const collapseAll = () => setExpandedFolders(new Set());
 
     const addNode = async (name, type, parentId = null) => {
         if (!workspaceHandle) return;
-
-        const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim(); // Sanitize filename
+        const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim();
         const idPath = parentId ? `${parentId}/${safeName}` : safeName;
 
         let existingNode = nodes.find(n => n.id === idPath);
@@ -153,25 +111,19 @@ export const NotesProvider = ({ children }) => {
             counter++;
         }
 
-        const finalName = finalIdPath.split('/').pop();
-
         const newNode = {
             id: finalIdPath,
-            name: finalName,
+            name: finalIdPath.split('/').pop(),
             type,
             parentId,
             ...(type === 'file' ? { content: '' } : {})
         };
 
-        await createNode(workspaceHandle, newNode);
+        await createNode(null, newNode);
         await loadNodes();
 
-        if (type === 'file') {
-            setActiveFileId(newNode.id);
-        }
-        if (parentId && !expandedFolders.has(parentId)) {
-            setExpandedFolders(prev => new Set(prev).add(parentId));
-        }
+        if (type === 'file') setActiveFileId(newNode.id);
+        if (parentId && !expandedFolders.has(parentId)) setExpandedFolders(prev => new Set(prev).add(parentId));
     };
 
     const editNode = async (id, updates) => {
@@ -179,20 +131,14 @@ export const NotesProvider = ({ children }) => {
         const oldNode = nodes.find(n => n.id === id);
         if (!oldNode) return;
 
-        try {
-            if (updates.name) {
-                updates.name = updates.name.replace(/[\\/:*?"<>|]/g, '-').trim();
-            }
-            const updatedNode = await updateNode(workspaceHandle, id, updates, oldNode);
-            if (updatedNode && updatedNode.id !== id) {
-                if (activeFileId === id) setActiveFileId(updatedNode.id);
-                if (lastInteractedNodeId === id) setLastInteractedNodeId(updatedNode.id);
-            }
-            await loadNodes();
-        } catch (e) {
-            console.error("Edit failed:", e);
-            alert(e.message);
+        if (updates.name) updates.name = updates.name.replace(/[\\/:*?"<>|]/g, '-').trim();
+        const updatedNode = await updateNode(null, id, updates, oldNode);
+
+        if (updatedNode && updatedNode.id !== id) {
+            if (activeFileId === id) setActiveFileId(updatedNode.id);
+            if (lastInteractedNodeId === id) setLastInteractedNodeId(updatedNode.id);
         }
+        await loadNodes();
     };
 
     const removeNode = async (id) => {
@@ -200,37 +146,16 @@ export const NotesProvider = ({ children }) => {
         const node = nodes.find(n => n.id === id);
         if (!node) return;
 
-        await deleteNode(workspaceHandle, id, node.type);
+        await deleteNode(null, id, node.type);
         if (activeFileId === id) setActiveFileId(null);
         if (lastInteractedNodeId === id) setLastInteractedNodeId(null);
         await loadNodes();
     };
 
-    const handleExport = () => alert("Not needed! Your files are already physical .md files in your workspace folder.");
-    const handleImport = () => alert("Not needed! Just drag and drop .md files directly into your workspace folder using your computer's File Explorer.");
-
     const value = {
-        nodes,
-        tree,
-        activeFileId,
-        setActiveFileId,
-        expandedFolders,
-        toggleFolder,
-        expandAll,
-        collapseAll,
-        addNode,
-        editNode,
-        removeNode,
-        handleExport,
-        handleImport,
-        isInitializing,
-        workspaceHandle,
-        selectWorkspace,
-        disconnectWorkspace,
-        globalAddingState,
-        setGlobalAddingState,
-        lastInteractedNodeId,
-        setLastInteractedNodeId
+        nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
+        addNode, editNode, removeNode, isInitializing, workspaceHandle, selectWorkspace, disconnectWorkspace,
+        needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

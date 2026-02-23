@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { Plus, FolderPlus, X, FileText, Download, Upload, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { Plus, FolderPlus, X, FileText, Download, Upload, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp, FolderArchive } from 'lucide-react';
 import FileTree from './FileTree';
 import logo from '../assets/logo.png';
 
@@ -135,27 +135,11 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                             <img src={logo} alt="Redly Logo" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
                             <span style={{ fontWeight: 800, color: 'var(--accent-color)' }}>redly</span>
                         </div>
-                        <button
-                            onClick={disconnectWorkspace}
-                            style={{
-                                background: 'transparent',
-                                border: '1px solid var(--border-color)',
-                                color: 'var(--text-secondary)',
-                                fontSize: '11px',
-                                fontWeight: 500,
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                cursor: 'pointer',
-                                display: 'inline-block',
-                                transition: 'all 0.2s ease'
-                            }}
-                            onMouseEnter={(e) => { e.target.style.background = 'var(--bg-hover)'; e.target.style.borderColor = 'var(--accent-color)'; }}
-                            onMouseLeave={(e) => { e.target.style.background = 'transparent'; e.target.style.borderColor = 'var(--border-color)'; }}
-                        >
-                            Change Workspace
-                        </button>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
+                        <button className="icon-button" onClick={disconnectWorkspace} title="Change Workspace" style={{ marginRight: '8px' }}>
+                            <FolderArchive size={16} />
+                        </button>
                         {expandedFolders.size > 0 ? (
                             <button className="icon-button" onClick={collapseAll} title="Collapse All Folders" style={{ marginRight: '8px' }}>
                                 <ChevronsUp size={14} />
