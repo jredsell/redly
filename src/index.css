@@ -106,8 +106,7 @@ body {
 }
 
 .sidebar-header {
-  height: var(--header-height);
-  padding: 0 16px;
+  padding: 16px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -119,7 +118,12 @@ body {
 .sidebar-content {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: 12px 8px;
+}
+
+.sidebar-footer {
+  flex-shrink: 0;
 }
 
 /* Main Editor Area */

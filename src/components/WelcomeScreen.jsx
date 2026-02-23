@@ -9,7 +9,8 @@ const SHARED_STYLES = `
         flex-direction: column; 
         align-items: center; 
         justify-content: center; 
-        min-height: 100vh; 
+        height: 100%; 
+        width: 100%;
         padding: 40px 20px; 
         text-align: center; 
         color: var(--text-primary); 
@@ -77,7 +78,7 @@ export default function WelcomeScreen({ openHelp }) {
     const [status, setStatus] = useState('idle'); // idle, checking, migrating, loading
     const [showBackupModal, setShowBackupModal] = useState(false);
 
-    const CLIENT_ID = '747035091008-jcps855ub365ck2893203ucgce1hcn4h.apps.googleusercontent.com';
+    const CLIENT_ID = import.meta.env.VITE_GDRIVE_CLIENT_ID;
 
     const recentFiles = nodes
         .filter(n => n.type === 'file')
@@ -97,7 +98,7 @@ export default function WelcomeScreen({ openHelp }) {
         setStatus('loading');
         setShowBackupModal(false);
         try {
-            await selectWorkspace('gdrive', { clientId: CLIENT_ID, migrate: shouldMigrate });
+            await selectWorkspace('gdrive', { migrate: shouldMigrate });
             setStatus('idle');
         } catch (e) {
             console.error('GDrive init failed:', e);
@@ -197,12 +198,20 @@ export default function WelcomeScreen({ openHelp }) {
                         <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.5' }}>Connect your Google Drive to sync notes across devices seamlessly.</p>
                     </button>
 
-                    {isInstallable && (
+                    {isInstallable ? (
                         <button onClick={installApp} className="storage-option-btn" style={{ borderStyle: 'dashed' }}>
                             <ShieldCheck size={32} style={{ color: 'var(--color-tomorrow)', marginBottom: '20px' }} />
                             <h3 style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px' }}>Install as App</h3>
                             <p style={{ fontSize: '13px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.5' }}>Add Redly to your desktop or mobile home screen for the best experience.</p>
                         </button>
+                    ) : (
+                        <div className="storage-option-btn" style={{ borderStyle: 'dashed', opacity: 0.8, cursor: 'default' }}>
+                            <Monitor size={32} style={{ color: 'var(--text-tertiary)', marginBottom: '20px' }} />
+                            <h3 style={{ fontWeight: '700', fontSize: '18px', marginBottom: '8px' }}>PWA Ready</h3>
+                            <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.5' }}>
+                                To install manually: Open browser menu (⋮) → "Install App" or "Save as shortcut".
+                            </p>
+                        </div>
                     )}
                 </div>
                 {renderBackupModal()}

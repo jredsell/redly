@@ -112,7 +112,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
 
     return (
         <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
-            <div className="sidebar-header" style={{ height: 'auto', padding: '16px', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
+            <div className="sidebar-header" style={{ padding: '16px', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                         <div
@@ -139,10 +139,10 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                         )}
                         <div style={{ width: '1px', background: 'var(--border-color)', margin: '4px 0', marginRight: '4px' }}></div>
                         <button className="icon-button" onClick={() => handleNewItem('file')} title="New Note (Alt+N)">
-                            <Plus size={18} />
+                            <Plus size={16} />
                         </button>
                         <button className="icon-button" onClick={() => handleNewItem('folder')} title="New Folder (Alt+F)">
-                            <FolderPlus size={18} />
+                            <FolderPlus size={16} />
                         </button>
                         {isOpen && (
                             <button className="icon-button" onClick={onClose} style={{ display: 'none' /* handled by media query later if needed */ }}>
@@ -208,12 +208,13 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                 )}
             </div>
 
-            <div style={{
+            <div className="sidebar-footer" style={{
                 padding: '12px',
                 borderTop: '1px solid var(--border-color)',
                 display: 'flex',
                 gap: '8px',
-                justifyContent: 'center'
+                justifyContent: 'center',
+                flexShrink: 0
             }}>
                 <button
                     onClick={onOpenHelp}

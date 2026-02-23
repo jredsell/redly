@@ -5,8 +5,9 @@ let accessToken = null;
 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const CLIENT_ID = import.meta.env.VITE_GDRIVE_CLIENT_ID;
 
-export const getAccessToken = async (clientId) => {
+export const getAccessToken = async () => {
     if (accessToken) return accessToken;
     const savedToken = localStorage.getItem('gdrive_token');
     const expiry = localStorage.getItem('gdrive_token_expiry');
@@ -17,7 +18,7 @@ export const getAccessToken = async (clientId) => {
 
     return new Promise((resolve, reject) => {
         const client = window.google.accounts.oauth2.initTokenClient({
-            client_id: clientId,
+            client_id: CLIENT_ID,
             scope: SCOPES,
             callback: (response) => {
                 if (response.error) reject(response);
@@ -31,21 +32,25 @@ export const getAccessToken = async (clientId) => {
     });
 };
 
-export const initRootFolder = async (clientId) => {
-    await getAccessToken(clientId);
-    // Search for "redly" folder
+export const initRootFolder = async () => {
+    await getAccessToken();
+    // Search for "redly" folder (case-insensitive if possible, but created lowercase)
     const q = "name = 'redly' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
-    const data = await driveRequest(`/files?q=${encodeURIComponent(q)}`);
+    const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id,name)`);
 
-    if (data.files && data.files.length > 0) {
-        return data.files[0].id;
+    // Exact match check (Drive API 'name =' is already exact-ish but let's be sure)
+    const existingFolder = data.files && data.files.find(f => f.name.toLowerCase() === 'redly');
+
+    if (existingFolder) {
+        return existingFolder.id;
     } else {
-        // Create it
+        // Create it - MUST BE EXACTLY 'redly'
         const res = await driveRequest('/files', {
             method: 'POST',
             body: JSON.stringify({
                 name: 'redly',
-                mimeType: 'application/vnd.google-apps.folder'
+                mimeType: 'application/vnd.google-apps.folder',
+                description: 'Storage for Redly Markdown notes'
             })
         });
         return res.id;
@@ -53,7 +58,7 @@ export const initRootFolder = async (clientId) => {
 };
 
 const driveRequest = async (path, options = {}) => {
-    const token = accessToken || await getAccessToken(await getHandle('gdrive_client_id'));
+    const token = accessToken || await getAccessToken();
     const url = `https://www.googleapis.com/drive/v3${path}`;
     const res = await fetch(url, {
         ...options,

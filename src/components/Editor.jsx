@@ -11,6 +11,7 @@ import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
 import { parseDateString } from '../utils/dateHelpers';
 import InlineDateInput from './InlineDateInput';
+import CodeBlock from '@tiptap/extension-code-block';
 
 // React Component for TaskItem Node View
 const CustomTaskItemComponent = (props) => {
@@ -102,8 +103,8 @@ td.addRule('taskList', {
 td.addRule('fencedCodeBlock', {
     filter: 'pre',
     replacement: (content, node) => {
-        const code = node.querySelector('code')?.textContent || content;
-        return `\n\n\`\`\`\n${code}\n\`\`\`\n\n`;
+        const code = node.innerText || node.textContent || '';
+        return `\n\n\`\`\`\n${code.trim()}\n\`\`\`\n\n`;
     }
 });
 
@@ -138,7 +139,10 @@ export default function Editor({ fileId }) {
     }, [fileId, editNode]);
 
     const extensions = useMemo(() => [
-        StarterKit.configure({ heading: { levels: [1, 2, 3] }, history: true }),
+        StarterKit.configure({ heading: { levels: [1, 2, 3] }, history: true, codeBlock: false }),
+        CodeBlock.configure({
+            HTMLAttributes: { class: 'tiptap-code-block' },
+        }),
         Placeholder.configure({ placeholder: "Start typing..." }),
         TaskList,
         TaskItem.extend({
@@ -172,9 +176,16 @@ export default function Editor({ fileId }) {
             try {
                 const { from, to, empty } = editor.state.selection;
 
-                // Safety Gate: If selection is massive (> 5000 chars), close menus.
-                // This prevents the 'coordsAtPos' crash on large text selections.
+                // Safety Gate: Only show menus if selection is within a reasonable range
+                // and the editor view is actually focused/occupied.
                 if (!empty && (to - from) < 5000) {
+                    // Use domAtPos to verify the DOM node exists before getting coords
+                    const { node } = editor.view.domAtPos(from);
+                    if (!node) {
+                        setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+                        return;
+                    }
+
                     const coords = editor.view.coordsAtPos(from);
 
                     // Verify coords exist and are valid numbers before updating state

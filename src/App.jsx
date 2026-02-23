@@ -66,7 +66,7 @@ function App() {
 
   if (!workspaceHandle) {
     return (
-      <div className="app-container" style={{ display: 'block', height: '100dvh' }}>
+      <div className="app-container" style={{ height: '100dvh' }}>
         <WelcomeScreen openHelp={() => setHelpOpen(true)} />
         <div style={{ position: 'absolute', top: 24, right: 24, zIndex: 100 }}>
           <button

@@ -18,10 +18,14 @@ export const initWorkspace = async (mode, options = {}) => {
       await setHandle('local_root', handle);
     } else if (mode === 'gdrive') {
       await setHandle('workspace_mode', 'gdrive');
-      if (options.clientId) {
-        await setHandle('gdrive_client_id', options.clientId);
-        const rootId = await gdriveDriver.initRootFolder(options.clientId);
-        await setHandle('gdrive_root_id', rootId);
+      const rootId = await gdriveDriver.initRootFolder();
+      await setHandle('gdrive_root_id', rootId);
+
+      if (options.migrate) {
+        const nodesToMigrate = await localDriver.getNodes();
+        for (const node of nodesToMigrate) {
+          await gdriveDriver.createNode(node);
+        }
       }
     }
     return true;
