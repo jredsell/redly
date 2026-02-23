@@ -75,6 +75,7 @@ export default function InlineDateInput({
                     onBlur={() => commitDateChange(editValue)}
                     autoFocus
                     onClick={(e) => e.stopPropagation()}
+                    aria-label="Edit due date. Type a date like 'friday' or 'tomorrow 5pm'. Press Tab for today."
                     style={{
                         background: 'transparent', border: '1px dashed var(--accent-color)',
                         color: 'var(--accent-color)', fontWeight: '600', fontSize: '11px',
@@ -83,23 +84,24 @@ export default function InlineDateInput({
                     }}
                 />
             ) : (
-                <span
+                <button
                     onClick={(e) => {
                         e.stopPropagation();
                         // Pre-fill "HH:MM" so it's obvious to the user they can add a time
                         setEditValue(isTimeSet ? display : `${display} HH:MM`);
                         setIsEditing(true);
                     }}
+                    aria-label={`Due date: ${display}. Click to edit.`}
                     style={{
                         background: isChecked ? 'var(--bg-secondary)' : dateColor,
                         color: isChecked ? 'var(--text-tertiary)' : 'var(--color-badge-text)',
-                        padding: '2px 6px', borderRadius: '4px',
-                        fontWeight: '600', fontSize: '0.85em', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'text'
+                        padding: '2px 6px', borderRadius: '4px', border: 'none',
+                        fontWeight: '600', fontSize: '0.85em', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer'
                     }}
                     title="Click to edit date/time text"
                 >
-                    {isTimeSet ? '⏱' : '📅'} Due: {display}
-                </span>
+                    <span aria-hidden="true">{isTimeSet ? '⏱' : '📅'}</span> Due: {display}
+                </button>
             )}
         </div>
     );

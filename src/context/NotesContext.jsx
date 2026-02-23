@@ -6,6 +6,7 @@ const NotesContext = createContext(undefined);
 export const NotesProvider = ({ children }) => {
     const [nodes, setNodes] = useState([]);
     const [workspaceHandle, setWorkspaceHandle] = useState(null); // 'active' flag
+    const [storageMode, setStorageMode] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
     const [needsPermission, setNeedsPermission] = useState(false);
 
@@ -50,6 +51,7 @@ export const NotesProvider = ({ children }) => {
                 const status = await loadSavedWorkspace();
                 if (status === true) {
                     setWorkspaceHandle(true);
+                    setStorageMode(localStorage.getItem('idb_workspace_mode'));
                     setNodes(await getNodes());
                 } else if (status === 'requires_permission') {
                     setNeedsPermission(true);
@@ -65,9 +67,39 @@ export const NotesProvider = ({ children }) => {
 
     const loadNodes = useCallback(async () => {
         if (!workspaceHandle) return;
-        try { setNodes(await getNodes()); }
-        catch (e) { console.error('Failed to load nodes:', e); }
+        try {
+            const freshNodes = await getNodes();
+            // Simple hash comparison to avoid unnecessary state updates
+            setNodes(prev => {
+                const prevJson = JSON.stringify(prev);
+                const nextJson = JSON.stringify(freshNodes);
+                if (prevJson === nextJson) return prev;
+                return freshNodes;
+            });
+        }
+        catch (e) {
+            console.error('Failed to load nodes:', e);
+            if (e.status === 401) disconnectWorkspace(); // Handle expired tokens
+        }
     }, [workspaceHandle]);
+
+    // Focus refresh & Periodic polling for GDrive
+    useEffect(() => {
+        if (!workspaceHandle || storageMode !== 'gdrive') return;
+
+        const refresh = () => {
+            console.log('[GDrive] Refreshing nodes from cloud...');
+            loadNodes();
+        };
+
+        window.addEventListener('focus', refresh);
+        const poll = setInterval(refresh, 30000); // 30s poll
+
+        return () => {
+            window.removeEventListener('focus', refresh);
+            clearInterval(poll);
+        };
+    }, [workspaceHandle, storageMode, loadNodes]);
 
     // Function to request permission on boot if returning to a local folder
     const grantLocalPermission = async () => {
@@ -82,6 +114,7 @@ export const NotesProvider = ({ children }) => {
     const selectWorkspace = async (mode = 'sandbox', options = {}) => {
         try {
             await initWorkspace(mode, options);
+            setStorageMode(mode);
             setWorkspaceHandle(true);
             setNodes(await getNodes());
         } catch (e) {
@@ -92,6 +125,7 @@ export const NotesProvider = ({ children }) => {
     const disconnectWorkspace = async () => {
         await clearWorkspaceHandle();
         setWorkspaceHandle(null);
+        setStorageMode(null);
         setNeedsPermission(false);
         setNodes([]);
         setActiveFileId(null);
@@ -179,7 +213,7 @@ export const NotesProvider = ({ children }) => {
 
     const value = {
         nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
-        addNode, editNode, removeNode, isInitializing, workspaceHandle, selectWorkspace, disconnectWorkspace,
+        addNode, editNode, removeNode, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
         installApp, isInstallable: !!deferredPrompt
     };

@@ -111,7 +111,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
     }, [handleNewItem, getVisibleNodes, lastInteractedNodeId, expandedFolders, toggleFolder, setActiveFileId, setLastInteractedNodeId]);
 
     return (
-        <aside className={`sidebar ${isOpen ? 'open' : ''}`}>
+        <aside className={`sidebar ${isOpen ? 'open' : ''}`} role="navigation" aria-label="Main Navigation">
             <div className="sidebar-header" style={{ padding: '16px', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
@@ -119,34 +119,33 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                             style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}
                             onClick={onGoHome}
                             title="Go to Home"
+                            role="button"
+                            aria-label="Redly Home"
                         >
-                            <img src={logo} alt="Redly Logo" style={{ width: '24px', height: '24px', borderRadius: '6px' }} />
+                            <img src={logo} alt="" style={{ width: '24px', height: '24px', borderRadius: '6px' }} aria-hidden="true" />
                             <span style={{ fontWeight: 800, color: 'var(--accent-color)' }}>redly</span>
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
-                        <button className="icon-button" onClick={disconnectWorkspace} title="Change Workspace" style={{ marginRight: '8px' }}>
-                            <FolderArchive size={16} />
-                        </button>
                         {expandedFolders.size > 0 ? (
-                            <button className="icon-button" onClick={collapseAll} title="Collapse All Folders" style={{ marginRight: '8px' }}>
-                                <ChevronsUp size={14} />
+                            <button className="icon-button" onClick={collapseAll} title="Collapse All Folders" aria-label="Collapse All Folders" style={{ marginRight: '8px' }}>
+                                <ChevronsUp size={14} aria-hidden="true" />
                             </button>
                         ) : (
-                            <button className="icon-button" onClick={expandAll} title="Expand All Folders" style={{ marginRight: '8px' }}>
-                                <ChevronsDown size={14} />
+                            <button className="icon-button" onClick={expandAll} title="Expand All Folders" aria-label="Expand All Folders" style={{ marginRight: '8px' }}>
+                                <ChevronsDown size={14} aria-hidden="true" />
                             </button>
                         )}
                         <div style={{ width: '1px', background: 'var(--border-color)', margin: '4px 0', marginRight: '4px' }}></div>
-                        <button className="icon-button" onClick={() => handleNewItem('file')} title="New Note (Alt+N)">
-                            <Plus size={16} />
+                        <button className="icon-button" onClick={() => handleNewItem('file')} title="New Note (Alt+N)" aria-label="Create New Note">
+                            <Plus size={16} aria-hidden="true" />
                         </button>
-                        <button className="icon-button" onClick={() => handleNewItem('folder')} title="New Folder (Alt+F)">
-                            <FolderPlus size={16} />
+                        <button className="icon-button" onClick={() => handleNewItem('folder')} title="New Folder (Alt+F)" aria-label="Create New Folder">
+                            <FolderPlus size={16} aria-hidden="true" />
                         </button>
                         {isOpen && (
-                            <button className="icon-button" onClick={onClose} style={{ display: 'none' /* handled by media query later if needed */ }}>
-                                <X size={18} />
+                            <button className="icon-button" onClick={onClose} style={{ display: 'none' }} aria-label="Close Sidebar">
+                                <X size={18} aria-hidden="true" />
                             </button>
                         )}
                     </div>
@@ -154,6 +153,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
 
                 <button
                     onClick={setShowTasks}
+                    aria-label="View Global Tasks"
                     style={{
                         display: 'flex', alignItems: 'center', gap: '8px', padding: '8px',
                         background: 'var(--bg-secondary)', border: 'none', borderRadius: '6px',
@@ -163,13 +163,15 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                     onMouseEnter={(e) => e.target.style.background = 'var(--bg-hover)'}
                     onMouseLeave={(e) => e.target.style.background = 'var(--bg-secondary)'}
                 >
-                    <CheckSquare size={16} style={{ color: 'var(--accent-color)' }} />
+                    <CheckSquare size={16} style={{ color: 'var(--accent-color)' }} aria-hidden="true" />
                     Global Tasks
                 </button>
             </div>
 
             <div
                 className="sidebar-content"
+                role="tree"
+                aria-label="Notes Explorer"
                 onClick={() => setLastInteractedNodeId(null)}
                 onDragOver={e => {
                     e.preventDefault();
@@ -218,6 +220,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
             }}>
                 <button
                     onClick={onOpenHelp}
+                    aria-label="Open Keyboard Shortcuts and Help"
                     style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
                         background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
@@ -225,7 +228,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                     }}
                     title="Shortcuts & Help"
                 >
-                    <HelpCircle size={16} /> Cheatsheet
+                    <HelpCircle size={16} aria-hidden="true" /> Magic Guide
                 </button>
             </div>
         </aside>

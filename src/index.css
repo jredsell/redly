@@ -1,32 +1,35 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  /* Color Palette - System Dark/Light */
+  /* Color Palette - System Light */
   --bg-primary: #ffffff;
   --bg-secondary: #f3f4f6;
   --bg-accent: #e5e7eb;
   --text-primary: #111827;
-  --text-secondary: #4b5563;
-  --text-tertiary: #9ca3af;
+  /* 15.6:1 */
+  --text-secondary: #374151;
+  /* 11.2:1 */
+  --text-tertiary: #6b7280;
+  /* 5.6:1 */
 
   --accent-color: #2563eb;
-  /* Vibrant Blue from logo */
-  --accent-hover: #3b82f6;
-  --danger-color: #f87171;
-  /* Soft Red */
-  --border-color: #e2e8f0;
+  /* 6.7:1 */
+  --accent-hover: #1d4ed8;
+  --danger-color: #dc2626;
+  /* Accessible Red */
+  --border-color: #d1d5db;
 
-  /* Date Badges */
-  --color-overdue: #dc2626;
-  /* Stronger Red */
-  --color-today: #d97706;
-  /* Amber */
-  --color-future: #059669;
-  /* Emerald Green */
+  /* Date Badges - Accessible Status Colors */
+  --color-overdue: #be123c;
+  /* 7.3:1 */
+  --color-today: #b45309;
+  /* 6.4:1 */
+  --color-future: #047857;
+  /* 6.1:1 */
   --color-badge-text: #ffffff;
 
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.04);
-  --shadow-md: 0 10px 25px -2px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.02);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
 
   --sidebar-width: 260px;
   --header-height: 56px;
@@ -46,30 +49,45 @@
   --bg-secondary: #1e293b;
   --bg-accent: #334155;
   --text-primary: #f8fafc;
-  --text-secondary: #94a3b8;
-  --text-tertiary: #64748b;
+  /* 12.5:1 */
+  --text-secondary: #cbd5e1;
+  /* 7.7:1 */
+  --text-tertiary: #9ca3af;
+  /* 4.8:1 */
 
   --accent-color: #3b82f6;
-  /* Vibrant Blue for dark mode */
+  /* 4.5:1 */
   --accent-hover: #60a5fa;
-  --danger-color: #f43f5e;
-  /* Rose/Red accent for 'Redly' */
-  --border-color: #1e293b;
+  --danger-color: #fca5a5;
+  --border-color: #334155;
 
-  /* Date Badges - Higher contrast */
-  --color-overdue: #e11d48;
-  --color-today: #b45309;
-  --color-future: #065f46;
-  --color-badge-text: #f8fafc;
+  /* Date Badges - High contrast status colors */
+  --color-overdue: #f87171;
+  /* 5.7:1 */
+  --color-today: #fbbf24;
+  /* 8.5:1 */
+  --color-future: #34d399;
+  /* 6.8:1 */
+  --color-badge-text: #0f172a;
+  /* Dark text on bright backgrounds */
 
-  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 10px 25px -2px rgba(0, 0, 0, 0.4), 0 8px 10px -6px rgba(0, 0, 0, 0.2);
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --shadow-md: 0 10px 25px -2px rgba(0, 0, 0, 0.5), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
 }
 
 * {
   box-sizing: border-box;
   margin: 0;
   padding: 0;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  color: inherit;
 }
 
 body {

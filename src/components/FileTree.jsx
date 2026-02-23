@@ -116,6 +116,9 @@ export default function FileTree({ node, depth }) {
         <div>
             <div
                 className={`tree-item ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
+                role="treeitem"
+                aria-expanded={isFolder ? isExpanded : undefined}
+                aria-selected={isActive}
                 style={{ '--depth': depth }}
                 onClick={handleClick}
                 title={node.name}
@@ -124,9 +127,16 @@ export default function FileTree({ node, depth }) {
                 onDragOver={isFolder ? handleDragOver : undefined}
                 onDragLeave={isFolder ? handleDragLeave : undefined}
                 onDrop={isFolder ? handleDrop : undefined}
+                tabIndex={0}
+                onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleClick(e);
+                    }
+                }}
             >
                 <div className="tree-item-content">
-                    <span className="icon-color" style={{ color: isFolder ? 'var(--accent-color)' : 'var(--text-tertiary)', display: 'flex' }}>
+                    <span className="icon-color" style={{ color: isFolder ? 'var(--accent-color)' : 'var(--text-tertiary)', display: 'flex' }} aria-hidden="true">
                         {isFolder ? (isExpanded ? <FolderOpen size={16} /> : <Folder size={16} />) : <FileText size={16} />}
                     </span>
 
@@ -158,8 +168,11 @@ export default function FileTree({ node, depth }) {
                         className="icon-button"
                         onClick={(e) => { e.stopPropagation(); setShowMenu(!showMenu); }}
                         style={{ padding: '2px', opacity: showMenu ? 1 : '' }}
+                        aria-label={`Options for ${node.name}`}
+                        aria-haspopup="true"
+                        aria-expanded={showMenu}
                     >
-                        <MoreVertical size={14} className={isActive ? 'icon-color' : ''} />
+                        <MoreVertical size={14} className={isActive ? 'icon-color' : ''} aria-hidden="true" />
                     </button>
 
                     {showMenu && (
@@ -171,20 +184,20 @@ export default function FileTree({ node, depth }) {
                         }}>
                             {isFolder && (
                                 <>
-                                    <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => startAdding(e, 'file')}>
-                                        <Plus size={14} /> New Note
+                                    <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => startAdding(e, 'file')} aria-label="Create New Note in this folder">
+                                        <Plus size={14} aria-hidden="true" /> New Note
                                     </button>
-                                    <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => startAdding(e, 'folder')}>
-                                        <FolderPlus size={14} /> New Folder
+                                    <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => startAdding(e, 'folder')} aria-label="Create New Folder in this folder">
+                                        <FolderPlus size={14} aria-hidden="true" /> New Folder
                                     </button>
-                                    <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }}></div>
+                                    <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} aria-hidden="true"></div>
                                 </>
                             )}
-                            <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { e.stopPropagation(); setIsEditing(true); setShowMenu(false); }}>
-                                <Edit2 size={14} /> Rename
+                            <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { e.stopPropagation(); setIsEditing(true); setShowMenu(false); }} aria-label={`Rename ${node.name}`}>
+                                <Edit2 size={14} aria-hidden="true" /> Rename
                             </button>
-                            <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px', color: 'var(--danger-color)' }} onClick={handleDelete}>
-                                <Trash2 size={14} /> Delete
+                            <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px', color: 'var(--danger-color)' }} onClick={handleDelete} aria-label={`Delete ${node.name}`}>
+                                <Trash2 size={14} aria-hidden="true" /> Delete
                             </button>
                         </div>
                     )}
@@ -196,7 +209,7 @@ export default function FileTree({ node, depth }) {
                     {isAddingMode && (
                         <div className="tree-item" style={{ '--depth': depth + 1, backgroundColor: 'transparent' }}>
                             <div className="tree-item-content">
-                                <span style={{ color: 'var(--text-tertiary)' }}>
+                                <span style={{ color: 'var(--text-tertiary)' }} aria-hidden="true">
                                     {isAddingMode === 'folder' ? <FolderPlus size={16} /> : <FileText size={16} />}
                                 </span>
                                 <form onSubmit={handleAddSubmit} style={{ width: '100%' }}>

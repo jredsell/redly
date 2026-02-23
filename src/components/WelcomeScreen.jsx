@@ -26,11 +26,11 @@ const SHARED_STYLES = `
     .secondary-action-btn { background: transparent; border: 1px solid var(--border-color); padding: 12px 24px; border-radius: 12px; font-weight: 600; cursor: pointer; color: var(--text-secondary); transition: all 0.2s; }
     .secondary-action-btn:hover { background: var(--bg-secondary); border-color: var(--text-tertiary); }
 
-    .welcome-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; gap: 8px; width: 100%; border-bottom-width: 4px; }
+    .welcome-card { display: flex; flex-direction: column; align-items: center; justify-content: center; background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 12px; cursor: pointer; transition: all 0.2s ease; gap: 8px; width: 100%; border-bottom-width: 4px; color: var(--text-primary); }
     .welcome-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
     .welcome-card:active { transform: translateY(0); border-bottom-width: 1px; margin-top: 3px; }
 
-    .storage-option-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; cursor: pointer; text-align: left; max-width: 240px; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: flex-start; height: 100%; border-bottom-width: 4px; }
+    .storage-option-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; cursor: pointer; text-align: left; max-width: 240px; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: flex-start; height: 100%; border-bottom-width: 4px; color: var(--text-primary); }
     .storage-option-btn:hover { border-color: var(--accent-color); transform: translateY(-4px); }
     .storage-option-btn:active { transform: translateY(0); border-bottom-width: 1px; margin-top: 3px; }
 
@@ -162,8 +162,8 @@ export default function WelcomeScreen({ openHelp }) {
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '40px', maxWidth: '500px' }}>
                     Browser security requires you to re-verify access to your local <code>redly</code> folder for this session.
                 </p>
-                <button onClick={grantLocalPermission} className="primary-action-btn">
-                    <Unlock size={24} />
+                <button onClick={grantLocalPermission} className="primary-action-btn" aria-label="Unlock Folder and grant storage permissions">
+                    <Unlock size={24} aria-hidden="true" />
                     Unlock Folder
                 </button>
             </div>
@@ -181,33 +181,33 @@ export default function WelcomeScreen({ openHelp }) {
                 </p>
 
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
-                    <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn">
-                        <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} />
-                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Private Vault</h3>
+                    <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
+                        <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} aria-hidden="true" />
+                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Browser Storage</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Store notes in a hidden, secure browser sandbox. Fast and zero-config.</p>
                     </button>
 
-                    <button onClick={() => selectWorkspace('local')} className="storage-option-btn">
-                        <HardDrive size={24} style={{ color: 'var(--accent-color)', marginBottom: '12px' }} />
-                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Local Folder</h3>
+                    <button onClick={() => selectWorkspace('local')} className="storage-option-btn" aria-label="Select Local Storage: Visible markdown files on your computer">
+                        <HardDrive size={24} style={{ color: 'var(--accent-color)', marginBottom: '12px' }} aria-hidden="true" />
+                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Local Storage</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
                     </button>
 
-                    <button onClick={handleGDriveClick} className="storage-option-btn">
-                        <Monitor size={24} style={{ color: 'var(--color-today)', marginBottom: '12px' }} />
-                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Cloud Sync</h3>
+                    <button onClick={handleGDriveClick} className="storage-option-btn" aria-label="Select Cloud Storage: Google Drive synchronization">
+                        <Monitor size={24} style={{ color: 'var(--color-today)', marginBottom: '12px' }} aria-hidden="true" />
+                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Cloud Storage</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Connect your Google Drive to sync notes across devices seamlessly.</p>
                     </button>
 
                     {isInstallable ? (
-                        <button onClick={installApp} className="storage-option-btn" style={{ borderStyle: 'dashed' }}>
-                            <ShieldCheck size={24} style={{ color: 'var(--color-tomorrow)', marginBottom: '12px' }} />
+                        <button onClick={installApp} className="storage-option-btn" style={{ borderStyle: 'dashed' }} aria-label="Install Redly as a Desktop App">
+                            <ShieldCheck size={24} style={{ color: 'var(--color-tomorrow)', marginBottom: '12px' }} aria-hidden="true" />
                             <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Install as App</h3>
                             <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Add Redly to your desktop or mobile home screen for the best experience.</p>
                         </button>
                     ) : (
-                        <div className="storage-option-btn" style={{ borderStyle: 'dashed', opacity: 0.8, cursor: 'default' }}>
-                            <Monitor size={24} style={{ color: 'var(--text-tertiary)', marginBottom: '12px' }} />
+                        <div className="storage-option-btn" style={{ borderStyle: 'dashed', opacity: 0.8, cursor: 'default' }} role="status" aria-label="PWA status: Install via browser menu if needed">
+                            <Monitor size={24} style={{ color: 'var(--text-tertiary)', marginBottom: '12px' }} aria-hidden="true" />
                             <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>PWA Ready</h3>
                             <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>
                                 To install manually: Open browser menu (⋮) → "Install App" or "Save as shortcut".
@@ -227,16 +227,16 @@ export default function WelcomeScreen({ openHelp }) {
             <h1 style={{ fontSize: '32px', marginBottom: '32px', fontWeight: '800', letterSpacing: '-0.5px' }}>What's next?</h1>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', width: '100%', maxWidth: '600px', marginBottom: '48px' }}>
-                <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card">
-                    <FileText size={24} style={{ color: 'var(--accent-color)' }} />
+                <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card" aria-label="Create a New Note">
+                    <FileText size={24} style={{ color: 'var(--accent-color)' }} aria-hidden="true" />
                     <span style={{ fontWeight: '600' }}>New Note</span>
                 </button>
-                <button onClick={() => addNode('New Folder', 'folder')} className="welcome-card">
-                    <FolderPlus size={24} style={{ color: 'var(--color-future)' }} />
+                <button onClick={() => addNode('New Folder', 'folder')} className="welcome-card" aria-label="Create a New Folder">
+                    <FolderPlus size={24} style={{ color: 'var(--color-future)' }} aria-hidden="true" />
                     <span style={{ fontWeight: '600' }}>New Folder</span>
                 </button>
-                <button onClick={openHelp} className="welcome-card">
-                    <ListTodo size={24} style={{ color: 'var(--color-today)' }} />
+                <button onClick={openHelp} className="welcome-card" aria-label="Open Help and Shortcuts">
+                    <ListTodo size={24} style={{ color: 'var(--color-today)' }} aria-hidden="true" />
                     <span style={{ fontWeight: '600' }}>Help</span>
                 </button>
             </div>

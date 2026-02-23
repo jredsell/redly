@@ -25,6 +25,12 @@ const waitForGoogle = () => {
     });
 };
 
+export const resetAccessToken = () => {
+    accessToken = null;
+    localStorage.removeItem('gdrive_token');
+    localStorage.removeItem('gdrive_token_expiry');
+};
+
 export const getAccessToken = async () => {
     if (accessToken) return accessToken;
     const savedToken = localStorage.getItem('gdrive_token');
@@ -135,10 +141,28 @@ export const getNodes = async () => {
 };
 
 export const createNode = async (node) => {
-    // Note: This is simplified. Proper recursive ID lookup would be better for nested folders.
-    // For now, we assume parentId is available or root.
     const rootId = await getHandle('gdrive_root_id');
-    const parentGDriveId = node.parentId ? /* lookup in local nodes? logic needed */ rootId : rootId;
+
+    // Resolve the GDrive ID of the parent folder
+    let parentGDriveId = rootId;
+    if (node.parentId) {
+        const parts = node.parentId.split('/');
+        let currentFolderId = rootId;
+
+        for (const part of parts) {
+            const q = `'${currentFolderId}' in parents and name = '${part}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+            const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+            if (data.files && data.files.length > 0) {
+                currentFolderId = data.files[0].id;
+            } else {
+                // Should not happen if app state is in sync, but fallback to root
+                console.warn(`[GDrive] Could not find parent folder ID for ${part}, falling back to root`);
+                currentFolderId = rootId;
+                break;
+            }
+        }
+        parentGDriveId = currentFolderId;
+    }
 
     const metadata = {
         name: node.type === 'file' ? `${node.name}.md` : node.name,

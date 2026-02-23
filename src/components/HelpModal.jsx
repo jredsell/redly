@@ -1,11 +1,23 @@
 import React from 'react';
-import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun } from 'lucide-react';
+import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, Cloud, RefreshCw } from 'lucide-react';
+import { useNotes } from '../context/NotesContext';
+import logo from '../assets/logo.png';
 
 export default function HelpModal({ isOpen, onClose }) {
+    const { storageMode, disconnectWorkspace } = useNotes();
     if (!isOpen) return null;
 
+    const getStorageInfo = () => {
+        if (storageMode === 'local') return { name: 'Local Storage', icon: <HardDrive size={18} aria-hidden="true" />, detail: 'Mapped to your computer' };
+        if (storageMode === 'gdrive') return { name: 'Cloud Storage', icon: <Cloud size={18} aria-hidden="true" />, detail: 'Google Drive' };
+        if (storageMode === 'sandbox') return { name: 'Browser Storage', icon: <Box size={18} aria-hidden="true" />, detail: 'Private Vault' };
+        return { name: 'Unknown', icon: <Box size={18} aria-hidden="true" />, detail: 'Not connected' };
+    };
+
+    const storage = getStorageInfo();
+
     return (
-        <div className="modal-overlay" onClick={onClose} style={{
+        <div className="modal-overlay" onClick={onClose} role="dialog" aria-modal="true" aria-labelledby="help-modal-title" style={{
             position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100,
             display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)'
         }}>
@@ -15,14 +27,38 @@ export default function HelpModal({ isOpen, onClose }) {
                 maxHeight: '90vh', overflowY: 'auto'
             }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                    <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>App Shortcuts & Help</h2>
-                    <button onClick={onClose} className="icon-button" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={20} /></button>
+                    <h2 id="help-modal-title" style={{ margin: 0, fontSize: '1.25rem', fontWeight: 600 }}>App Shortcuts & Help</h2>
+                    <button onClick={onClose} className="icon-button" aria-label="Close Help" style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-secondary)' }}><X size={20} aria-hidden="true" /></button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', marginBottom: '8px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+                            <div style={{ background: 'var(--bg-primary)', padding: '8px', borderRadius: '10px', color: 'var(--accent-color)' }} aria-hidden="true">
+                                {storage.icon}
+                            </div>
+                            <div style={{ flex: 1 }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase', fontWeight: 700, letterSpacing: '0.5px' }}>Current Storage</div>
+                                <div style={{ fontSize: '15px', fontWeight: 700 }}>{storage.name}</div>
+                            </div>
+                            <button
+                                onClick={() => { disconnectWorkspace(); onClose(); }}
+                                className="secondary-action-btn"
+                                aria-label="Change current storage location"
+                                style={{ padding: '8px 12px', fontSize: '12px', borderStyle: 'dashed', borderRadius: '8px' }}
+                            >
+                                <RefreshCw size={14} style={{ marginRight: '6px' }} aria-hidden="true" />
+                                Change
+                            </button>
+                        </div>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', opacity: 0.8 }}>
+                            {storage.detail}. Your notes are stored here securely and privately.
+                        </p>
+                    </div>
+
                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
                         <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Command size={18} style={{ color: 'var(--accent-color)' }} /> Slash Commands
+                            <Command size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Slash Commands
                         </h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                             Type <kbd style={kbdStyle}>/</kbd> inside any note to open the rich formatting menu. You can quickly add Headings, Todo lists, blockquotes, and lists natively while you type.
@@ -31,7 +67,7 @@ export default function HelpModal({ isOpen, onClose }) {
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
                         <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Calendar size={18} style={{ color: 'var(--accent-color)' }} /> Interactive Timelines
+                            <Calendar size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Interactive Timelines
                         </h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                             Inside any <b>Todo List</b> item, simply type <kbd style={kbdStyle}>@</kbd> followed by a date to open the inline parser.
@@ -46,7 +82,7 @@ export default function HelpModal({ isOpen, onClose }) {
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
                         <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <CheckSquare size={18} style={{ color: 'var(--accent-color)' }} /> Global Tasks Dashboard
+                            <CheckSquare size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Global Tasks Dashboard
                         </h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                             Click the <b>Global Tasks</b> button in the sidebar to view a unified dashboard of every Todo item across your entire workspace.
@@ -57,7 +93,7 @@ export default function HelpModal({ isOpen, onClose }) {
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
                         <h3 style={{ margin: '0 0 12px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <FileText size={18} style={{ color: 'var(--accent-color)' }} /> Hotkeys
+                            <FileText size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Hotkeys
                         </h3>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><FileText size={14} /> New Note <span style={{ fontSize: '0.85em', opacity: 0.7 }}>(Contextual)</span></span>
@@ -79,7 +115,7 @@ export default function HelpModal({ isOpen, onClose }) {
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
                         <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <FolderPlus size={18} style={{ color: 'var(--accent-color)' }} /> Navigation & Features
+                            <FolderPlus size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Navigation & Features
                         </h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                             <b>Recent Files:</b> Re-open your most recently edited notes straight from the top of the Welcome Screen.<br />
@@ -91,7 +127,7 @@ export default function HelpModal({ isOpen, onClose }) {
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
                         <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Move size={18} style={{ color: 'var(--accent-color)' }} /> Drag & Drop
+                            <Move size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Drag & Drop
                         </h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                             You can click and hold any Note or Folder in the left sidebar to drag it.
@@ -103,7 +139,7 @@ export default function HelpModal({ isOpen, onClose }) {
 
                 <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px', marginTop: '16px' }}>
                     <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Sun size={18} style={{ color: 'var(--accent-color)' }} /> Theme Toggle
+                        <Sun size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Theme Toggle
                     </h3>
                     <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                         Click the <b>sun/moon</b> icon in the top right corner to instantly toggle between light and dark themes. Redly remembers your preference automatically!

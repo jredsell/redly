@@ -69,6 +69,7 @@ export const requestLocalPermission = async () => {
 
 export const clearWorkspaceHandle = async () => {
   await clearHandles();
+  gdriveDriver.resetAccessToken();
   currentMode = null;
 };
 
