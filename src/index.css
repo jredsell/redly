@@ -41,23 +41,23 @@
 }
 
 .dark {
-  --bg-primary: #0a1128;
-  /* Dark Navy Blue from logo background */
-  --bg-secondary: #121e42;
-  --bg-accent: #1c2b59;
+  /* Transitioned from navy to charcoal/slate */
+  --bg-primary: #0f172a;
+  --bg-secondary: #1e293b;
+  --bg-accent: #334155;
   --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
+  --text-secondary: #94a3b8;
   --text-tertiary: #64748b;
 
-  --accent-color: #2563eb;
-  /* Vibrant Blue from logo */
-  --accent-hover: #3b82f6;
-  --danger-color: #f87171;
-  /* Soft Red accent from logo */
-  --border-color: #1c2b59;
+  --accent-color: #3b82f6;
+  /* Vibrant Blue for dark mode */
+  --accent-hover: #60a5fa;
+  --danger-color: #f43f5e;
+  /* Rose/Red accent for 'Redly' */
+  --border-color: #1e293b;
 
-  /* Date Badges - Darker, higher contrast against white text */
-  --color-overdue: #9f1239;
+  /* Date Badges - Higher contrast */
+  --color-overdue: #e11d48;
   --color-today: #b45309;
   --color-future: #065f46;
   --color-badge-text: #f8fafc;

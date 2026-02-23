@@ -7,6 +7,24 @@ const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/res
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
 const CLIENT_ID = import.meta.env.VITE_GDRIVE_CLIENT_ID;
 
+console.log('[GDrive] Driver initialized. Client ID present:', !!CLIENT_ID);
+
+const waitForGoogle = () => {
+    return new Promise((resolve) => {
+        if (window.google?.accounts?.oauth2) return resolve();
+        const interval = setInterval(() => {
+            if (window.google?.accounts?.oauth2) {
+                clearInterval(interval);
+                resolve();
+            }
+        }, 100);
+        setTimeout(() => {
+            clearInterval(interval);
+            resolve(); // Try anyway after 5s or handle error
+        }, 5000);
+    });
+};
+
 export const getAccessToken = async () => {
     if (accessToken) return accessToken;
     const savedToken = localStorage.getItem('gdrive_token');
@@ -16,7 +34,15 @@ export const getAccessToken = async () => {
         return accessToken;
     }
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
+        await waitForGoogle();
+        if (!window.google?.accounts?.oauth2) {
+            return reject(new Error('Google Identity Services script not loaded. Check your internet connection or Content Security Policy.'));
+        }
+        if (!CLIENT_ID) {
+            return reject(new Error('Google Drive Client ID is missing. Check your .env.local file.'));
+        }
+
         const client = window.google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
