@@ -7,7 +7,7 @@ export default function WelcomeScreen({ openHelp }) {
     const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable } = useNotes();
     const [showRecent, setShowRecent] = useState(true);
     const [gdriveStep, setGDriveStep] = useState('idle'); // idle, config, loading
-    const [clientId, setClientId] = useState('');
+    const [clientId, setClientId] = useState('747035091008-jcps855ub365ck2893203ucgce1hcn4h.apps.googleusercontent.com');
 
     const recentFiles = nodes
         .filter(n => n.type === 'file')
