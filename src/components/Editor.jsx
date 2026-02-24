@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, List, ListOrdered, Quote, CheckSquare } from 'lucide-react';
+import { Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, List, ListOrdered, Quote, CheckSquare, Link as LinkIcon, ExternalLink } from 'lucide-react';
+
 
 import { useEditor, EditorContent, ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react';
 import { Node, mergeAttributes, InputRule } from '@tiptap/core';
@@ -14,6 +15,8 @@ import taskLists from 'markdown-it-task-lists';
 import { parseDateString } from '../utils/dateHelpers';
 import InlineDateInput from './InlineDateInput';
 import CodeBlock from '@tiptap/extension-code-block';
+import Link from '@tiptap/extension-link';
+
 
 // React Component for TaskItem Node View
 const CustomTaskItemComponent = (props) => {
@@ -32,11 +35,14 @@ const CustomTaskItemComponent = (props) => {
             <label contentEditable={false} style={{ marginTop: '4px', cursor: 'pointer', display: 'flex' }}>
                 <input
                     type="checkbox"
-                    checked={node.attrs.checked}
-                    onChange={e => updateAttributes({ checked: e.target.checked })}
+                    checked={!!node.attrs.checked}
+                    onChange={e => {
+                        updateAttributes({ checked: e.target.checked });
+                    }}
                     style={{ width: '16px', height: '16px', cursor: 'pointer' }}
                 />
             </label>
+
             <div style={{ flex: 1 }}>
                 <NodeViewContent as="div" style={{
                     textDecoration: node.attrs.checked ? 'line-through' : 'none',
@@ -115,8 +121,11 @@ td.addRule('taskItem', {
     ),
     replacement: (content, node) => {
         const isChecked = node.getAttribute('data-checked') === 'true' ||
-            node.querySelector('input[type="checkbox"]')?.checked ||
-            node.classList.contains('is-checked');
+            node.hasAttribute('checked') ||
+            node.classList.contains('is-checked') ||
+            !!node.querySelector('input[checked]');
+
+
 
         const date = node.getAttribute('data-date');
         const hasTime = node.getAttribute('data-has-time') === 'true';
@@ -138,6 +147,7 @@ td.addRule('taskItem', {
         return `\n- [${isChecked ? 'x' : ' '}] ${cleanContent}${dateString}`;
     }
 });
+
 
 
 td.addRule('inlineDateInput', {
@@ -180,8 +190,18 @@ const SLASH_OPTIONS = [
     { label: 'Todo List', icon: '☐', command: (editor) => editor.chain().focus().toggleTaskList().run() },
     { label: 'Quote', icon: '”', command: (editor) => editor.chain().focus().toggleBlockquote().run() },
     { label: 'Code Block', icon: '</>', command: (editor) => editor.chain().focus().toggleCodeBlock().run() },
+    {
+        label: 'Link', icon: '🔗', command: (editor) => {
+            const previousUrl = editor.getAttributes('link').href;
+            const url = window.prompt('URL', previousUrl);
+            if (url === null) return;
+            if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
+            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+        }
+    },
     { label: 'Divider', icon: '—', command: (editor) => editor.chain().focus().setHorizontalRule().run() },
 ];
+
 
 export default function Editor({ fileId }) {
     const { nodes, editNode, removeNode } = useNotes();
@@ -204,7 +224,16 @@ export default function Editor({ fileId }) {
         CodeBlock.configure({
             HTMLAttributes: { class: 'tiptap-code-block' },
         }),
+        Link.configure({
+            openOnClick: false,
+            HTMLAttributes: {
+                class: 'editor-link',
+                rel: 'noopener noreferrer',
+                target: '_blank',
+            },
+        }),
         Placeholder.configure({ placeholder: "Start typing..." }),
+
         TaskList.configure({
             HTMLAttributes: { 'data-type': 'taskList', class: 'task-list' },
         }).extend({
@@ -221,7 +250,15 @@ export default function Editor({ fileId }) {
         }).extend({
             addAttributes() {
                 return {
-                    ...(this.parent ? this.parent() : {}),
+                    checked: {
+                        default: false,
+                        keepAttributes: true,
+                        parseHTML: element => element.getAttribute('data-checked') === 'true' || element.hasAttribute('checked'),
+                        renderHTML: attributes => ({
+                            'data-checked': attributes.checked,
+                            checked: attributes.checked ? 'checked' : null
+                        })
+                    },
                     date: {
                         default: '',
                         parseHTML: element => element.getAttribute('data-date'),
@@ -237,9 +274,11 @@ export default function Editor({ fileId }) {
                         parseHTML: element => element.getAttribute('data-has-date') === 'true' || !!element.getAttribute('data-date'),
                         renderHTML: attributes => ({ 'data-has-date': attributes.hasDate })
                     }
-
                 };
             },
+
+
+
             addNodeView() { return ReactNodeViewRenderer(CustomTaskItemComponent); },
             addKeyboardShortcuts() {
                 return {
@@ -248,8 +287,14 @@ export default function Editor({ fileId }) {
             },
 
             renderHTML({ HTMLAttributes }) {
-                return ['li', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { 'data-type': 'taskItem' }), 0];
+                // Ensure data-checked accurately reflects the checked attribute
+                return ['li', mergeAttributes(HTMLAttributes, {
+                    'data-type': 'taskItem'
+                }), 0];
             },
+
+
+
 
             addInputRules() {
                 return [
@@ -420,17 +465,21 @@ export default function Editor({ fileId }) {
                             try {
                                 const coords = editor.view.coordsAtPos(triggerIdx);
                                 if (coords && typeof coords.bottom === 'number' && typeof coords.left === 'number') {
-                                    const menuHeight = 240;
-                                    const wouldOverflow = coords.bottom + menuHeight > window.innerHeight;
+                                    const menuHeight = 320;
+                                    const viewportHeight = window.innerHeight;
+                                    const wouldOverflow = coords.bottom + menuHeight > viewportHeight - 20;
 
                                     setSlashMenu({
                                         isOpen: true,
-                                        top: wouldOverflow ? coords.top - menuHeight - 4 : coords.bottom + 4,
+                                        top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
                                         left: coords.left,
                                         query: query,
                                         triggerIdx: triggerIdx,
                                         selectedIndex: 0
                                     });
+
+
+
                                 } else {
                                     setSlashMenu(prev => ({ ...prev, isOpen: false }));
                                 }
@@ -490,20 +539,31 @@ export default function Editor({ fileId }) {
 
     useEffect(() => {
         const f = nodes.find(n => n.id === fileId);
-        if (f && (!file || file.id !== fileId)) {
-            setFile(f);
-            setLocalTitle(f.name || '');
-            if (editor) {
-                // IMPORTANT: Convert Markdown from storage to HTML for Tiptap
-                // We use a robust regex to ensure all task list variants are correctly labeled for Tiptap
-                let html = md.render(f.content || '');
-                html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
-                    .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
+        if (f) {
+            const isInitialLoad = !file || file.id !== fileId;
+            const isExternalUpdate = !isInitialLoad && f.content !== (file?.content || '') && f.updatedAt > (file?.updatedAt || 0);
 
-                editor.commands.setContent(html, false);
+            if (isInitialLoad || isExternalUpdate) {
+                setFile(f);
+                if (isInitialLoad) setLocalTitle(f.name || '');
+
+                if (editor) {
+                    let html = md.render(f.content || '');
+                    html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
+                        .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
+
+                    const selection = editor.state.selection;
+                    editor.commands.setContent(html, false);
+                    if (isExternalUpdate) {
+                        try {
+                            editor.commands.setTextSelection(selection);
+                        } catch (e) { }
+                    }
+                }
             }
         }
-    }, [fileId, nodes, file, editor]);
+    }, [fileId, nodes, editor]);
+
 
     if (!file) return null;
 
@@ -540,12 +600,25 @@ export default function Editor({ fileId }) {
                         <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''} title="Heading 3"><Heading3 size={16} /></button>
                         <button onClick={() => editor.chain().focus().setParagraph().run()} className={editor.isActive('paragraph') ? 'is-active' : ''} title="Text"><span style={{ fontSize: '12px', fontWeight: 'bold' }}>T</span></button>
 
-                        <div className="menu-separator" />
-
                         <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Bold"><Bold size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''} title="Italic"><Italic size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''} title="Strikethrough"><Strikethrough size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''} title="Code"><Code size={16} /></button>
+                        <button
+                            onClick={() => {
+                                if (editor.isActive('link')) {
+                                    editor.chain().focus().unsetLink().run();
+                                } else {
+                                    const url = window.prompt('URL');
+                                    if (url) editor.chain().focus().setLink({ href: url }).run();
+                                }
+                            }}
+                            className={editor.isActive('link') ? 'is-active' : ''}
+                            title="Link"
+                        >
+                            <LinkIcon size={16} />
+                        </button>
+                        <button onClick={() => editor.chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''} title="Code Inline"><Code size={16} /></button>
+
 
                         <div className="menu-separator" />
 
@@ -553,7 +626,8 @@ export default function Editor({ fileId }) {
                         <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''} title="Numbered List"><ListOrdered size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={editor.isActive('taskList') ? 'is-active' : ''} title="Todo List"><CheckSquare size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'is-active' : ''} title="Quote"><Quote size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={editor.isActive('codeBlock') ? 'is-active' : ''} title="Code Block"><Code size={16} style={{ transform: 'scale(1.2)' }} /></button>
+                        <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={editor.isActive('codeBlock') ? 'is-active' : ''} title="Code Block"><ExternalLink size={16} /></button>
+
                     </div>
 
                 )}
@@ -568,10 +642,13 @@ export default function Editor({ fileId }) {
                         border: '1px solid var(--border-color)',
                         borderRadius: '8px',
                         boxShadow: 'var(--shadow-md)',
-                        zIndex: 100,
-                        minWidth: '180px',
-                        padding: '4px'
+                        zIndex: 1000,
+                        minWidth: '200px',
+                        padding: '4px',
+                        maxHeight: '300px',
+                        overflowY: 'auto'
                     }}>
+
                         <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                             {SLASH_OPTIONS.filter(o => o.label.toLowerCase().includes(slashMenu.query.toLowerCase())).map((opt, idx) => (
                                 <li
@@ -650,6 +727,15 @@ export default function Editor({ fileId }) {
                     -webkit-user-select: text !important;
                     outline: none;
                 }
+                .editor-link {
+                    color: var(--accent-color);
+                    text-decoration: underline;
+                    cursor: pointer;
+                }
+                .editor-link:hover {
+                    opacity: 0.8;
+                }
+
             `}</style>
         </div>
     );

@@ -104,11 +104,13 @@ export default function FileTree({ node, depth }) {
         const draggedId = e.dataTransfer.getData('text/plain');
         if (!draggedId || draggedId === node.id) return;
 
-        if (isFolder) {
-            editNode(draggedId, { parentId: node.id });
-            if (!isExpanded) toggleFolder(node.id);
-        }
+        // Move to folder if it's a folder, otherwise move to the same parent as the target file
+        const targetParentId = isFolder ? node.id : node.parentId;
+        editNode(draggedId, { parentId: targetParentId });
+
+        if (isFolder && !isExpanded) toggleFolder(node.id);
     };
+
 
     const isFocused = lastInteractedNodeId === node.id || (!lastInteractedNodeId && isActive);
 
@@ -124,9 +126,10 @@ export default function FileTree({ node, depth }) {
                 title={node.name}
                 draggable
                 onDragStart={handleDragStart}
-                onDragOver={isFolder ? handleDragOver : undefined}
-                onDragLeave={isFolder ? handleDragLeave : undefined}
-                onDrop={isFolder ? handleDrop : undefined}
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+
                 tabIndex={0}
                 onKeyDown={(e) => {
                     if (e.target.tagName === 'INPUT') return;

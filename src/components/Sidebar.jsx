@@ -179,12 +179,13 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                 }}
                 onDrop={e => {
                     e.preventDefault();
-                    // Drop to Root if they drop on the empty space of the sidebar
+                    // Drop to Root if they drop anywhere in the sidebar content
                     const draggedId = e.dataTransfer.getData('text/plain');
-                    if (draggedId && e.target === e.currentTarget) {
+                    if (draggedId) {
                         editNode(draggedId, { parentId: null });
                     }
                 }}
+
             >
                 {isAdding && targetFolder === null && (
                     <form onSubmit={handleAdd} style={{ padding: '8px', display: 'flex', gap: '8px', background: 'transparent', borderBottom: '1px solid var(--border-color)' }}>

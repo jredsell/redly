@@ -127,7 +127,7 @@ function App() {
         </div>
 
         {showTasks && <GlobalTasks />}
-        {!showTasks && activeFileId && <Editor fileId={activeFileId} />}
+        {!showTasks && activeFileId && <Editor key={activeFileId} fileId={activeFileId} />}
         {!showTasks && !activeFileId && <WelcomeScreen openHelp={() => setHelpOpen(true)} />}
       </main>
     </div>

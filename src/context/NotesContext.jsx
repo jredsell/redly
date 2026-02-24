@@ -162,7 +162,8 @@ export const NotesProvider = ({ children }) => {
     const addNode = async (name, type, parentId = null) => {
         if (!workspaceHandle) return;
         const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim();
-        const idPath = parentId ? `${parentId}/${safeName}` : safeName;
+        const extension = type === 'file' ? '.md' : '';
+        const idPath = parentId ? `${parentId}/${safeName}${extension}` : `${safeName}${extension}`;
 
         let existingNode = nodes.find(n => n.id === idPath);
         let finalIdPath = idPath;

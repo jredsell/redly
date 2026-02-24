@@ -75,81 +75,66 @@ async function copyFolderContents(sourceHandle, targetHandle) {
 
 export const updateNode = async (id, updates, oldNode) => {
     const parentHandle = await getDirHandleFromPath(oldNode.parentId);
+    let currentHandle = oldNode.type === 'file'
+        ? await parentHandle.getFileHandle(`${oldNode.name}.md`)
+        : await parentHandle.getDirectoryHandle(oldNode.name);
 
-    if (updates.name && updates.name !== oldNode.name) {
-        if (oldNode.type === 'file') {
-            const oldFileHandle = await parentHandle.getFileHandle(`${oldNode.name}.md`);
-            if (oldFileHandle.move) {
-                await oldFileHandle.move(`${updates.name}.md`);
-            } else {
-                const file = await oldFileHandle.getFile();
-                const content = updates.content !== undefined ? updates.content : await file.text();
-                const newFileHandle = await parentHandle.getFileHandle(`${updates.name}.md`, { create: true });
-                const writable = await newFileHandle.createWritable();
-                await writable.write(content);
-                await writable.close();
-                await parentHandle.removeEntry(`${oldNode.name}.md`);
-            }
-            return { ...oldNode, ...updates, id: oldNode.parentId ? `${oldNode.parentId}/${updates.name}.md` : `${updates.name}.md` };
+    let finalNode = { ...oldNode, ...updates };
 
+    // 1. Handle Renaming or Moving (Storage Level)
+    if ((updates.name && updates.name !== oldNode.name) || (updates.parentId !== undefined && updates.parentId !== oldNode.parentId)) {
+        const newName = updates.name || oldNode.name;
+        const newParentId = updates.parentId !== undefined ? updates.parentId : oldNode.parentId;
+        const newParentHandle = await getDirHandleFromPath(newParentId, true);
+        const fileName = oldNode.type === 'file' ? `${newName}.md` : newName;
+
+        if (currentHandle.move) {
+            await currentHandle.move(newParentHandle, fileName);
+            // After move, we need to update the handle reference if we want to write content later
+            currentHandle = oldNode.type === 'file'
+                ? await newParentHandle.getFileHandle(fileName)
+                : await newParentHandle.getDirectoryHandle(newName);
         } else {
-            // Folder renaming: Native File System API fallback
-            const oldFolderHandle = await parentHandle.getDirectoryHandle(oldNode.name);
-            if (oldFolderHandle.move) {
-                await oldFolderHandle.move(updates.name);
-            } else {
-                // Fallback: Recursive Copy and Delete
-                const newFolderHandle = await parentHandle.getDirectoryHandle(updates.name, { create: true });
-                await copyFolderContents(oldFolderHandle, newFolderHandle);
-                await parentHandle.removeEntry(oldNode.name, { recursive: true });
-            }
-            return { ...oldNode, ...updates, id: id.replace(oldNode.name, updates.name) };
-        }
-    } else if (updates.parentId !== undefined) {
-        // Drag and Drop (MOVE)
-        const itemHandle = oldNode.type === 'file'
-            ? await parentHandle.getFileHandle(`${oldNode.name}.md`)
-            : await parentHandle.getDirectoryHandle(oldNode.name);
-
-        const newParentHandle = await getDirHandleFromPath(updates.parentId, true);
-        if (itemHandle.move) {
-            const fileName = oldNode.type === 'file' ? `${oldNode.name}.md` : oldNode.name;
-            await itemHandle.move(newParentHandle);
-            const newId = updates.parentId ? `${updates.parentId}/${fileName}` : fileName;
-            return { ...oldNode, ...updates, id: newId };
-        } else {
-            // Fallback for Move: Copy and Delete
+            // Fallback: Copy and Delete
             if (oldNode.type === 'file') {
-                const file = await itemHandle.getFile();
-                const content = await file.text();
-                const fileName = `${oldNode.name}.md`;
+                const file = await currentHandle.getFile();
+                const content = updates.content !== undefined ? updates.content : await file.text();
                 const newFileHandle = await newParentHandle.getFileHandle(fileName, { create: true });
                 const writable = await newFileHandle.createWritable();
                 await writable.write(content);
                 await writable.close();
-                await parentHandle.removeEntry(fileName);
-                const newId = updates.parentId ? `${updates.parentId}/${fileName}` : fileName;
-                return { ...oldNode, ...updates, id: newId };
+                await parentHandle.removeEntry(oldNode.type === 'file' ? `${oldNode.name}.md` : oldNode.name, { recursive: oldNode.type === 'folder' });
+                currentHandle = newFileHandle;
+                // Mark content as handled so we don't write it again below
+                updates.content = undefined;
             } else {
-                // Folder Move Fallback
-                const newFolderHandle = await newParentHandle.getDirectoryHandle(oldNode.name, { create: true });
-                await copyFolderContents(itemHandle, newFolderHandle);
+                const newFolderHandle = await newParentHandle.getDirectoryHandle(newName, { create: true });
+                await copyFolderContents(currentHandle, newFolderHandle);
                 await parentHandle.removeEntry(oldNode.name, { recursive: true });
-                const newId = updates.parentId ? `${updates.parentId}/${oldNode.name}` : oldNode.name;
-                return { ...oldNode, ...updates, id: newId };
+                currentHandle = newFolderHandle;
             }
         }
 
+        // Update ID
+        if (oldNode.type === 'file') {
+            finalNode.id = newParentId ? `${newParentId}/${fileName}` : fileName;
+        } else {
+            // For folders, we need to be careful with ID replacement if it's a nested path
+            const oldPath = oldNode.id;
+            const parentPath = oldNode.parentId || '';
+            finalNode.id = parentPath ? `${parentPath}/${newName}` : newName;
+        }
     }
-    else if (updates.content !== undefined && oldNode.type === 'file') {
-        const fileHandle = await parentHandle.getFileHandle(`${oldNode.name}.md`);
-        const writable = await fileHandle.createWritable();
+
+    // 2. Handle Content Updates (File only)
+    if (oldNode.type === 'file' && updates.content !== undefined) {
+        const writable = await currentHandle.createWritable();
         await writable.write(updates.content);
         await writable.close();
     }
-    return { ...oldNode, ...updates };
-};
 
+    return finalNode;
+};
 
 export const deleteNode = async (id, type) => {
     const name = id.split('/').pop();
