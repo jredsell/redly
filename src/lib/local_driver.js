@@ -74,7 +74,8 @@ export const updateNode = async (id, updates, oldNode) => {
                 await writable.close();
                 await parentHandle.removeEntry(`${oldNode.name}.md`);
             }
-            return { ...oldNode, ...updates, id: id.replace(oldNode.name, updates.name) };
+            return { ...oldNode, ...updates, id: oldNode.parentId ? `${oldNode.parentId}/${updates.name}.md` : `${updates.name}.md` };
+
         } else {
             // Folder renaming: Native File System API doesn't support directory.move() well everywhere
             // But we can try it if available, or just update the metadata in our internal state if it's just a name change
@@ -97,10 +98,29 @@ export const updateNode = async (id, updates, oldNode) => {
 
         const newParentHandle = await getDirHandleFromPath(updates.parentId, true);
         if (itemHandle.move) {
+            const fileName = oldNode.type === 'file' ? `${oldNode.name}.md` : oldNode.name;
             await itemHandle.move(newParentHandle);
-            const newId = updates.parentId ? `${updates.parentId}/${oldNode.name}` : oldNode.name;
+            const newId = updates.parentId ? `${updates.parentId}/${fileName}` : fileName;
             return { ...oldNode, ...updates, id: newId };
+        } else {
+            // Fallback for Move: Copy and Delete
+            if (oldNode.type === 'file') {
+                const file = await itemHandle.getFile();
+                const content = await file.text();
+                const fileName = `${oldNode.name}.md`;
+                const newParentHandle = await getDirHandleFromPath(updates.parentId, true);
+                const newFileHandle = await newParentHandle.getFileHandle(fileName, { create: true });
+                const writable = await newFileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+                await parentHandle.removeEntry(fileName);
+                const newId = updates.parentId ? `${updates.parentId}/${fileName}` : fileName;
+                return { ...oldNode, ...updates, id: newId };
+            }
+            // For folders, recursive copy is too risky/complex here without a library
+            throw new Error("Moving folders not supported in this browser version.");
         }
+
     }
     else if (updates.content !== undefined && oldNode.type === 'file') {
         const fileHandle = await parentHandle.getFileHandle(`${oldNode.name}.md`);
@@ -115,5 +135,7 @@ export const deleteNode = async (id, type) => {
     const name = id.split('/').pop();
     const parentId = id.substring(0, id.lastIndexOf('/')) || null;
     const parentHandle = await getDirHandleFromPath(parentId);
-    await parentHandle.removeEntry(type === 'file' ? `${name}.md` : name, { recursive: true });
+    // name already includes .md for files because id is nodePath which is entry.name
+    await parentHandle.removeEntry(name, { recursive: true });
 };
+

@@ -17,7 +17,9 @@ import CodeBlock from '@tiptap/extension-code-block';
 // React Component for TaskItem Node View
 const CustomTaskItemComponent = (props) => {
     const { node, updateAttributes } = props;
+    if (!node || !node.attrs) return null;
     const clearDate = (e) => {
+
         if (e && e.stopPropagation) e.stopPropagation();
         updateAttributes({ hasDate: false, date: '', hasTime: false });
     };
@@ -41,7 +43,8 @@ const CustomTaskItemComponent = (props) => {
                     minHeight: '24px', outline: 'none'
                 }} />
                 {node.attrs.hasDate && (
-                    <div contentEditable={false} style={{ marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px', userSelect: 'none' }}>
+                    <div data-type="inline-date-badge" contentEditable={false} style={{ marginTop: '2px', display: 'flex', alignItems: 'center', gap: '4px', userSelect: 'none' }}>
+
                         <InlineDateInput
                             initialDate={node.attrs.date}
                             initialHasTime={node.attrs.hasTime}
@@ -70,18 +73,26 @@ const InlineDateInputNodeView = (props) => {
         } else if (e.key === 'Enter') {
             e.preventDefault();
             const { editor, getPos } = props;
-            const $pos = editor.state.doc.resolve(getPos());
+            if (typeof getPos !== 'function') return;
+            const pos = getPos();
+            if (pos === undefined) return;
+            const $pos = editor.state.doc.resolve(pos);
             let taskItemNode = null;
             for (let i = $pos.depth; i > 0; i--) { if ($pos.node(i).type.name === 'taskItem') { taskItemNode = $pos.node(i); break; } }
             const { parsedDate, hasDate, hasTime } = parseDateString(value);
             if (taskItemNode && hasDate) {
-                editor.chain().deleteRange({ from: getPos(), to: getPos() + 1 }).updateAttributes('taskItem', { date: parsedDate, hasDate, hasTime }).focus().run();
+                editor.chain().deleteRange({ from: pos, to: pos + 1 }).updateAttributes('taskItem', { date: parsedDate, hasDate, hasTime }).focus().run();
             } else {
-                editor.chain().deleteRange({ from: getPos(), to: getPos() + 1 }).insertContent(`@${value}`).focus().run();
+                editor.chain().deleteRange({ from: pos, to: pos + 1 }).insertContent(`@${value}`).focus().run();
             }
         } else if (e.key === 'Escape') {
-            props.editor.chain().deleteRange({ from: props.getPos(), to: props.getPos() + 1 }).insertContent(`@${value}`).focus().run();
+            const { getPos } = props;
+            if (typeof getPos !== 'function') return;
+            const pos = getPos();
+            if (pos === undefined) return;
+            props.editor.chain().deleteRange({ from: pos, to: pos + 1 }).insertContent(`@${value}`).focus().run();
         }
+
     };
     return (
         <NodeViewWrapper as="span" style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--bg-accent)', borderRadius: '4px', padding: '0 4px', color: 'var(--accent-color)' }}>
@@ -92,23 +103,28 @@ const InlineDateInputNodeView = (props) => {
     );
 };
 
-const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: true, labelAfter: true });
+const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: false });
+
 const td = new TurndownService({ headingStyle: 'atx', hr: '---', bulletListMarker: '-', codeBlockStyle: 'fenced' });
+// Task Item serialization
 td.addRule('taskItem', {
     filter: (node) => node.nodeName === 'LI' && (
         node.getAttribute('data-type') === 'taskItem' ||
-        node.parentElement?.getAttribute('data-type') === 'taskList' ||
         node.classList.contains('task-list-item')
     ),
     replacement: (content, node) => {
         const isChecked = node.getAttribute('data-checked') === 'true' ||
             node.querySelector('input[type="checkbox"]')?.checked ||
-            node.classList.contains('is-checked'); // Fallback check
+            node.classList.contains('is-checked');
 
         const date = node.getAttribute('data-date');
         const hasTime = node.getAttribute('data-has-time') === 'true';
 
+        // Content should be clean text/markdown from children
         let cleanContent = content.trim();
+
+        // Remove any leading/trailing list markers that might have leaked from default rules
+        cleanContent = cleanContent.replace(/^[\s\-\*\[\]x]*\s*/, '');
         // Remove "Due:" text if added by badges
         cleanContent = cleanContent.replace(/Due:\s*[^]*?(\n|$)/g, '').trim();
 
@@ -122,6 +138,7 @@ td.addRule('taskItem', {
     }
 });
 
+
 td.addRule('inlineDateInput', {
     filter: (node) => node.getAttribute('data-type') === 'inline-date',
     replacement: (content, node) => {
@@ -134,10 +151,15 @@ td.addRule('inlineDateInput', {
 // Explicitly ignore the date badge text in Turndown
 td.addRule('ignoreDateBadge', {
     filter: (node) => {
-        return node.nodeName === 'DIV' && node.style && node.getAttribute('contenteditable') === 'false' && node.textContent.includes('Due:');
+        // More robust filter for the date badge div
+        return (
+            (node.getAttribute('contenteditable') === 'false' && (node.innerText?.includes('Due:') || node.textContent?.includes('Due:'))) ||
+            node.getAttribute('data-type') === 'inline-date-badge'
+        );
     },
     replacement: () => ''
 });
+
 td.addRule('fencedCodeBlock', {
     filter: 'pre',
     replacement: (content, node) => {
@@ -237,15 +259,8 @@ export default function Editor({ fileId }) {
                         priority: 100,
                         getAttrs: node => {
                             const checkbox = node.querySelector('input[type="checkbox"]');
-                            const text = node.innerText || '';
-                            const dateMatch = text.match(/@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/);
-                            let date = node.getAttribute('data-date') || '';
-                            let hasTime = node.getAttribute('data-has-time') === 'true';
-
-                            if (dateMatch && !date) {
-                                date = dateMatch[1].replace(' ', 'T');
-                                hasTime = dateMatch[1].includes(':');
-                            }
+                            const date = node.getAttribute('data-date') || '';
+                            const hasTime = node.getAttribute('data-has-time') === 'true';
 
                             return {
                                 checked: checkbox ? checkbox.checked : false,
@@ -266,15 +281,8 @@ export default function Editor({ fileId }) {
                             if (!isTaskListItem) return false;
 
                             const checkbox = node.querySelector('input[type="checkbox"]');
-                            const text = node.innerText || '';
-                            const dateMatch = text.match(/@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/);
-                            let date = node.getAttribute('data-date') || '';
-                            let hasTime = node.getAttribute('data-has-time') === 'true';
-
-                            if (dateMatch && !date) {
-                                date = dateMatch[1].replace(' ', 'T');
-                                hasTime = dateMatch[1].includes(':');
-                            }
+                            const date = node.getAttribute('data-date') || '';
+                            const hasTime = node.getAttribute('data-has-time') === 'true';
 
                             return {
                                 checked: checkbox ? checkbox.checked : false,
@@ -284,9 +292,9 @@ export default function Editor({ fileId }) {
                             };
                         }
                     }
-
                 ];
             }
+
         }),
         Node.create({
             name: 'inlineDateInput', group: 'inline', inline: true, atom: true,
@@ -374,11 +382,19 @@ export default function Editor({ fileId }) {
                 }
             } catch (err) {
                 // Fallback to prevent the "White Screen of Death"
-                console.warn('Editor: Suppressed selection update error', err);
-                setBubbleMenu({ isOpen: false, top: 0, left: 0 });
-                setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                console.error('Editor: Selection update error', err);
+                try {
+                    setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+                    setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                } catch (e) { }
             }
+
         },
+        onBlur: () => {
+            setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+            setSlashMenu(prev => ({ ...prev, isOpen: false }));
+        }
+
     });
 
     const handleTitleChange = useCallback((e) => {
@@ -457,8 +473,9 @@ export default function Editor({ fileId }) {
                 <EditorContent editor={editor} className="tiptap-container" />
 
                 {/* Custom Bubble (Formatting) Menu */}
-                {bubbleMenu.isOpen && editor && (
+                {bubbleMenu.isOpen && editor && typeof bubbleMenu.top === 'number' && typeof bubbleMenu.left === 'number' && (
                     <div className="custom-bubble-menu" style={{ position: 'fixed', top: bubbleMenu.top, left: bubbleMenu.left, zIndex: 100 }}>
+
                         <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''} title="Heading 1"><Heading1 size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''} title="Heading 2"><Heading2 size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''} title="Heading 3"><Heading3 size={16} /></button>

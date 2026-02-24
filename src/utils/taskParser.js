@@ -42,7 +42,8 @@ export function parseTasksFromNodes(nodes) {
                 let hasTime = false;
 
                 // Matches @2023-10-27 or @2023-10-27 15:30
-                const dateMatch = text.match(/@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/);
+                const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
+                const dateMatch = text.match(dateRegex);
                 if (dateMatch) {
                     const dateStr = dateMatch[1].replace(' ', 'T');
                     try {
@@ -50,11 +51,12 @@ export function parseTasksFromNodes(nodes) {
                         if (!isNaN(d.getTime())) {
                             date = d;
                             hasTime = dateMatch[1].includes(':');
-                            // We keep the date in the text for Redly's parser to find it again,
-                            // but we mark its existence for the UI.
+                            // Remove the date string from the text to avoid duplication in UI
+                            text = text.replace(dateRegex, '').trim();
                         }
                     } catch (e) { }
                 }
+
 
                 tasks.push({
                     // Stable ID based on file path and line index

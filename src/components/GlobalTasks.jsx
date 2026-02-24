@@ -104,9 +104,14 @@ export default function GlobalTasks() {
         >
             <div
                 onClick={(e) => handleToggle(e, task)}
-                style={{ color: task.checked ? 'var(--text-tertiary)' : 'var(--accent-color)', marginTop: '2px', cursor: 'pointer' }}
+                style={{
+                    color: task.checked ? 'var(--text-tertiary)' : (task.date ? getDateColor(task.date, task.hasTime) : 'var(--accent-color)'),
+                    marginTop: '2px',
+                    cursor: 'pointer'
+                }}
                 title="Toggle Task"
             >
+
                 {task.checked ? <CheckSquare size={18} /> : <Square size={18} />}
             </div>
 
@@ -122,10 +127,16 @@ export default function GlobalTasks() {
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
                     {task.path.map((segment, idx) => (
                         <React.Fragment key={idx}>
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <span style={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '4px',
+                                color: task.checked ? 'var(--text-tertiary)' : (idx === task.path.length - 1 && task.date ? getDateColor(task.date, task.hasTime) : 'inherit')
+                            }}>
                                 {idx === task.path.length - 1 ? <FileText size={12} /> : <Folder size={12} />}
                                 {segment}
                             </span>
+
                             {idx < task.path.length - 1 && <ChevronRight size={12} style={{ opacity: 0.5 }} />}
                         </React.Fragment>
                     ))}

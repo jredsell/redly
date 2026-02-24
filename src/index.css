@@ -20,9 +20,13 @@
   --border-color: #d1d5db;
 
   /* Date Badges - Accessible Status Colors */
-  --color-overdue: #dc2626; /* Vibrant Red */
-  --color-today: #ea580c;   /* Vibrant Orange */
-  --color-future: #16a34a;  /* Vibrant Green */
+  --color-overdue: #ef4444;
+  /* red-500 */
+  --color-today: #f59e0b;
+  /* amber-500 */
+  --color-future: #10b981;
+  /* emerald-500 */
+
   --color-badge-text: #ffffff;
 
 

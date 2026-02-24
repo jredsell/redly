@@ -182,11 +182,17 @@ export const NotesProvider = ({ children }) => {
             ...(type === 'file' ? { content: '' } : {})
         };
 
-        await createNode(null, newNode);
-        await loadNodes();
+        try {
+            await createNode(null, newNode);
+            await loadNodes();
 
-        if (type === 'file') setActiveFileId(newNode.id);
-        if (parentId && !expandedFolders.has(parentId)) setExpandedFolders(prev => new Set(prev).add(parentId));
+            if (type === 'file') setActiveFileId(newNode.id);
+            if (parentId && !expandedFolders.has(parentId)) setExpandedFolders(prev => new Set(prev).add(parentId));
+        } catch (e) {
+            console.error("Failed to add node:", e);
+            alert("Error: Could not create " + type);
+        }
+
     };
 
     const editNode = async (id, updates) => {
@@ -195,13 +201,18 @@ export const NotesProvider = ({ children }) => {
         if (!oldNode) return;
 
         if (updates.name) updates.name = updates.name.replace(/[\\/:*?"<>|]/g, '-').trim();
-        const updatedNode = await updateNode(null, id, updates, oldNode);
-
-        if (updatedNode && updatedNode.id !== id) {
-            if (activeFileId === id) setActiveFileId(updatedNode.id);
-            if (lastInteractedNodeId === id) setLastInteractedNodeId(updatedNode.id);
+        try {
+            const updatedNode = await updateNode(null, id, updates, oldNode);
+            if (updatedNode && updatedNode.id !== id) {
+                if (activeFileId === id) setActiveFileId(updatedNode.id);
+                if (lastInteractedNodeId === id) setLastInteractedNodeId(updatedNode.id);
+            }
+            await loadNodes();
+        } catch (e) {
+            console.error("Failed to edit node:", e);
+            alert("Error: Could not rename accurately or move. " + (e.message || ""));
         }
-        await loadNodes();
+
     };
 
     const removeNode = async (id) => {
@@ -209,10 +220,16 @@ export const NotesProvider = ({ children }) => {
         const node = nodes.find(n => n.id === id);
         if (!node) return;
 
-        await deleteNode(null, id, node.type, node);
-        if (activeFileId === id) setActiveFileId(null);
-        if (lastInteractedNodeId === id) setLastInteractedNodeId(null);
-        await loadNodes();
+        try {
+            await deleteNode(null, id, node.type, node);
+            if (activeFileId === id) setActiveFileId(null);
+            if (lastInteractedNodeId === id) setLastInteractedNodeId(null);
+            await loadNodes();
+        } catch (e) {
+            console.error("Failed to remove node:", e);
+            alert("Error: Could not delete item.");
+        }
+
     };
 
     const value = {
