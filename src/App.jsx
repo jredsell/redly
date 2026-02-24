@@ -31,9 +31,10 @@ function App() {
 
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.ProseMirror')) {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || (e.target.closest('.ProseMirror') && !e.altKey)) {
         return;
       }
+
       if (e.altKey && e.key === '/') {
         e.preventDefault();
         setHelpOpen(prev => !prev);

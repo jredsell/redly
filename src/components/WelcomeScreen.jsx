@@ -269,7 +269,8 @@ export default function WelcomeScreen({ openHelp }) {
                 </button>
                 <button onClick={openHelp} className="welcome-card" aria-label="Open Help and Shortcuts">
                     <ListTodo size={24} style={{ color: 'var(--color-today)' }} aria-hidden="true" />
-                    <span style={{ fontWeight: '600' }}>Magic Guide</span>
+                    <span style={{ fontWeight: '600' }}>redly Guide</span>
+
                 </button>
             </div>
 

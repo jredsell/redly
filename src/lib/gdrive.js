@@ -217,9 +217,29 @@ export const updateNode = async (id, updates, oldNode) => {
     if (updates.name && updates.name !== oldNode.name) {
         await driveRequest(`/files/${oldNode.gdriveId}`, {
             method: 'PATCH',
-            body: JSON.stringify({ name: `${updates.name}.md` })
+            body: JSON.stringify({ name: oldNode.type === 'file' ? `${updates.name}.md` : updates.name })
         });
     }
+    if (updates.parentId !== undefined) {
+        // Move in GDrive: requires adding new parent and removing old parent
+        const rootId = await getHandle('gdrive_root_id');
+        let newParentId = rootId;
+        if (updates.parentId) {
+            // This is a bit simplified, ideally we'd look up the gdriveId of the new parentId path
+            // But for now, we'll try to find it in the current nodes list or root
+            const newParentNode = (await driveRequest(`/files?q='${rootId}' in parents and name='${updates.parentId.split('/').pop()}'&fields=files(id)`)).files[0];
+            if (newParentNode) newParentId = newParentNode.id;
+        }
+
+        // To do a proper move we need the current parents
+        const fileInfo = await driveRequest(`/files/${oldNode.gdriveId}?fields=parents`);
+        const oldParents = fileInfo.parents.join(',');
+
+        await driveRequest(`/files/${oldNode.gdriveId}?addParents=${newParentId}&removeParents=${oldParents}`, {
+            method: 'PATCH'
+        });
+    }
+
     return { ...oldNode, ...updates };
 };
 

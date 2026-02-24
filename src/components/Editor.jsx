@@ -237,14 +237,27 @@ export default function Editor({ fileId }) {
                         priority: 100,
                         getAttrs: node => {
                             const checkbox = node.querySelector('input[type="checkbox"]');
+                            const text = node.innerText || '';
+                            const dateMatch = text.match(/@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/);
+                            let date = node.getAttribute('data-date') || '';
+                            let hasTime = node.getAttribute('data-has-time') === 'true';
+
+                            if (dateMatch && !date) {
+                                date = dateMatch[1].replace(' ', 'T');
+                                hasTime = dateMatch[1].includes(':');
+                            }
+
                             return {
-                                checked: checkbox ? checkbox.checked : false
+                                checked: checkbox ? checkbox.checked : false,
+                                date,
+                                hasDate: !!date,
+                                hasTime
                             };
                         }
                     },
                     {
                         tag: 'li',
-                        priority: 50, // Lower than standard TaskItem to allow fallback
+                        priority: 50,
                         getAttrs: node => {
                             const isTaskListItem = node.classList.contains('task-list-item') ||
                                 node.getAttribute('data-type') === 'taskItem' ||
@@ -252,11 +265,26 @@ export default function Editor({ fileId }) {
 
                             if (!isTaskListItem) return false;
 
+                            const checkbox = node.querySelector('input[type="checkbox"]');
+                            const text = node.innerText || '';
+                            const dateMatch = text.match(/@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/);
+                            let date = node.getAttribute('data-date') || '';
+                            let hasTime = node.getAttribute('data-has-time') === 'true';
+
+                            if (dateMatch && !date) {
+                                date = dateMatch[1].replace(' ', 'T');
+                                hasTime = dateMatch[1].includes(':');
+                            }
+
                             return {
-                                checked: node.querySelector('input[type="checkbox"]')?.checked || false
+                                checked: checkbox ? checkbox.checked : false,
+                                date,
+                                hasDate: !!date,
+                                hasTime
                             };
                         }
                     }
+
                 ];
             }
         }),
@@ -323,15 +351,20 @@ export default function Editor({ fileId }) {
                             const coords = editor.view.coordsAtPos(triggerIdx);
 
                             if (coords && typeof coords.bottom === 'number' && typeof coords.left === 'number') {
+                                // Collision Detection: If menu would go off bottom, show it above
+                                const menuHeight = 240; // Estimated max height
+                                const wouldOverflow = coords.bottom + menuHeight > window.innerHeight;
+
                                 setSlashMenu({
                                     isOpen: true,
-                                    top: coords.bottom + 4,
+                                    top: wouldOverflow ? coords.top - menuHeight - 4 : coords.bottom + 4,
                                     left: coords.left,
                                     query: query,
                                     triggerIdx: triggerIdx,
                                     selectedIndex: 0
                                 });
                             } else {
+
                                 setSlashMenu(prev => ({ ...prev, isOpen: false }));
                             }
                         } else {
@@ -442,8 +475,11 @@ export default function Editor({ fileId }) {
 
                         <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''} title="Bullet List"><List size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''} title="Numbered List"><ListOrdered size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={editor.isActive('taskList') ? 'is-active' : ''} title="Todo List"><CheckSquare size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'is-active' : ''} title="Quote"><Quote size={16} /></button>
+                        <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={editor.isActive('codeBlock') ? 'is-active' : ''} title="Code Block"><Code size={16} style={{ transform: 'scale(1.2)' }} /></button>
                     </div>
+
                 )}
 
                 {/* Custom Slash Menu */}

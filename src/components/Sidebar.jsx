@@ -228,7 +228,8 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                     }}
                     title="Shortcuts & Help"
                 >
-                    <HelpCircle size={16} aria-hidden="true" /> Magic Guide
+                    <HelpCircle size={16} aria-hidden="true" /> redly Guide
+
                 </button>
             </div>
         </aside>

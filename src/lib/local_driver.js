@@ -63,18 +63,46 @@ export const updateNode = async (id, updates, oldNode) => {
     if (updates.name && updates.name !== oldNode.name) {
         if (oldNode.type === 'file') {
             const oldFileHandle = await parentHandle.getFileHandle(`${oldNode.name}.md`);
-            const file = await oldFileHandle.getFile();
-            const content = updates.content !== undefined ? updates.content : await file.text();
-
-            const newFileHandle = await parentHandle.getFileHandle(`${updates.name}.md`, { create: true });
-            const writable = await newFileHandle.createWritable();
-            await writable.write(content);
-            await writable.close();
-
-            await parentHandle.removeEntry(`${oldNode.name}.md`);
+            if (oldFileHandle.move) {
+                await oldFileHandle.move(`${updates.name}.md`);
+            } else {
+                const file = await oldFileHandle.getFile();
+                const content = updates.content !== undefined ? updates.content : await file.text();
+                const newFileHandle = await parentHandle.getFileHandle(`${updates.name}.md`, { create: true });
+                const writable = await newFileHandle.createWritable();
+                await writable.write(content);
+                await writable.close();
+                await parentHandle.removeEntry(`${oldNode.name}.md`);
+            }
+            return { ...oldNode, ...updates, id: id.replace(oldNode.name, updates.name) };
+        } else {
+            // Folder renaming: Native File System API doesn't support directory.move() well everywhere
+            // But we can try it if available, or just update the metadata in our internal state if it's just a name change
+            // Actually, for local files, we MUST rename the physical folder.
+            const oldFolderHandle = await parentHandle.getDirectoryHandle(oldNode.name);
+            if (oldFolderHandle.move) {
+                await oldFolderHandle.move(updates.name);
+            } else {
+                // Fallback: Create new, move all children (Complex, but needed if no .move())
+                // For now, let's assume .move() or warn. Most modern browsers support it on handles.
+                throw new Error("Folder renaming not supported in this browser version.");
+            }
             return { ...oldNode, ...updates, id: id.replace(oldNode.name, updates.name) };
         }
-    } else if (updates.content !== undefined && oldNode.type === 'file') {
+    } else if (updates.parentId !== undefined) {
+        // Drag and Drop (MOVE)
+        const itemHandle = oldNode.type === 'file'
+            ? await parentHandle.getFileHandle(`${oldNode.name}.md`)
+            : await parentHandle.getDirectoryHandle(oldNode.name);
+
+        const newParentHandle = await getDirHandleFromPath(updates.parentId, true);
+        if (itemHandle.move) {
+            await itemHandle.move(newParentHandle);
+            const newId = updates.parentId ? `${updates.parentId}/${oldNode.name}` : oldNode.name;
+            return { ...oldNode, ...updates, id: newId };
+        }
+    }
+    else if (updates.content !== undefined && oldNode.type === 'file') {
         const fileHandle = await parentHandle.getFileHandle(`${oldNode.name}.md`);
         const writable = await fileHandle.createWritable();
         await writable.write(updates.content);

@@ -20,13 +20,11 @@
   --border-color: #d1d5db;
 
   /* Date Badges - Accessible Status Colors */
-  --color-overdue: #be123c;
-  /* 7.3:1 */
-  --color-today: #b45309;
-  /* 6.4:1 */
-  --color-future: #047857;
-  /* 6.1:1 */
+  --color-overdue: #dc2626; /* Vibrant Red */
+  --color-today: #ea580c;   /* Vibrant Orange */
+  --color-future: #16a34a;  /* Vibrant Green */
   --color-badge-text: #ffffff;
+
 
   --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
@@ -238,7 +236,12 @@ body {
   display: flex;
   align-items: center;
   border-bottom: 1px solid var(--border-color);
+  position: sticky;
+  top: 0;
+  background: var(--bg-primary);
+  z-index: 10;
 }
+
 
 .title-input {
   font-family: inherit;
