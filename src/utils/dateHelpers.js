@@ -4,28 +4,26 @@ export const getDateColor = (dateObj, hasTime = false) => {
     const now = new Date();
     const target = new Date(dateObj);
 
+    // Get strictly local Y-M-D for "is it today" check
+    const nowLocalStr = `${now.getFullYear()}-${now.getMonth() + 1}-${now.getDate()}`;
+    const targetLocalStr = `${target.getFullYear()}-${target.getMonth() + 1}-${target.getDate()}`;
+    const isToday = nowLocalStr === targetLocalStr;
+
     if (hasTime) {
-        // Exact time comparison
+        // If it's today and the specific time hasn't passed yet, it's "Today" (Amber)
+        // If the specific time has passed today, it's "Overdue" (Red)
         if (target.getTime() < now.getTime()) {
-            return 'var(--color-overdue)'; // Overdue
+            return 'var(--color-overdue)';
         }
-
-        // It's in the future.
-        const nowDay = new Date(now);
-        nowDay.setHours(0, 0, 0, 0);
-        const targetDay = new Date(target);
-        targetDay.setHours(0, 0, 0, 0);
-
-        const diffDays = Math.round((targetDay.getTime() - nowDay.getTime()) / (1000 * 60 * 60 * 24));
-        if (diffDays === 0) return 'var(--color-today)'; // Today (but later today)
-        return 'var(--color-future)'; // Tomorrow or future
+        if (isToday) return 'var(--color-today)';
+        return 'var(--color-future)';
     } else {
         // Pure day comparison
-        now.setHours(0, 0, 0, 0);
-        target.setHours(0, 0, 0, 0);
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const targetDay = new Date(target.getFullYear(), target.getMonth(), target.getDate());
 
-        const diffTime = target.getTime() - now.getTime();
-        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24)); // Round is safer for daylight saving adjustments
+        const diffTime = targetDay.getTime() - today.getTime();
+        const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays < 0) return 'var(--color-overdue)'; // Overdue
         if (diffDays === 0) return 'var(--color-today)'; // Today

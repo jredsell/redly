@@ -87,6 +87,11 @@ export default function WelcomeScreen({ openHelp }) {
 
     const handleGDriveClick = async () => {
         console.log('[GDrive] Cloud Sync button clicked');
+
+        // PRE-TRIGGER Auth: Call this immediately in the click handler to stay within the user gesture window.
+        // This helps prevent browsers from blocking the Google OAuth popup.
+        import('../lib/gdrive').then(m => m.getAccessToken().catch(e => console.warn('[GDrive] Pre-auth failed:', e)));
+
         // If they already have nodes and are switching TO GDrive
         if (nodes.length > 0 && workspaceHandle) {
             setShowBackupModal(true);
@@ -119,8 +124,8 @@ export default function WelcomeScreen({ openHelp }) {
         return (
             <div className="modal-overlay">
                 <div className="modal-content">
-                    <div className="badge-cloud">Cloud Migration</div>
-                    <h3 style={{ fontSize: '26px', fontWeight: '800', marginBottom: '12px', letterSpacing: '-0.5px' }}>Move your notes to Cloud?</h3>
+                    <div className="badge-cloud">Google Drive Migration</div>
+                    <h3 style={{ fontSize: '26px', fontWeight: '800', marginBottom: '12px', letterSpacing: '-0.5px' }}>Move your notes to Google Drive?</h3>
                     <p style={{ color: 'var(--text-secondary)', marginBottom: '32px', lineHeight: '1.6', fontSize: '15px' }}>
                         We detected <strong>{nodes.length}</strong> items in your current storage. Would you like to back them up to Google Drive or start fresh?
                     </p>
@@ -128,10 +133,10 @@ export default function WelcomeScreen({ openHelp }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <button onClick={() => initGDrive(true)} className="primary-action-btn" style={{ width: '100%', justifyContent: 'center' }}>
                             <CloudUpload size={20} />
-                            Backup & Switch to Cloud
+                            Backup & Switch to Google Drive
                         </button>
                         <button onClick={() => initGDrive(false)} className="secondary-action-btn" style={{ width: '100%', borderStyle: 'dashed' }}>
-                            Start Fresh in Cloud
+                            Start Fresh in Google Drive
                         </button>
                         <button onClick={() => setShowBackupModal(false)} className="secondary-action-btn" style={{ width: '100%', border: 'none' }}>
                             Go Back
@@ -147,7 +152,7 @@ export default function WelcomeScreen({ openHelp }) {
             <div className="welcome-container">
                 <style>{SHARED_STYLES}</style>
                 {renderLogo()}
-                <h1 style={{ fontSize: '24px', fontWeight: '700' }}>Connecting to Cloud...</h1>
+                <h1 style={{ fontSize: '24px', fontWeight: '700' }}>Connecting to Google Drive...</h1>
                 <p style={{ color: 'var(--text-tertiary)', marginBottom: '32px' }}>Please complete the authentication in the popup window.</p>
                 <button onClick={() => setStatus('idle')} className="secondary-action-btn" style={{ border: 'none' }}>
                     Cancel & Go Back
@@ -196,9 +201,9 @@ export default function WelcomeScreen({ openHelp }) {
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
                     </button>
 
-                    <button onClick={handleGDriveClick} className="storage-option-btn" aria-label="Select Cloud Storage: Google Drive synchronization">
+                    <button onClick={handleGDriveClick} className="storage-option-btn" aria-label="Select Google Drive: Cloud synchronization">
                         <Monitor size={24} style={{ color: 'var(--color-today)', marginBottom: '12px' }} aria-hidden="true" />
-                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Cloud Storage</h3>
+                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Google Drive</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Connect your Google Drive to sync notes across devices seamlessly.</p>
                     </button>
                 </div>
@@ -247,7 +252,7 @@ export default function WelcomeScreen({ openHelp }) {
                     }}
                 >
                     <ShieldCheck size={20} />
-                    <span>Install Redly Desktop App</span>
+                    <span>Install redly Desktop App</span>
                 </button>
             )}
 

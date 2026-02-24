@@ -9,7 +9,7 @@ export default function HelpModal({ isOpen, onClose }) {
 
     const getStorageInfo = () => {
         if (storageMode === 'local') return { name: 'Local Storage', icon: <HardDrive size={18} aria-hidden="true" />, detail: 'Mapped to your computer' };
-        if (storageMode === 'gdrive') return { name: 'Cloud Storage', icon: <Cloud size={18} aria-hidden="true" />, detail: 'Google Drive' };
+        if (storageMode === 'gdrive') return { name: 'Google Drive', icon: <Cloud size={18} aria-hidden="true" />, detail: 'Synced via Google' };
         if (storageMode === 'sandbox') return { name: 'Browser Storage', icon: <Box size={18} aria-hidden="true" />, detail: 'Private Vault' };
         return { name: 'Unknown', icon: <Box size={18} aria-hidden="true" />, detail: 'Not connected' };
     };
@@ -149,7 +149,7 @@ export default function HelpModal({ isOpen, onClose }) {
                 <div style={{ marginTop: '24px', textAlign: 'center' }}>
                     <button onClick={onClose} style={{
                         background: 'var(--accent-color)', color: 'white', border: 'none', padding: '10px 32px',
-                        borderRadius: '6px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95em',
+                        borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95em',
                         boxShadow: '0 2px 4px rgba(99, 102, 241, 0.3)'
                     }}>Got It!</button>
                 </div>

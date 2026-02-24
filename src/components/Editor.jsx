@@ -194,6 +194,7 @@ export default function Editor({ fileId }) {
         }),
         TaskItem.configure({
             HTMLAttributes: { 'data-type': 'taskItem', class: 'task-list-item' },
+            keepAttributes: false,
         }).extend({
             addAttributes() {
                 return {
