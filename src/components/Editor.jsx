@@ -267,18 +267,22 @@ export default function Editor({ fileId }) {
                             const attrDate = element.getAttribute('data-date');
                             if (attrDate) return attrDate;
 
-                            // Fallback: try to extract from text content if it's a raw Markdown load
+                            // Fallback: try to extract from text content
                             const text = element.textContent || '';
                             const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
                             const match = text.match(dateRegex);
                             if (match) {
                                 const { parsedDate } = parseDateString(match[1]);
+                                // Optional: We could try to physically remove it from the DOM element here 
+                                // so Tiptap's content ingestion doesn't see it, but that's risky.
+                                // Instead, we rely on the attribute being set and our render logic.
                                 return parsedDate;
                             }
                             return '';
                         },
                         renderHTML: attributes => ({ 'data-date': attributes.date })
                     },
+
                     hasTime: {
                         default: false,
                         parseHTML: element => {
