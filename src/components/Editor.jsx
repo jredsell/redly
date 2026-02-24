@@ -231,13 +231,25 @@ export default function Editor({ fileId }) {
                         parseHTML: element => element.getAttribute('data-has-time') === 'true',
                         renderHTML: attributes => ({ 'data-has-time': attributes.hasTime })
                     },
-                    hasDate: { default: false }
+                    hasDate: {
+                        default: false,
+                        parseHTML: element => element.getAttribute('data-has-date') === 'true' || !!element.getAttribute('data-date'),
+                        renderHTML: attributes => ({ 'data-has-date': attributes.hasDate })
+                    }
+
                 };
             },
             addNodeView() { return ReactNodeViewRenderer(CustomTaskItemComponent); },
+            addKeyboardShortcuts() {
+                return {
+                    Enter: () => this.editor.commands.splitListItem(this.name, { checked: false, date: '', hasDate: false, hasTime: false }),
+                };
+            },
+
             renderHTML({ HTMLAttributes }) {
                 return ['li', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { 'data-type': 'taskItem' }), 0];
             },
+
             addInputRules() {
                 return [
                     new InputRule({
@@ -259,16 +271,26 @@ export default function Editor({ fileId }) {
                         priority: 100,
                         getAttrs: node => {
                             const checkbox = node.querySelector('input[type="checkbox"]');
-                            const date = node.getAttribute('data-date') || '';
-                            const hasTime = node.getAttribute('data-has-time') === 'true';
+                            const dateAttr = node.getAttribute('data-date');
+                            const hasTimeAttr = node.getAttribute('data-has-time') === 'true';
 
-                            return {
-                                checked: checkbox ? checkbox.checked : false,
-                                date,
-                                hasDate: !!date,
-                                hasTime
-                            };
+                            if (dateAttr) {
+                                return { checked: checkbox ? checkbox.checked : false, date: dateAttr, hasDate: true, hasTime: hasTimeAttr };
+                            }
+
+                            // Fallback: Parse from text content (needed for initial load from Markdown)
+                            const text = node.innerText || node.textContent || '';
+                            const dateMatch = text.match(/@(\d{2,4}[-\/\. ]\d{2}[-\/\. ]\d{2,4}(?:\s\d{2}:\d{2})?)/);
+                            if (dateMatch) {
+                                const { parsedDate, hasDate, hasTime } = parseDateString(dateMatch[1]);
+                                if (hasDate) {
+                                    return { checked: checkbox ? checkbox.checked : false, date: parsedDate, hasDate, hasTime };
+                                }
+                            }
+
+                            return { checked: checkbox ? checkbox.checked : false, date: '', hasDate: false, hasTime: false };
                         }
+
                     },
                     {
                         tag: 'li',
@@ -281,16 +303,26 @@ export default function Editor({ fileId }) {
                             if (!isTaskListItem) return false;
 
                             const checkbox = node.querySelector('input[type="checkbox"]');
-                            const date = node.getAttribute('data-date') || '';
-                            const hasTime = node.getAttribute('data-has-time') === 'true';
+                            const dateAttr = node.getAttribute('data-date');
+                            const hasTimeAttr = node.getAttribute('data-has-time') === 'true';
 
-                            return {
-                                checked: checkbox ? checkbox.checked : false,
-                                date,
-                                hasDate: !!date,
-                                hasTime
-                            };
+                            if (dateAttr) {
+                                return { checked: checkbox ? checkbox.checked : false, date: dateAttr, hasDate: true, hasTime: hasTimeAttr };
+                            }
+
+                            // Fallback: Parse from text content
+                            const text = node.innerText || node.textContent || '';
+                            const dateMatch = text.match(/@(\d{2,4}[-\/\. ]\d{2}[-\/\. ]\d{2,4}(?:\s\d{2}:\d{2})?)/);
+                            if (dateMatch) {
+                                const { parsedDate, hasDate, hasTime } = parseDateString(dateMatch[1]);
+                                if (hasDate) {
+                                    return { checked: checkbox ? checkbox.checked : false, date: parsedDate, hasDate, hasTime };
+                                }
+                            }
+
+                            return { checked: checkbox ? checkbox.checked : false, date: '', hasDate: false, hasTime: false };
                         }
+
                     }
                 ];
             }
@@ -305,11 +337,22 @@ export default function Editor({ fileId }) {
                 return [new InputRule({
                     find: /(?:^|\s)(@)$/,
                     handler: ({ state, range }) => {
-                        // Trigger the inline date input regardless of context to be safe
+                        // SCOPE FIX: Only trigger inside a taskItem
+                        const $pos = state.doc.resolve(range.from);
+                        let isInsideTask = false;
+                        for (let i = $pos.depth; i > 0; i--) {
+                            if ($pos.node(i).type.name === 'taskItem') {
+                                isInsideTask = true;
+                                break;
+                            }
+                        }
+                        if (!isInsideTask) return null;
+
                         state.tr.replaceWith(range.from + 1, range.to, this.type.create());
                     }
                 })];
             }
+
         })
     ], []);
 
@@ -321,58 +364,76 @@ export default function Editor({ fileId }) {
             try {
                 const { from, to, empty } = editor.state.selection;
 
-                // Safety Gate: Only show menus if selection is within a reasonable range
-                // and the editor view is actually focused/occupied.
+                // Selection can sometimes be out of sync with the view during rapid changes
+                if (from < 0 || to > editor.state.doc.content.size) {
+                    setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+                    return;
+                }
+
                 if (!empty && (to - from) < 5000) {
-                    // Use domAtPos to verify the DOM node exists before getting coords
-                    const { node } = editor.view.domAtPos(from);
-                    if (!node) {
+                    // VERIFY VIEW: Ensure the editor view is ready and not destroyed
+                    if (!editor.view || !editor.view.domAtPos) {
                         setBubbleMenu({ isOpen: false, top: 0, left: 0 });
                         return;
                     }
 
-                    const coords = editor.view.coordsAtPos(from);
+                    // DEEP SAFETY: Check if the position exists in the current view mapping
+                    try {
+                        const { node } = editor.view.domAtPos(from);
+                        if (!node) {
+                            setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+                            return;
+                        }
 
-                    // Verify coords exist and are valid numbers before updating state
-                    if (coords && typeof coords.top === 'number' && typeof coords.left === 'number') {
-                        setBubbleMenu({
-                            isOpen: true,
-                            top: coords.top - 50,
-                            left: coords.left
-                        });
-                        setSlashMenu(prev => ({ ...prev, isOpen: false }));
-                    } else {
+                        const coords = editor.view.coordsAtPos(from);
+                        if (coords && typeof coords.top === 'number' && typeof coords.left === 'number') {
+                            setBubbleMenu({
+                                isOpen: true,
+                                top: coords.top - 50,
+                                left: coords.left
+                            });
+                            setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                        } else {
+                            setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+                        }
+                    } catch (innerErr) {
+                        // This handles cases where domAtPos or coordsAtPos throws
                         setBubbleMenu({ isOpen: false, top: 0, left: 0 });
                     }
                 } else {
-                    // Close menus for large selections or empty cursors
                     setBubbleMenu({ isOpen: false, top: 0, left: 0 });
 
                     if (empty) {
                         const $pos = editor.state.doc.resolve(from);
-                        const textBefore = $pos.parent.textBetween(0, $pos.parentOffset, '\n');
+                        const parent = $pos.parent;
+                        if (!parent) return;
+
+                        // textBetween can throw if offsets are invalid
+                        const textBefore = parent.textBetween(0, Math.min($pos.parentOffset, parent.content.size), '\n');
                         const match = textBefore.match(/(?:^|\s)\/([a-zA-Z0-9]*)$/);
 
                         if (match) {
                             const query = match[1];
                             const triggerIdx = from - query.length - 1;
-                            const coords = editor.view.coordsAtPos(triggerIdx);
 
-                            if (coords && typeof coords.bottom === 'number' && typeof coords.left === 'number') {
-                                // Collision Detection: If menu would go off bottom, show it above
-                                const menuHeight = 240; // Estimated max height
-                                const wouldOverflow = coords.bottom + menuHeight > window.innerHeight;
+                            try {
+                                const coords = editor.view.coordsAtPos(triggerIdx);
+                                if (coords && typeof coords.bottom === 'number' && typeof coords.left === 'number') {
+                                    const menuHeight = 240;
+                                    const wouldOverflow = coords.bottom + menuHeight > window.innerHeight;
 
-                                setSlashMenu({
-                                    isOpen: true,
-                                    top: wouldOverflow ? coords.top - menuHeight - 4 : coords.bottom + 4,
-                                    left: coords.left,
-                                    query: query,
-                                    triggerIdx: triggerIdx,
-                                    selectedIndex: 0
-                                });
-                            } else {
-
+                                    setSlashMenu({
+                                        isOpen: true,
+                                        top: wouldOverflow ? coords.top - menuHeight - 4 : coords.bottom + 4,
+                                        left: coords.left,
+                                        query: query,
+                                        triggerIdx: triggerIdx,
+                                        selectedIndex: 0
+                                    });
+                                } else {
+                                    setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                                }
+                            } catch (e) {
                                 setSlashMenu(prev => ({ ...prev, isOpen: false }));
                             }
                         } else {
@@ -381,15 +442,12 @@ export default function Editor({ fileId }) {
                     }
                 }
             } catch (err) {
-                // Fallback to prevent the "White Screen of Death"
                 console.error('Editor: Selection update error', err);
-                try {
-                    setBubbleMenu({ isOpen: false, top: 0, left: 0 });
-                    setSlashMenu(prev => ({ ...prev, isOpen: false }));
-                } catch (e) { }
+                setBubbleMenu({ isOpen: false, top: 0, left: 0 });
+                setSlashMenu(prev => ({ ...prev, isOpen: false }));
             }
-
         },
+
         onBlur: () => {
             setBubbleMenu({ isOpen: false, top: 0, left: 0 });
             setSlashMenu(prev => ({ ...prev, isOpen: false }));

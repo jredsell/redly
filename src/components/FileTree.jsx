@@ -129,11 +129,13 @@ export default function FileTree({ node, depth }) {
                 onDrop={isFolder ? handleDrop : undefined}
                 tabIndex={0}
                 onKeyDown={(e) => {
+                    if (e.target.tagName === 'INPUT') return;
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
                         handleClick(e);
                     }
                 }}
+
             >
                 <div className="tree-item-content">
                     <span className="icon-color" style={{ color: isFolder ? 'var(--accent-color)' : 'var(--text-tertiary)', display: 'flex' }} aria-hidden="true">

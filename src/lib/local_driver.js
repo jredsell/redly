@@ -57,6 +57,22 @@ export const createNode = async (node) => {
     return node;
 };
 
+// Helper for recursive folder copy (fallback when .move() is unavailable)
+async function copyFolderContents(sourceHandle, targetHandle) {
+    for await (const entry of sourceHandle.values()) {
+        if (entry.kind === 'file') {
+            const file = await entry.getFile();
+            const newFileHandle = await targetHandle.getFileHandle(entry.name, { create: true });
+            const writable = await newFileHandle.createWritable();
+            await writable.write(await file.arrayBuffer());
+            await writable.close();
+        } else if (entry.kind === 'directory') {
+            const newFolderHandle = await targetHandle.getDirectoryHandle(entry.name, { create: true });
+            await copyFolderContents(entry, newFolderHandle);
+        }
+    }
+}
+
 export const updateNode = async (id, updates, oldNode) => {
     const parentHandle = await getDirHandleFromPath(oldNode.parentId);
 
@@ -77,16 +93,15 @@ export const updateNode = async (id, updates, oldNode) => {
             return { ...oldNode, ...updates, id: oldNode.parentId ? `${oldNode.parentId}/${updates.name}.md` : `${updates.name}.md` };
 
         } else {
-            // Folder renaming: Native File System API doesn't support directory.move() well everywhere
-            // But we can try it if available, or just update the metadata in our internal state if it's just a name change
-            // Actually, for local files, we MUST rename the physical folder.
+            // Folder renaming: Native File System API fallback
             const oldFolderHandle = await parentHandle.getDirectoryHandle(oldNode.name);
             if (oldFolderHandle.move) {
                 await oldFolderHandle.move(updates.name);
             } else {
-                // Fallback: Create new, move all children (Complex, but needed if no .move())
-                // For now, let's assume .move() or warn. Most modern browsers support it on handles.
-                throw new Error("Folder renaming not supported in this browser version.");
+                // Fallback: Recursive Copy and Delete
+                const newFolderHandle = await parentHandle.getDirectoryHandle(updates.name, { create: true });
+                await copyFolderContents(oldFolderHandle, newFolderHandle);
+                await parentHandle.removeEntry(oldNode.name, { recursive: true });
             }
             return { ...oldNode, ...updates, id: id.replace(oldNode.name, updates.name) };
         }
@@ -108,7 +123,6 @@ export const updateNode = async (id, updates, oldNode) => {
                 const file = await itemHandle.getFile();
                 const content = await file.text();
                 const fileName = `${oldNode.name}.md`;
-                const newParentHandle = await getDirHandleFromPath(updates.parentId, true);
                 const newFileHandle = await newParentHandle.getFileHandle(fileName, { create: true });
                 const writable = await newFileHandle.createWritable();
                 await writable.write(content);
@@ -116,9 +130,14 @@ export const updateNode = async (id, updates, oldNode) => {
                 await parentHandle.removeEntry(fileName);
                 const newId = updates.parentId ? `${updates.parentId}/${fileName}` : fileName;
                 return { ...oldNode, ...updates, id: newId };
+            } else {
+                // Folder Move Fallback
+                const newFolderHandle = await newParentHandle.getDirectoryHandle(oldNode.name, { create: true });
+                await copyFolderContents(itemHandle, newFolderHandle);
+                await parentHandle.removeEntry(oldNode.name, { recursive: true });
+                const newId = updates.parentId ? `${updates.parentId}/${oldNode.name}` : oldNode.name;
+                return { ...oldNode, ...updates, id: newId };
             }
-            // For folders, recursive copy is too risky/complex here without a library
-            throw new Error("Moving folders not supported in this browser version.");
         }
 
     }
@@ -130,6 +149,7 @@ export const updateNode = async (id, updates, oldNode) => {
     }
     return { ...oldNode, ...updates };
 };
+
 
 export const deleteNode = async (id, type) => {
     const name = id.split('/').pop();
