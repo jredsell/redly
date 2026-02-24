@@ -50,15 +50,18 @@ export default function GlobalTasks() {
         const file = nodes.find(n => n.id === task.fileId);
         if (!file || !file.content) return;
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(file.content, 'text/html');
-        const taskElements = doc.querySelectorAll('li[data-type="taskItem"]');
+        const lines = file.content.split('\n');
+        const taskLine = lines[task.lineIndex];
 
-        if (taskElements[task.taskIndex]) {
-            const el = taskElements[task.taskIndex];
-            const isChecked = el.getAttribute('data-checked') === 'true';
-            el.setAttribute('data-checked', isChecked ? 'false' : 'true');
-            await editNode(task.fileId, { content: doc.body.innerHTML });
+        if (taskLine) {
+            // Toggle [ ] <-> [x]
+            if (taskLine.includes('- [ ]')) {
+                lines[task.lineIndex] = taskLine.replace('- [ ]', '- [x]');
+            } else if (taskLine.includes('- [x]')) {
+                lines[task.lineIndex] = taskLine.replace('- [x]', '- [ ]');
+            }
+
+            await editNode(task.fileId, { content: lines.join('\n') });
         }
     };
 
@@ -66,24 +69,24 @@ export default function GlobalTasks() {
         const file = nodes.find(n => n.id === task.fileId);
         if (!file || !file.content) return;
 
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(file.content, 'text/html');
-        const taskElements = doc.querySelectorAll('li[data-type="taskItem"]');
+        const lines = file.content.split('\n');
+        let taskLine = lines[task.lineIndex];
 
-        if (taskElements[task.taskIndex]) {
-            const el = taskElements[task.taskIndex];
+        if (taskLine) {
+            // Remove existing @date pattern (robust version)
+            taskLine = taskLine.replace(/\s*@\d{4}-\d{2}-\d{2}(\s+\d{2}:\d{2})?/, '');
 
+            // Add new @date if provided
             if (newDateString) {
-                el.setAttribute('date', newDateString);
-                el.setAttribute('hasDate', 'true');
-                el.setAttribute('hasTime', newHasTime ? 'true' : 'false');
-            } else {
-                el.removeAttribute('date');
-                el.removeAttribute('hasDate');
-                el.removeAttribute('hasTime');
+                const [datePart, timePart] = newDateString.split('T');
+                const formattedDate = newHasTime && timePart
+                    ? `${datePart} ${timePart.substring(0, 5)}`
+                    : datePart;
+                taskLine = `${taskLine.trimEnd()} @${formattedDate}`;
             }
 
-            await editNode(task.fileId, { content: doc.body.innerHTML });
+            lines[task.lineIndex] = taskLine;
+            await editNode(task.fileId, { content: lines.join('\n') });
         }
     };
 
@@ -131,7 +134,7 @@ export default function GlobalTasks() {
                         <div style={{ marginLeft: '8px', zIndex: 10 }}>
                             <InlineDateInput
                                 initialDate={task.date instanceof Date ? task.date.toISOString() : task.date}
-                                initialHasTime={task.hasTime}
+                                initialHasTime={task.hasTime === true || task.hasTime === 'true'}
                                 isChecked={task.checked}
                                 onDateChange={(newDateStr, newHasTime) => handleDateUpdate(task, newDateStr, newHasTime)}
                                 onClearDate={() => handleDateUpdate(task, null, false)}

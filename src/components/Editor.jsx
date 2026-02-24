@@ -9,6 +9,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Placeholder from '@tiptap/extension-placeholder';
 import TaskItem from '@tiptap/extension-task-item';
 import TaskList from '@tiptap/extension-task-list';
+import taskLists from 'markdown-it-task-lists';
 import { parseDateString } from '../utils/dateHelpers';
 import InlineDateInput from './InlineDateInput';
 import CodeBlock from '@tiptap/extension-code-block';
@@ -91,14 +92,36 @@ const InlineDateInputNodeView = (props) => {
     );
 };
 
-const md = markdownit({ html: true, linkify: true, typographer: true });
+const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: true, labelAfter: true });
 const td = new TurndownService({ headingStyle: 'atx', hr: '---', bulletListMarker: '-', codeBlockStyle: 'fenced' });
 td.addRule('taskList', {
     filter: (node) => node.nodeName === 'LI' && node.parentElement?.getAttribute('data-type') === 'taskList',
     replacement: (content, node) => {
-        const isChecked = node.getAttribute('data-checked') === 'true';
-        return `${isChecked ? '[x]' : '[ ]'} ${content.trim()}\n`;
+        const isChecked = node.getAttribute('data-checked') === 'true' || node.querySelector('input[type="checkbox"]')?.checked;
+        const date = node.getAttribute('data-date');
+        const hasTime = node.getAttribute('data-has-time') === 'true';
+
+        // Clean content: remove "Due: ..." text if it was captured by accident
+        // (Though with a proper exclude rule this is less likely)
+        let cleanContent = content.split('\n').filter(line => !line.trim().startsWith('Due:')).join(' ').trim();
+
+        let dateString = '';
+        if (date) {
+            // Convert 2023-10-27T10:00 to 2023-10-27 10:00 for the @date pattern
+            const formattedDate = hasTime ? date.replace('T', ' ') : date.split('T')[0];
+            dateString = ` @${formattedDate}`;
+        }
+
+        return `\n- [${isChecked ? 'x' : ' '}] ${cleanContent}${dateString}`;
     }
+});
+
+// Explicitly ignore the date badge text in Turndown
+td.addRule('ignoreDateBadge', {
+    filter: (node) => {
+        return node.nodeName === 'DIV' && node.style && node.getAttribute('contenteditable') === 'false' && node.textContent.includes('Due:');
+    },
+    replacement: () => ''
 });
 td.addRule('fencedCodeBlock', {
     filter: 'pre',
@@ -144,10 +167,46 @@ export default function Editor({ fileId }) {
             HTMLAttributes: { class: 'tiptap-code-block' },
         }),
         Placeholder.configure({ placeholder: "Start typing..." }),
-        TaskList,
+        TaskList.extend({
+            parseHTML() {
+                return [
+                    { tag: 'ul[data-type="taskList"]' },
+                    { tag: 'ul.task-list' }, // Handle markdown-it-task-lists output
+                ];
+            }
+        }),
         TaskItem.extend({
-            addAttributes() { return { ...(this.parent ? this.parent() : {}), date: { default: '' }, hasTime: { default: false }, hasDate: { default: false } }; },
-            addNodeView() { return ReactNodeViewRenderer(CustomTaskItemComponent); }
+            addAttributes() {
+                return {
+                    ...(this.parent ? this.parent() : {}),
+                    date: {
+                        default: '',
+                        parseHTML: element => element.getAttribute('data-date'),
+                        renderHTML: attributes => ({ 'data-date': attributes.date })
+                    },
+                    hasTime: {
+                        default: false,
+                        parseHTML: element => element.getAttribute('data-has-time') === 'true',
+                        renderHTML: attributes => ({ 'data-has-time': attributes.hasTime })
+                    },
+                    hasDate: { default: false }
+                };
+            },
+            addNodeView() { return ReactNodeViewRenderer(CustomTaskItemComponent); },
+            renderHTML({ HTMLAttributes }) {
+                return ['li', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { 'data-type': 'taskItem' }), 0];
+            },
+            parseHTML() {
+                return [
+                    { tag: 'li[data-type="taskItem"]' },
+                    {
+                        tag: 'li.task-list-item',
+                        getAttrs: node => ({
+                            checked: node.querySelector('input[type="checkbox"]')?.checked || false
+                        })
+                    },
+                ];
+            }
         }),
         Node.create({
             name: 'inlineDateInput', group: 'inline', inline: true, atom: true,

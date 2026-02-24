@@ -1,5 +1,8 @@
+/**
+ * Parses all tasks from the given nodes.
+ * Expects nodes to have Markdown content.
+ */
 export function parseTasksFromNodes(nodes) {
-    const parser = new DOMParser();
     const tasks = [];
 
     // Helper to resolve breadcrumb path for a node
@@ -18,49 +21,53 @@ export function parseTasksFromNodes(nodes) {
         return path;
     };
 
-    // Only process files containing tasks (quick rough string check first to save DOM parsing)
-    const filesWithTasks = nodes.filter(n => n.type === 'file' && n.content && n.content.includes('data-type="taskItem"'));
+    const files = nodes.filter(n => n.type === 'file' && n.content);
 
-    filesWithTasks.forEach(file => {
-        const doc = parser.parseFromString(file.content, 'text/html');
-        const taskElements = doc.querySelectorAll('li[data-type="taskItem"]');
+    files.forEach(file => {
         const breadcrumbPath = getPath(file.id);
+        const lines = file.content.split('\n');
 
-        taskElements.forEach((el, idx) => {
-            const isChecked = el.getAttribute('data-checked') === 'true';
+        // Regex to match GFM task list items: "- [ ] text" or "- [x] text"
+        const taskRegex = /^\s*-\s*\[([ xX])\]\s*(.*)$/;
 
-            // Extract the main text and any inline dates
-            const labelEl = el.querySelector('label');
-            const innerContent = el.querySelector('div');
+        lines.forEach((line, lineIndex) => {
+            const match = line.match(taskRegex);
+            if (match) {
+                const isChecked = match[1].toLowerCase() === 'x';
+                let text = match[2].trim();
 
-            let text = '';
-            let date = null;
-            let hasTime = false;
+                // Advanced date/time extraction
+                // Patterns: @YYYY-MM-DD or @YYYY-MM-DD HH:MM
+                let date = null;
+                let hasTime = false;
 
-            const rawDate = el.getAttribute('date');
-            if (rawDate) {
-                date = new Date(rawDate);
-                hasTime = el.getAttribute('hasTime') === 'true';
+                // Matches @2023-10-27 or @2023-10-27 15:30
+                const dateMatch = text.match(/@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/);
+                if (dateMatch) {
+                    const dateStr = dateMatch[1].replace(' ', 'T');
+                    try {
+                        const d = new Date(dateStr);
+                        if (!isNaN(d.getTime())) {
+                            date = d;
+                            hasTime = dateMatch[1].includes(':');
+                            // We keep the date in the text for Redly's parser to find it again,
+                            // but we mark its existence for the UI.
+                        }
+                    } catch (e) { }
+                }
+
+                tasks.push({
+                    // Stable ID based on file path and line index
+                    id: `${file.id}:L${lineIndex}`,
+                    fileId: file.id,
+                    lineIndex: lineIndex,
+                    path: breadcrumbPath,
+                    checked: isChecked,
+                    text: text,
+                    date: date,
+                    hasTime: hasTime
+                });
             }
-
-            if (innerContent) {
-                // Clone to manipulate safely
-                const cloned = innerContent.cloneNode(true);
-                text = cloned.textContent.trim();
-            } else {
-                text = el.textContent.trim();
-            }
-
-            tasks.push({
-                id: Math.random().toString(36).substring(7), // Ephemeral ID for React keys
-                fileId: file.id,
-                taskIndex: idx,
-                path: breadcrumbPath,
-                checked: isChecked,
-                text: text,
-                date: date,
-                hasTime: hasTime
-            });
         });
     });
 

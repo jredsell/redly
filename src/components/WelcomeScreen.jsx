@@ -198,22 +198,6 @@ export default function WelcomeScreen({ openHelp }) {
                         <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Cloud Storage</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Connect your Google Drive to sync notes across devices seamlessly.</p>
                     </button>
-
-                    {isInstallable ? (
-                        <button onClick={installApp} className="storage-option-btn" style={{ borderStyle: 'dashed' }} aria-label="Install Redly as a Desktop App">
-                            <ShieldCheck size={24} style={{ color: 'var(--color-tomorrow)', marginBottom: '12px' }} aria-hidden="true" />
-                            <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Install as App</h3>
-                            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Add Redly to your desktop or mobile home screen for the best experience.</p>
-                        </button>
-                    ) : (
-                        <div className="storage-option-btn" style={{ borderStyle: 'dashed', opacity: 0.8, cursor: 'default' }} role="status" aria-label="PWA status: Install via browser menu if needed">
-                            <Monitor size={24} style={{ color: 'var(--text-tertiary)', marginBottom: '12px' }} aria-hidden="true" />
-                            <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>PWA Ready</h3>
-                            <p style={{ fontSize: '11px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>
-                                To install manually: Open browser menu (⋮) → "Install App" or "Save as shortcut".
-                            </p>
-                        </div>
-                    )}
                 </div>
                 {renderBackupModal()}
             </div>
@@ -224,9 +208,49 @@ export default function WelcomeScreen({ openHelp }) {
         <div className="welcome-container">
             <style>{SHARED_STYLES}</style>
             {renderLogo(60)}
-            <h1 style={{ fontSize: '32px', marginBottom: '32px', fontWeight: '800', letterSpacing: '-0.5px' }}>What's next?</h1>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '16px', width: '100%', maxWidth: '600px', marginBottom: '48px' }}>
+            {isInstallable && (
+                <button
+                    onClick={installApp}
+                    className="pwa-install-banner"
+                    style={{
+                        fontSize: '14px',
+                        padding: '12px 24px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '12px',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--accent-color)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '12px',
+                        fontWeight: '600',
+                        marginBottom: '40px',
+                        cursor: 'pointer',
+                        width: '100%',
+                        maxWidth: '500px',
+                        boxShadow: 'var(--shadow-sm)',
+                        transition: 'all 0.2s ease'
+                    }}
+                    onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--accent-color)';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-md)';
+                    }}
+                    onMouseOut={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-color)';
+                        e.currentTarget.style.transform = 'translateY(0)';
+                        e.currentTarget.style.boxShadow = 'var(--shadow-sm)';
+                    }}
+                >
+                    <ShieldCheck size={20} />
+                    <span>Install Redly Desktop App</span>
+                </button>
+            )}
+
+            <h1 style={{ fontSize: '32px', marginBottom: '32px', fontWeight: '800', letterSpacing: '-0.5px', textAlign: 'center' }}>What's next?</h1>
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', width: '100%', maxWidth: '600px', marginBottom: '48px' }}>
                 <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card" aria-label="Create a New Note">
                     <FileText size={24} style={{ color: 'var(--accent-color)' }} aria-hidden="true" />
                     <span style={{ fontWeight: '600' }}>New Note</span>
@@ -237,7 +261,7 @@ export default function WelcomeScreen({ openHelp }) {
                 </button>
                 <button onClick={openHelp} className="welcome-card" aria-label="Open Help and Shortcuts">
                     <ListTodo size={24} style={{ color: 'var(--color-today)' }} aria-hidden="true" />
-                    <span style={{ fontWeight: '600' }}>Help</span>
+                    <span style={{ fontWeight: '600' }}>Magic Guide</span>
                 </button>
             </div>
 
