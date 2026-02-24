@@ -157,7 +157,8 @@ export default function FileTree({ node, depth }) {
                         />
                     ) : (
                         <span className="tree-item-label">
-                            {node.name}
+                            {node.name.replace(/\.md$/i, '')}
+
                             {isFolder && (
                                 <span style={{ marginLeft: '6px', fontSize: '12px', color: 'var(--text-tertiary)', opacity: 0.8 }}>
                                     ({node.children?.length || 0})

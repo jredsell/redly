@@ -123,7 +123,9 @@ td.addRule('taskItem', {
         const isChecked = node.getAttribute('data-checked') === 'true' ||
             node.hasAttribute('checked') ||
             node.classList.contains('is-checked') ||
-            !!node.querySelector('input[checked]');
+            !!node.querySelector('input[checked]') ||
+            !!node.querySelector('input[type="checkbox"]:checked');
+
 
 
 
@@ -261,17 +263,39 @@ export default function Editor({ fileId }) {
                     },
                     date: {
                         default: '',
-                        parseHTML: element => element.getAttribute('data-date'),
+                        parseHTML: element => {
+                            const attrDate = element.getAttribute('data-date');
+                            if (attrDate) return attrDate;
+
+                            // Fallback: try to extract from text content if it's a raw Markdown load
+                            const text = element.textContent || '';
+                            const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
+                            const match = text.match(dateRegex);
+                            if (match) {
+                                const { parsedDate } = parseDateString(match[1]);
+                                return parsedDate;
+                            }
+                            return '';
+                        },
                         renderHTML: attributes => ({ 'data-date': attributes.date })
                     },
                     hasTime: {
                         default: false,
-                        parseHTML: element => element.getAttribute('data-has-time') === 'true',
+                        parseHTML: element => {
+                            if (element.getAttribute('data-has-time')) return element.getAttribute('data-has-time') === 'true';
+                            const text = element.textContent || '';
+                            return /@\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(text);
+                        },
                         renderHTML: attributes => ({ 'data-has-time': attributes.hasTime })
                     },
                     hasDate: {
                         default: false,
-                        parseHTML: element => element.getAttribute('data-has-date') === 'true' || !!element.getAttribute('data-date'),
+                        parseHTML: element => {
+                            if (element.getAttribute('data-has-date')) return element.getAttribute('data-has-date') === 'true';
+                            if (element.getAttribute('data-date')) return true;
+                            const text = element.textContent || '';
+                            return /@\d{4}-\d{2}-\d{2}/.test(text);
+                        },
                         renderHTML: attributes => ({ 'data-has-date': attributes.hasDate })
                     }
                 };
@@ -279,7 +303,17 @@ export default function Editor({ fileId }) {
 
 
 
+
+            parseHTML() {
+                return [
+                    { tag: 'li[data-type="taskItem"]', priority: 100 },
+                    { tag: 'li.task-list-item', priority: 100 },
+                    { tag: 'li', getAttrs: element => element.classList.contains('task-list-item') && { 'data-type': 'taskItem' } },
+                ];
+            },
+
             addNodeView() { return ReactNodeViewRenderer(CustomTaskItemComponent); },
+
             addKeyboardShortcuts() {
                 return {
                     Enter: () => this.editor.commands.splitListItem(this.name, { checked: false, date: '', hasDate: false, hasTime: false }),
@@ -548,12 +582,34 @@ export default function Editor({ fileId }) {
                 if (isInitialLoad) setLocalTitle(f.name || '');
 
                 if (editor) {
-                    let html = md.render(f.content || '');
+                    let content = f.content || '';
+                    // Ensure task list markers have a space after them for markdown-it-task-lists
+                    content = content.replace(/^(\s*-\s*\[[ xX]\])(\S)/gm, '$1 $2');
+
+                    let html = md.render(content);
+
+                    // Convert regular task lists to data-type="taskList" and items to taskItem
                     html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
                         .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
 
+                    // Extract @date and move to attribute, but keep other content clean
+                    html = html.replace(/(<li data-type="taskItem"[^>]*>)([\s\S]*?)(<\/li>)/gi, (match, openTag, liContent, closeTag) => {
+                        const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
+                        const dateMatch = liContent.match(dateRegex);
+                        if (dateMatch) {
+                            const dateStr = dateMatch[1];
+                            const cleanedContent = liContent.replace(dateRegex, '').trim();
+                            // Only add attributes if they don't already exist from a previous parse/save cycle
+                            return `${openTag.replace('>', ` data-date="${dateStr}" data-has-date="true" data-has-time="${dateStr.includes(':')}">`)}${cleanedContent}${closeTag}`;
+                        }
+                        return match;
+                    });
+
+
+
                     const selection = editor.state.selection;
                     editor.commands.setContent(html, false);
+
                     if (isExternalUpdate) {
                         try {
                             editor.commands.setTextSelection(selection);

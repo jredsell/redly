@@ -177,11 +177,12 @@ export const NotesProvider = ({ children }) => {
 
         const newNode = {
             id: finalIdPath,
-            name: finalIdPath.split('/').pop(),
+            name: safeName, // Use the clean name without extension
             type,
             parentId,
             ...(type === 'file' ? { content: '' } : {})
         };
+
 
         try {
             await createNode(null, newNode);
@@ -201,7 +202,8 @@ export const NotesProvider = ({ children }) => {
         const oldNode = nodes.find(n => n.id === id);
         if (!oldNode) return;
 
-        if (updates.name) updates.name = updates.name.replace(/[\\/:*?"<>|]/g, '-').trim();
+        if (updates.name) updates.name = updates.name.replace(/[\\/:*?"<>|]/g, '-').replace(/\.md$/i, '').trim();
+
         try {
             const updatedNode = await updateNode(null, id, updates, oldNode);
             if (updatedNode && updatedNode.id !== id) {

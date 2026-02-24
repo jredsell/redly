@@ -88,13 +88,21 @@ export const updateNode = async (id, updates, oldNode) => {
         const newParentHandle = await getDirHandleFromPath(newParentId, true);
         const fileName = oldNode.type === 'file' ? `${newName}.md` : newName;
 
+        let moveSuccessful = false;
         if (currentHandle.move) {
-            await currentHandle.move(newParentHandle, fileName);
-            // After move, we need to update the handle reference if we want to write content later
-            currentHandle = oldNode.type === 'file'
-                ? await newParentHandle.getFileHandle(fileName)
-                : await newParentHandle.getDirectoryHandle(newName);
-        } else {
+            try {
+                await currentHandle.move(newParentHandle, fileName);
+                // After move, we need to update the handle reference if we want to write content later
+                currentHandle = oldNode.type === 'file'
+                    ? await newParentHandle.getFileHandle(fileName)
+                    : await newParentHandle.getDirectoryHandle(newName);
+                moveSuccessful = true;
+            } catch (moveErr) {
+                console.warn('Native move failed, falling back to copy/delete:', moveErr);
+            }
+        }
+
+        if (!moveSuccessful) {
             // Fallback: Copy and Delete
             if (oldNode.type === 'file') {
                 const file = await currentHandle.getFile();
@@ -103,7 +111,10 @@ export const updateNode = async (id, updates, oldNode) => {
                 const writable = await newFileHandle.createWritable();
                 await writable.write(content);
                 await writable.close();
-                await parentHandle.removeEntry(oldNode.type === 'file' ? `${oldNode.name}.md` : oldNode.name, { recursive: oldNode.type === 'folder' });
+
+                // Ensure we use the correct filename including extension for removal
+                const oldFileName = oldNode.type === 'file' ? `${oldNode.name}.md` : oldNode.name;
+                await parentHandle.removeEntry(oldFileName, { recursive: oldNode.type === 'folder' });
                 currentHandle = newFileHandle;
                 // Mark content as handled so we don't write it again below
                 updates.content = undefined;
@@ -114,6 +125,7 @@ export const updateNode = async (id, updates, oldNode) => {
                 currentHandle = newFolderHandle;
             }
         }
+
 
         // Update ID
         if (oldNode.type === 'file') {
