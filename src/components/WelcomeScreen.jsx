@@ -148,7 +148,10 @@ export default function WelcomeScreen({ openHelp }) {
                 <style>{SHARED_STYLES}</style>
                 {renderLogo()}
                 <h1 style={{ fontSize: '24px', fontWeight: '700' }}>Connecting to Cloud...</h1>
-                <p style={{ color: 'var(--text-tertiary)' }}>Please complete the authentication in the popup window.</p>
+                <p style={{ color: 'var(--text-tertiary)', marginBottom: '32px' }}>Please complete the authentication in the popup window.</p>
+                <button onClick={() => setStatus('idle')} className="secondary-action-btn" style={{ border: 'none' }}>
+                    Cancel & Go Back
+                </button>
             </div>
         );
     }

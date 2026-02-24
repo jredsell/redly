@@ -146,23 +146,6 @@ export default function HelpModal({ isOpen, onClose }) {
                     </p>
                 </div>
 
-                <div style={{ background: 'rgba(239, 68, 68, 0.1)', padding: '16px', borderRadius: '8px', marginTop: '16px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
-                    <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px', color: '#ef4444' }}>
-                        <Cloud size={18} aria-hidden="true" /> Cloud Sync Troubleshooting
-                    </h3>
-                    <p style={{ margin: 0, fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                        If you see <b>"Access Blocked: Redirect URI mismatch"</b> when connecting Google Drive:
-                        <br /><br />
-                        1. Visit your <a href="https://console.cloud.google.com/" target="_blank" rel="noopener noreferrer" style={{ color: 'var(--accent-color)', fontWeight: 600 }}>Google Cloud Console</a>.
-                        <br />
-                        2. Under <i>APIs & Services &gt; Credentials</i>, edit your OAuth 2.0 Client ID.
-                        <br />
-                        3. Add <code>http://localhost:5173</code> to the <b>Authorized redirect URIs</b>.
-                        <br />
-                        4. Save and try again. <i>(Required by Google for security)</i>.
-                    </p>
-                </div>
-
                 <div style={{ marginTop: '24px', textAlign: 'center' }}>
                     <button onClick={onClose} style={{
                         background: 'var(--accent-color)', color: 'white', border: 'none', padding: '10px 32px',

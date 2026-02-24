@@ -53,30 +53,33 @@ export const getAccessToken = async () => {
             client_id: CLIENT_ID,
             scope: SCOPES,
             callback: (response) => {
-                if (response.error) reject(response);
-                accessToken = response.access_token;
-                localStorage.setItem('gdrive_token', accessToken);
-                localStorage.setItem('gdrive_token_expiry', (Date.now() + response.expires_in * 1000).toString());
-                resolve(accessToken);
+                console.log('[GDrive] Auth callback received:', response);
+                if (response.error) {
+                    console.error('[GDrive] Auth error:', response.error);
+                    reject(response);
+                } else {
+                    accessToken = response.access_token;
+                    localStorage.setItem('gdrive_token', accessToken);
+                    localStorage.setItem('gdrive_token_expiry', (Date.now() + response.expires_in * 1000).toString());
+                    console.log('[GDrive] Auth successful');
+                    resolve(accessToken);
+                }
             },
         });
+        console.log('[GDrive] Requesting access token...');
         client.requestAccessToken();
     });
 };
 
 export const initRootFolder = async () => {
     await getAccessToken();
-    // Search for "redly" folder (case-insensitive if possible, but created lowercase)
     const q = "name = 'redly' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
     const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id,name)`);
-
-    // Exact match check (Drive API 'name =' is already exact-ish but let's be sure)
     const existingFolder = data.files && data.files.find(f => f.name.toLowerCase() === 'redly');
 
     if (existingFolder) {
         return existingFolder.id;
     } else {
-        // Create it - MUST BE EXACTLY 'redly'
         const res = await driveRequest('/files', {
             method: 'POST',
             body: JSON.stringify({
@@ -119,7 +122,6 @@ export const getNodes = async () => {
                 nodes.push({ id: nodePath, name: file.name, type: 'folder', parentId: currentPath || null, gdriveId: file.id });
                 await fetchPath(file.id, nodePath);
             } else if (file.name.endsWith('.md')) {
-                // Fetch content
                 const contentRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
                     headers: { 'Authorization': `Bearer ${accessToken}` }
                 });
@@ -142,21 +144,16 @@ export const getNodes = async () => {
 
 export const createNode = async (node) => {
     const rootId = await getHandle('gdrive_root_id');
-
-    // Resolve the GDrive ID of the parent folder
     let parentGDriveId = rootId;
     if (node.parentId) {
         const parts = node.parentId.split('/');
         let currentFolderId = rootId;
-
         for (const part of parts) {
             const q = `'${currentFolderId}' in parents and name = '${part}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
             const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id)`);
             if (data.files && data.files.length > 0) {
                 currentFolderId = data.files[0].id;
             } else {
-                // Should not happen if app state is in sync, but fallback to root
-                console.warn(`[GDrive] Could not find parent folder ID for ${part}, falling back to root`);
                 currentFolderId = rootId;
                 break;
             }
@@ -177,7 +174,6 @@ export const createNode = async (node) => {
         });
         return { ...node, gdriveId: res.id };
     } else {
-        // Multi-part create for file with content
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
         form.append('file', new Blob([node.content || ''], { type: 'text/markdown' }));

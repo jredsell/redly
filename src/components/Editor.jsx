@@ -94,25 +94,40 @@ const InlineDateInputNodeView = (props) => {
 
 const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: true, labelAfter: true });
 const td = new TurndownService({ headingStyle: 'atx', hr: '---', bulletListMarker: '-', codeBlockStyle: 'fenced' });
-td.addRule('taskList', {
-    filter: (node) => node.nodeName === 'LI' && node.parentElement?.getAttribute('data-type') === 'taskList',
+td.addRule('taskItem', {
+    filter: (node) => node.nodeName === 'LI' && (
+        node.getAttribute('data-type') === 'taskItem' ||
+        node.parentElement?.getAttribute('data-type') === 'taskList' ||
+        node.classList.contains('task-list-item')
+    ),
     replacement: (content, node) => {
-        const isChecked = node.getAttribute('data-checked') === 'true' || node.querySelector('input[type="checkbox"]')?.checked;
+        const isChecked = node.getAttribute('data-checked') === 'true' ||
+            node.querySelector('input[type="checkbox"]')?.checked ||
+            node.classList.contains('is-checked'); // Fallback check
+
         const date = node.getAttribute('data-date');
         const hasTime = node.getAttribute('data-has-time') === 'true';
 
-        // Clean content: remove "Due: ..." text if it was captured by accident
-        // (Though with a proper exclude rule this is less likely)
-        let cleanContent = content.split('\n').filter(line => !line.trim().startsWith('Due:')).join(' ').trim();
+        let cleanContent = content.trim();
+        // Remove "Due:" text if added by badges
+        cleanContent = cleanContent.replace(/Due:\s*[^]*?(\n|$)/g, '').trim();
 
         let dateString = '';
         if (date) {
-            // Convert 2023-10-27T10:00 to 2023-10-27 10:00 for the @date pattern
             const formattedDate = hasTime ? date.replace('T', ' ') : date.split('T')[0];
             dateString = ` @${formattedDate}`;
         }
 
         return `\n- [${isChecked ? 'x' : ' '}] ${cleanContent}${dateString}`;
+    }
+});
+
+td.addRule('inlineDateInput', {
+    filter: (node) => node.getAttribute('data-type') === 'inline-date',
+    replacement: (content, node) => {
+        const input = node.querySelector('input');
+        const badgeValue = node.getAttribute('data-date-value');
+        return `@${input ? input.value : (badgeValue || '')}`;
     }
 });
 
@@ -167,15 +182,19 @@ export default function Editor({ fileId }) {
             HTMLAttributes: { class: 'tiptap-code-block' },
         }),
         Placeholder.configure({ placeholder: "Start typing..." }),
-        TaskList.extend({
+        TaskList.configure({
+            HTMLAttributes: { 'data-type': 'taskList', class: 'task-list' },
+        }).extend({
             parseHTML() {
                 return [
-                    { tag: 'ul[data-type="taskList"]' },
-                    { tag: 'ul.task-list' }, // Handle markdown-it-task-lists output
+                    { tag: 'ul[data-type="taskList"]', priority: 100 },
+                    { tag: 'ul.task-list', priority: 100 },
                 ];
             }
         }),
-        TaskItem.extend({
+        TaskItem.configure({
+            HTMLAttributes: { 'data-type': 'taskItem', class: 'task-list-item' },
+        }).extend({
             addAttributes() {
                 return {
                     ...(this.parent ? this.parent() : {}),
@@ -196,15 +215,47 @@ export default function Editor({ fileId }) {
             renderHTML({ HTMLAttributes }) {
                 return ['li', mergeAttributes(this.options.HTMLAttributes, HTMLAttributes, { 'data-type': 'taskItem' }), 0];
             },
+            addInputRules() {
+                return [
+                    new InputRule({
+                        find: /^\s*(\[([ |xX])\])\s$/,
+                        handler: ({ state, range, match }) => {
+                            const checked = match[2].toLowerCase() === 'x';
+                            const { tr } = state;
+                            tr.delete(range.from, range.to);
+                            return tr.setBlockType(range.from, this.type, { checked });
+                        },
+                    }),
+                ];
+            },
             parseHTML() {
                 return [
-                    { tag: 'li[data-type="taskItem"]' },
+                    { tag: 'li[data-type="taskItem"]', priority: 100 },
                     {
                         tag: 'li.task-list-item',
-                        getAttrs: node => ({
-                            checked: node.querySelector('input[type="checkbox"]')?.checked || false
-                        })
+                        priority: 100,
+                        getAttrs: node => {
+                            const checkbox = node.querySelector('input[type="checkbox"]');
+                            return {
+                                checked: checkbox ? checkbox.checked : false
+                            };
+                        }
                     },
+                    {
+                        tag: 'li',
+                        priority: 50, // Lower than standard TaskItem to allow fallback
+                        getAttrs: node => {
+                            const isTaskListItem = node.classList.contains('task-list-item') ||
+                                node.getAttribute('data-type') === 'taskItem' ||
+                                node.querySelector('input[type="checkbox"]');
+
+                            if (!isTaskListItem) return false;
+
+                            return {
+                                checked: node.querySelector('input[type="checkbox"]')?.checked || false
+                            };
+                        }
+                    }
                 ];
             }
         }),
@@ -217,10 +268,8 @@ export default function Editor({ fileId }) {
                 return [new InputRule({
                     find: /(?:^|\s)(@)$/,
                     handler: ({ state, range }) => {
-                        const $from = state.selection.$from;
-                        let inTaskItem = false;
-                        for (let i = $from.depth; i > 0; i--) { if ($from.node(i).type.name === 'taskItem') { inTaskItem = true; break; } }
-                        if (inTaskItem) state.tr.replaceWith(range.from + 1, range.to, this.type.create());
+                        // Trigger the inline date input regardless of context to be safe
+                        state.tr.replaceWith(range.from + 1, range.to, this.type.create());
                     }
                 })];
             }
@@ -337,7 +386,11 @@ export default function Editor({ fileId }) {
             setLocalTitle(f.name || '');
             if (editor) {
                 // IMPORTANT: Convert Markdown from storage to HTML for Tiptap
-                const html = md.render(f.content || '');
+                // We use a robust regex to ensure all task list variants are correctly labeled for Tiptap
+                let html = md.render(f.content || '');
+                html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
+                    .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
+
                 editor.commands.setContent(html, false);
             }
         }

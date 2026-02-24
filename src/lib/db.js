@@ -2,6 +2,7 @@ import { setHandle, getHandle, clearHandles } from './idb_store';
 import * as localDriver from './local_driver';
 import * as gdriveDriver from './gdrive';
 
+export { getHandle };
 let currentMode = null;
 
 export const initWorkspace = async (mode, options = {}) => {
@@ -101,7 +102,6 @@ export const deleteNode = async (rootPath, id, type, node) => {
   return localDriver.deleteNode(id, type);
 };
 
-// Re-implement or move buildTree logic
 export const buildTree = (nodes) => {
   const map = new Map();
   const roots = [];

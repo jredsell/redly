@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree } from '../lib/db';
+import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle } from '../lib/db';
 
 const NotesContext = createContext(undefined);
 
@@ -51,13 +51,16 @@ export const NotesProvider = ({ children }) => {
                 const status = await loadSavedWorkspace();
                 if (status === true) {
                     setWorkspaceHandle(true);
-                    setStorageMode(localStorage.getItem('idb_workspace_mode'));
+                    let mode = await getHandle('workspace_mode');
+                    if (!mode) mode = localStorage.getItem('redly_last_storage_mode');
+                    console.log('[NotesContext] Detected storage mode:', mode);
+                    setStorageMode(mode || 'sandbox');
                     setNodes(await getNodes());
                 } else if (status === 'requires_permission') {
                     setNeedsPermission(true);
                 }
             } catch (e) {
-                console.error("Initialisation failed", e);
+                console.error("[NotesContext] Initialisation failed:", e);
             } finally {
                 setIsInitializing(false);
             }
@@ -114,6 +117,7 @@ export const NotesProvider = ({ children }) => {
     const selectWorkspace = async (mode = 'sandbox', options = {}) => {
         try {
             await initWorkspace(mode, options);
+            localStorage.setItem('redly_last_storage_mode', mode); // Fallback for UI sync
             setStorageMode(mode);
             setWorkspaceHandle(true);
             setNodes(await getNodes());
