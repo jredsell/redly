@@ -4,12 +4,15 @@ import { StarterKit } from '@tiptap/starter-kit';
 import { TaskList } from '@tiptap/extension-task-list';
 import { TaskItem } from '@tiptap/extension-task-item';
 import { Link as TiptapLink } from '@tiptap/extension-link';
-import { Extension, Node, mergeAttributes, InputRule } from '@tiptap/core';
+import { CodeBlock } from '@tiptap/extension-code-block';
+import { Placeholder } from '@tiptap/extension-placeholder';
+import { CharacterCount } from '@tiptap/extension-character-count';
+import { Typography } from '@tiptap/extension-typography';
 import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
-import { Placeholder } from '@tiptap/extension-placeholder';
+import { Extension, Node, mergeAttributes, InputRule } from '@tiptap/core';
 import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
 import markdownit from 'markdown-it';
@@ -17,7 +20,6 @@ import taskLists from 'markdown-it-task-lists';
 
 import { useNotes } from '../context/NotesContext';
 import InlineDateInput from './InlineDateInput';
-import { getDateColor, parseDateString } from '../utils/dateHelpers';
 import {
     Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
     List, ListOrdered, Quote, CheckSquare, Link as LinkIcon, ExternalLink,
@@ -398,12 +400,9 @@ export default function Editor({ fileId }) {
     }, [fileId, editNode]);
 
     const extensions = useMemo(() => [
-        StarterKit.configure({
-            heading: { levels: [1, 2, 3] },
-            history: true,
-            codeBlock: {
-                HTMLAttributes: { class: 'tiptap-code-block' },
-            }
+        StarterKit.configure({ heading: { levels: [1, 2, 3] }, history: true, codeBlock: false }),
+        CodeBlock.configure({
+            HTMLAttributes: { class: 'tiptap-code-block' },
         }),
         TiptapLink.configure({
             openOnClick: false,
@@ -426,13 +425,14 @@ export default function Editor({ fileId }) {
         TaskList.configure({
             HTMLAttributes: { 'data-type': 'taskList', class: 'task-list' },
         }).extend({
-            parseHTML() {
+            parseHTML_TaskList() {
                 return [
                     { tag: 'ul[data-type="taskList"]', priority: 100 },
                     { tag: 'ul.task-list', priority: 100 },
                 ];
             }
         }),
+        /*
         TaskItem.configure({
             HTMLAttributes: { 'data-type': 'taskItem', class: 'task-list-item' },
             keepAttributes: false,
@@ -442,7 +442,7 @@ export default function Editor({ fileId }) {
                     checked: {
                         default: false,
                         keepAttributes: true,
-                        parseHTML: element => {
+                        parseHTML_AttrChecked: element => {
                             if (element.hasAttribute('data-checked')) return element.getAttribute('data-checked') === 'true';
                             if (element.hasAttribute('checked')) return true;
                             const checkbox = element.querySelector('input[type="checkbox"]');
@@ -455,7 +455,7 @@ export default function Editor({ fileId }) {
                     },
                     date: {
                         default: '',
-                        parseHTML: element => {
+                        parseHTML_AttrDate: element => {
                             const attrDate = element.getAttribute('data-date');
                             if (attrDate) return attrDate;
 
@@ -477,7 +477,7 @@ export default function Editor({ fileId }) {
 
                     hasTime: {
                         default: false,
-                        parseHTML: element => {
+                        parseHTML_AttrHasTime: element => {
                             if (element.getAttribute('data-has-time')) return element.getAttribute('data-has-time') === 'true';
                             const text = element.textContent || '';
                             return /@\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}/.test(text);
@@ -486,7 +486,7 @@ export default function Editor({ fileId }) {
                     },
                     hasDate: {
                         default: false,
-                        parseHTML: element => {
+                        parseHTML_AttrHasDate: element => {
                             if (element.getAttribute('data-has-date')) return element.getAttribute('data-has-date') === 'true';
                             if (element.getAttribute('data-date')) return true;
                             const text = element.textContent || '';
@@ -496,6 +496,10 @@ export default function Editor({ fileId }) {
                     }
                 };
             },
+
+
+
+
 
             addNodeView() { return ReactNodeViewRenderer(CustomTaskItemComponent); },
 
@@ -513,6 +517,9 @@ export default function Editor({ fileId }) {
                 }), 0];
             },
 
+
+
+
             addInputRules() {
                 return [
                     new InputRule({
@@ -526,7 +533,7 @@ export default function Editor({ fileId }) {
                     }),
                 ];
             },
-            parseHTML() {
+            parseHTML_TaskItem() {
                 return [
                     { tag: 'li[data-type="taskItem"]', priority: 101 },
                     { tag: 'li', getAttrs: element => element.classList.contains('task-list-item') && { 'data-type': 'taskItem' } },
@@ -592,9 +599,10 @@ export default function Editor({ fileId }) {
             }
 
         }),
+        */
         Node.create({
             name: 'inlineDateInput', group: 'inline', inline: true, atom: true,
-            parseHTML() { return [{ tag: 'span[data-type="inline-date"]' }]; },
+            parseHTML_InlineDate() { return [{ tag: 'span[data-type="inline-date"]' }]; },
             renderHTML({ HTMLAttributes }) { return ['span', mergeAttributes(HTMLAttributes, { 'data-type': 'inline-date' })]; },
             addNodeView() { return ReactNodeViewRenderer(InlineDateInputNodeView); },
             addInputRules() {
