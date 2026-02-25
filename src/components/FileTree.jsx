@@ -13,6 +13,7 @@ export default function FileTree({ node, depth }) {
     const [editName, setEditName] = useState(node.name);
     const [newName, setNewName] = useState('');
     const menuRef = useRef(null);
+    const itemRef = useRef(null);
 
     const isFolder = node.type === 'folder';
     const isAddingMode = (globalAddingState.parentId === node.id) ? globalAddingState.type : null;
@@ -114,9 +115,22 @@ export default function FileTree({ node, depth }) {
 
     const isFocused = lastInteractedNodeId === node.id || (!lastInteractedNodeId && isActive);
 
+    useEffect(() => {
+        if (isFocused && itemRef.current) {
+            // Only focus if we aren't already focused, to avoid stealing focus from the editor
+            // unless we are actively using the sidebar
+            if (document.activeElement !== itemRef.current && document.activeElement?.closest('.sidebar-content')) {
+                itemRef.current.focus();
+            } else if (!document.activeElement || document.activeElement === document.body) {
+                itemRef.current.focus();
+            }
+        }
+    }, [isFocused]);
+
     return (
         <div>
             <div
+                ref={itemRef}
                 className={`tree-item ${isActive ? 'active' : ''} ${isFocused ? 'focused' : ''}`}
                 role="treeitem"
                 aria-expanded={isFolder ? isExpanded : undefined}
