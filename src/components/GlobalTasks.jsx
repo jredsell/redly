@@ -6,7 +6,16 @@ import { getDateColor } from '../utils/dateHelpers';
 import InlineDateInput from './InlineDateInput';
 
 export default function GlobalTasks() {
-    const { nodes, setActiveFileId, editNode } = useNotes();
+    const { nodes, setActiveFileId, editNode, ensureAllContentsLoaded } = useNotes();
+    const [isLoading, setIsLoading] = React.useState(true);
+
+    React.useEffect(() => {
+        const load = async () => {
+            await ensureAllContentsLoaded();
+            setIsLoading(false);
+        };
+        load();
+    }, [ensureAllContentsLoaded]);
 
     const sortedTasks = useMemo(() => {
         const parsedTasks = parseTasksFromNodes(nodes);
@@ -172,7 +181,21 @@ export default function GlobalTasks() {
             <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px 24px' }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '24px' }}>
 
-                    {pendingTasks.length === 0 && completedTasks.length === 0 ? (
+                    {isLoading ? (
+                        <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-tertiary)' }}>
+                            <div className="loading-spinner" style={{ marginBottom: '16px' }}>
+                                <CheckSquare size={48} style={{ opacity: 0.2, animation: 'pulse 1.5s infinite' }} />
+                            </div>
+                            <p>Scanning all notes for tasks...</p>
+                            <style>{`
+                                @keyframes pulse {
+                                    0% { transform: scale(0.95); opacity: 0.2; }
+                                    50% { transform: scale(1.05); opacity: 0.5; }
+                                    100% { transform: scale(0.95); opacity: 0.2; }
+                                }
+                            `}</style>
+                        </div>
+                    ) : pendingTasks.length === 0 && completedTasks.length === 0 ? (
                         <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-tertiary)' }}>
                             <CheckSquare size={48} style={{ opacity: 0.2, marginBottom: '16px' }} />
                             <p>You don't have any tasks right now.</p>

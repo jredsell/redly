@@ -60,7 +60,7 @@ function App() {
   if (isInitializing) {
     return (
       <div className="app-container" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--text-tertiary)' }}>Loading your workspace...</p>
+        <p style={{ color: 'var(--text-tertiary)' }}>Loading Redly...</p>
       </div>
     );
   }

@@ -235,9 +235,32 @@ export const NotesProvider = ({ children }) => {
 
     };
 
+    const ensureAllContentsLoaded = async () => {
+        const filesToLoad = nodes.filter(n => n.type === 'file' && n.content === undefined);
+        if (filesToLoad.length === 0) return;
+
+        console.log(`[GlobalTasks] Loading content for ${filesToLoad.length} files...`);
+
+        // Load all missing contents
+        const updatedNodes = await Promise.all(nodes.map(async (node) => {
+            if (node.type === 'file' && node.content === undefined) {
+                try {
+                    const content = await getFileContent(node.id);
+                    return { ...node, content };
+                } catch (e) {
+                    console.error(`Failed to load content for ${node.id}:`, e);
+                    return node;
+                }
+            }
+            return node;
+        }));
+
+        setNodes(updatedNodes);
+    };
+
     const value = {
         nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
-        addNode, editNode, removeNode, getFileContent, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
+        addNode, editNode, removeNode, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
         installApp, isInstallable: !!deferredPrompt
     };

@@ -168,7 +168,7 @@ export default function WelcomeScreen({ openHelp }) {
                 {renderLogo()}
                 <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800', letterSpacing: '-0.5px' }}>Reconnect Workspace</h1>
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '40px', maxWidth: '500px' }}>
-                    Browser security requires you to re-verify access to your local <code>redly</code> folder for this session.
+                    Browser security requires you re-verify access to your local <code>Redly</code> folder for this session.
                 </p>
                 <button onClick={grantLocalPermission} className="primary-action-btn" aria-label="Unlock Folder and grant storage permissions">
                     <Unlock size={24} aria-hidden="true" />
@@ -252,7 +252,7 @@ export default function WelcomeScreen({ openHelp }) {
                     }}
                 >
                     <ShieldCheck size={20} />
-                    <span>Install redly Desktop App</span>
+                    <span>Install Redly Desktop App</span>
                 </button>
             )}
 
@@ -269,7 +269,7 @@ export default function WelcomeScreen({ openHelp }) {
                 </button>
                 <button onClick={openHelp} className="welcome-card" aria-label="Open Help and Shortcuts">
                     <ListTodo size={24} style={{ color: 'var(--color-today)' }} aria-hidden="true" />
-                    <span style={{ fontWeight: '600' }}>redly Guide</span>
+                    <span style={{ fontWeight: '600' }}>Redly Guide</span>
 
                 </button>
             </div>

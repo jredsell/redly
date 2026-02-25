@@ -123,7 +123,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                             aria-label="Redly Home"
                         >
                             <img src={logo} alt="" style={{ width: '24px', height: '24px', borderRadius: '6px' }} aria-hidden="true" />
-                            <span style={{ fontWeight: 800, color: 'var(--accent-color)' }}>redly</span>
+                            <span style={{ fontWeight: 800, color: 'var(--accent-color)' }}>Redly</span>
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
@@ -229,7 +229,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                     }}
                     title="Shortcuts & Help"
                 >
-                    <HelpCircle size={16} aria-hidden="true" /> redly Guide
+                    <HelpCircle size={16} aria-hidden="true" /> Redly Guide
 
                 </button>
             </div>
