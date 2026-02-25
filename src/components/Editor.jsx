@@ -192,15 +192,6 @@ const SLASH_OPTIONS = [
     { label: 'Todo List', icon: '☐', command: (editor) => editor.chain().focus().toggleTaskList().run() },
     { label: 'Quote', icon: '”', command: (editor) => editor.chain().focus().toggleBlockquote().run() },
     { label: 'Code Block', icon: '</>', command: (editor) => editor.chain().focus().toggleCodeBlock().run() },
-    {
-        label: 'Link', icon: '🔗', command: (editor) => {
-            const previousUrl = editor.getAttributes('link').href;
-            const url = window.prompt('URL', previousUrl);
-            if (url === null) return;
-            if (url === '') { editor.chain().focus().extendMarkRange('link').unsetLink().run(); return; }
-            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-        }
-    },
     { label: 'Divider', icon: '—', command: (editor) => editor.chain().focus().setHorizontalRule().run() },
 ];
 
@@ -209,6 +200,7 @@ export default function Editor({ fileId }) {
     const { nodes, editNode, removeNode } = useNotes();
     const [file, setFile] = useState(null);
     const saveTimeoutRef = useRef(null);
+    const lastSavedContentRef = useRef(''); // Track the last saved state to prevent echo updates
     const [localTitle, setLocalTitle] = useState('');
     const [slashMenu, setSlashMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
     const [bubbleMenu, setBubbleMenu] = useState({ isOpen: false, top: 0, left: 0 });
@@ -216,7 +208,11 @@ export default function Editor({ fileId }) {
     const debouncedSave = useCallback((updates) => {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
         saveTimeoutRef.current = setTimeout(() => {
-            if (updates.content) updates.content = td.turndown(updates.content);
+            if (updates.content) {
+                updates.content = td.turndown(updates.content);
+                // We just converted it to saving-format markdown. Save this to lastSaved.
+                lastSavedContentRef.current = updates.content;
+            }
             editNode(fileId, updates);
         }, 1000);
     }, [fileId, editNode]);
@@ -228,6 +224,8 @@ export default function Editor({ fileId }) {
         }),
         Link.configure({
             openOnClick: false,
+            autolink: true,
+            linkOnPaste: true,
             HTMLAttributes: {
                 class: 'editor-link',
                 rel: 'noopener noreferrer',
@@ -579,11 +577,20 @@ export default function Editor({ fileId }) {
         const f = nodes.find(n => n.id === fileId);
         if (f) {
             const isInitialLoad = !file || file.id !== fileId;
-            const isExternalUpdate = !isInitialLoad && f.content !== (file?.content || '') && f.updatedAt > (file?.updatedAt || 0);
+            // Only update if it's NOT the content we just saved (prevent echo)
+            const isExternalUpdate = !isInitialLoad &&
+                f.content !== (file?.content || '') &&
+                f.content !== lastSavedContentRef.current &&
+                f.updatedAt > (file?.updatedAt || 0);
+
+            // Keep file state up to date without necessarily re-loading editor
+            setFile(f);
 
             if (isInitialLoad || isExternalUpdate) {
-                setFile(f);
-                if (isInitialLoad) setLocalTitle(f.name || '');
+                if (isInitialLoad) {
+                    setLocalTitle(f.name || '');
+                    lastSavedContentRef.current = f.content || ''; // initialize ref
+                }
 
                 if (editor) {
                     let content = f.content || '';
@@ -609,8 +616,6 @@ export default function Editor({ fileId }) {
                         return match;
                     });
 
-
-
                     const selection = editor.state.selection;
                     editor.commands.setContent(html, false);
 
@@ -622,7 +627,7 @@ export default function Editor({ fileId }) {
                 }
             }
         }
-    }, [fileId, nodes, editor]);
+    }, [fileId, nodes, editor, file?.id]);
 
 
     if (!file) return null;
@@ -663,20 +668,66 @@ export default function Editor({ fileId }) {
                         <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Bold"><Bold size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''} title="Italic"><Italic size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''} title="Strikethrough"><Strikethrough size={16} /></button>
-                        <button
-                            onClick={() => {
-                                if (editor.isActive('link')) {
-                                    editor.chain().focus().unsetLink().run();
-                                } else {
+                        {!editor.isActive('link') && (
+                            <button
+                                onClick={() => {
                                     const url = window.prompt('URL');
                                     if (url) editor.chain().focus().setLink({ href: url }).run();
-                                }
-                            }}
-                            className={editor.isActive('link') ? 'is-active' : ''}
-                            title="Link"
-                        >
-                            <LinkIcon size={16} />
-                        </button>
+                                }}
+                                title="Add Link"
+                            >
+                                <LinkIcon size={16} />
+                            </button>
+                        )}
+                        {editor.isActive('link') && (
+                            <>
+                                <button
+                                    onClick={() => {
+                                        const currentUrl = editor.getAttributes('link').href;
+                                        const url = window.prompt('Edit URL', currentUrl);
+                                        if (url === null) return;
+
+                                        const { from, to } = editor.state.selection;
+                                        const currentText = editor.state.doc.textBetween(from, to, ' ');
+                                        const text = window.prompt('Edit Display Text', currentText);
+
+                                        if (url === '') {
+                                            editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                                            if (text !== null && text !== currentText) {
+                                                editor.chain().focus().insertContent(text).run();
+                                            }
+                                            return;
+                                        }
+
+                                        // Set the new link
+                                        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+
+                                        // Update the text if it changed
+                                        if (text !== null && text !== currentText) {
+                                            const newSelection = editor.state.selection;
+                                            editor.chain().focus().deleteRange({ from: newSelection.from, to: newSelection.to }).insertContent(text).run();
+                                            // Re-apply link to the newly inserted text
+                                            const finalPos = editor.state.selection.from;
+                                            editor.chain().focus().setTextSelection({ from: finalPos - text.length, to: finalPos }).setLink({ href: url }).run();
+                                        }
+                                    }}
+                                    className="is-active"
+                                    title="Edit Link"
+                                    style={{ fontSize: '12px', padding: '4px 8px', whiteSpace: 'nowrap' }}
+                                >
+                                    Edit Link
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                                    }}
+                                    title="Remove Link"
+                                    style={{ color: 'var(--danger-color)', fontSize: '12px', padding: '4px 8px', whiteSpace: 'nowrap' }}
+                                >
+                                    Unlink
+                                </button>
+                            </>
+                        )}
                         <button onClick={() => editor.chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''} title="Code Inline"><Code size={16} /></button>
 
 
