@@ -127,13 +127,21 @@ export const NotesProvider = ({ children }) => {
     };
 
     const disconnectWorkspace = async () => {
-        await clearWorkspaceHandle();
+        console.log('[NotesContext] Disconnecting workspace...');
+        try {
+            await clearWorkspaceHandle();
+            console.log('[NotesContext] Storage handles cleared.');
+        } catch (e) {
+            console.error('[NotesContext] Failed to clear handles, proceeding anyway:', e);
+        }
+
         setWorkspaceHandle(null);
         setStorageMode(null);
         setNeedsPermission(false);
         setNodes([]);
         setActiveFileId(null);
         setExpandedFolders(new Set());
+        console.log('[NotesContext] Workspace disconnected and state reset.');
     };
 
     useEffect(() => {

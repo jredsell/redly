@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
 import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, Monitor, CloudUpload, ArrowRight } from 'lucide-react';
 import logo from '../assets/logo.png';
+import { getAccessToken } from '../lib/gdrive';
 
 const SHARED_STYLES = `
     .welcome-container { 
@@ -85,12 +86,12 @@ export default function WelcomeScreen({ openHelp }) {
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
         .slice(0, 4);
 
-    const handleGDriveClick = async () => {
+    const handleGDriveClick = () => {
         console.log('[GDrive] Cloud Sync button clicked');
 
         // PRE-TRIGGER Auth: Call this immediately in the click handler to stay within the user gesture window.
-        // This helps prevent browsers from blocking the Google OAuth popup.
-        import('../lib/gdrive').then(m => m.getAccessToken().catch(e => console.warn('[GDrive] Pre-auth failed:', e)));
+        // This ensures the browser doesn't block the Google OAuth popup.
+        getAccessToken().catch(e => console.warn('[GDrive] Auth pre-trigger failed:', e));
 
         // If they already have nodes and are switching TO GDrive
         if (nodes.length > 0 && workspaceHandle) {
@@ -109,7 +110,16 @@ export default function WelcomeScreen({ openHelp }) {
         } catch (e) {
             console.error('GDrive init failed:', e);
             setStatus('idle');
-            alert('Cloud connection failed. Please try again.');
+            // Provide specific feedback for common errors
+            if (e.message?.includes('redirect_uri_mismatch')) {
+                alert('Connection Error: The request origin (localhost) is not authorized for this Client ID. Please check your Google Cloud Console settings.');
+            } else if (e.message?.includes('Sign-in cancelled')) {
+                // No need for alert if user just closed the popup
+            } else if (e.message?.includes('timed out')) {
+                alert('Connection Timed Out: Please check if popups are blocked in your browser.');
+            } else {
+                alert('Cloud connection failed: ' + (e.message || 'Unknown error'));
+            }
         }
     };
 

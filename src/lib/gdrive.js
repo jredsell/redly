@@ -46,43 +46,54 @@ export const getAccessToken = async () => {
         return accessToken;
     }
 
-    return new Promise(async (resolve, reject) => {
+    // Check if GIS is loaded before proceeding
+    if (!window.google?.accounts?.oauth2) {
+        console.log('[GDrive] Waiting for GIS script before auth...');
         await waitForGoogle();
+    }
+
+    return new Promise((resolve, reject) => {
         if (!window.google?.accounts?.oauth2) {
-            return reject(new Error('Google Identity Services script not loaded. Check your internet connection or Content Security Policy.'));
+            return reject(new Error('Google Identity Services script not loaded. Check your internet connection.'));
         }
         if (!CLIENT_ID) {
-            return reject(new Error('Google Drive Client ID is missing. Check your .env.local file.'));
+            return reject(new Error('Google Drive Client ID is missing.'));
         }
 
+        let isResolved = false;
         const client = window.google.accounts.oauth2.initTokenClient({
             client_id: CLIENT_ID,
             scope: SCOPES,
             callback: (response) => {
+                isResolved = true;
                 console.log('[GDrive] Auth callback received:', response);
                 if (response.error) {
                     console.error('[GDrive] Auth error:', response.error, response.error_description || '');
-                    reject(new Error(`Google Auth Error: ${response.error}`));
+                    reject(new Error(response.error === 'popup_closed_by_user' ? 'Sign-in cancelled' : `Auth Error: ${response.error}`));
                 } else {
                     accessToken = response.access_token;
                     localStorage.setItem('gdrive_token', accessToken);
                     localStorage.setItem('gdrive_token_expiry', (Date.now() + response.expires_in * 1000).toString());
-                    console.log('[GDrive] Auth successful, token stored');
                     resolve(accessToken);
                 }
             },
             error_callback: (err) => {
+                isResolved = true;
                 console.error('[GDrive] Token client error:', err);
-                reject(err);
+                reject(new Error('Token client initialization failed.'));
             }
         });
-        console.log('[GDrive] Requesting access token via GIS popup...');
-        try {
-            client.requestAccessToken();
-        } catch (e) {
-            console.error('[GDrive] Failed to trigger requestAccessToken:', e);
-            reject(e);
-        }
+
+        console.log('[GDrive] Requesting access token...');
+        client.requestAccessToken();
+
+        // Safety timeout for silent failures
+        setTimeout(() => {
+            if (!isResolved) {
+                console.warn('[GDrive] Auth timeout - popup might be blocked or stalled.');
+                reject(new Error('Connection timed out. Please check if popups are blocked.'));
+            }
+        }, 60000);
     });
 };
 
