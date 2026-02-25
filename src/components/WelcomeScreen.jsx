@@ -78,7 +78,8 @@ export default function WelcomeScreen({ openHelp }) {
     const [showRecent, setShowRecent] = useState(true);
     const [status, setStatus] = useState('idle'); // idle, checking, migrating, loading
     const [showBackupModal, setShowBackupModal] = useState(false);
-    const [error, setError] = useState(null);
+
+    const CLIENT_ID = import.meta.env.VITE_GDRIVE_CLIENT_ID;
 
     const recentFiles = nodes
         .filter(n => n.type === 'file')
@@ -87,14 +88,10 @@ export default function WelcomeScreen({ openHelp }) {
 
     const handleGDriveClick = () => {
         console.log('[GDrive] Cloud Sync button clicked');
-        setError(null);
 
         // PRE-TRIGGER Auth: Call this immediately in the click handler to stay within the user gesture window.
         // This ensures the browser doesn't block the Google OAuth popup.
-        getAccessToken().catch(e => {
-            console.warn('[GDrive] Auth pre-trigger failed:', e);
-            setError(e.message || 'Auth failed');
-        });
+        getAccessToken().catch(e => console.warn('[GDrive] Auth pre-trigger failed:', e));
 
         // If they already have nodes and are switching TO GDrive
         if (nodes.length > 0 && workspaceHandle) {
@@ -106,7 +103,6 @@ export default function WelcomeScreen({ openHelp }) {
 
     const initGDrive = async (shouldMigrate = false) => {
         setStatus('loading');
-        setError(null);
         setShowBackupModal(false);
         try {
             await selectWorkspace('gdrive', { migrate: shouldMigrate });
@@ -114,7 +110,16 @@ export default function WelcomeScreen({ openHelp }) {
         } catch (e) {
             console.error('GDrive init failed:', e);
             setStatus('idle');
-            setError(e.message || 'Cloud connection failed');
+            // Provide specific feedback for common errors
+            if (e.message?.includes('redirect_uri_mismatch')) {
+                alert('Connection Error: The request origin (localhost) is not authorized for this Client ID. Please check your Google Cloud Console settings.');
+            } else if (e.message?.includes('Sign-in cancelled')) {
+                // No need for alert if user just closed the popup
+            } else if (e.message?.includes('timed out')) {
+                alert('Connection Timed Out: Please check if popups are blocked in your browser.');
+            } else {
+                alert('Cloud connection failed: ' + (e.message || 'Unknown error'));
+            }
         }
     };
 
@@ -193,7 +198,7 @@ export default function WelcomeScreen({ openHelp }) {
                     Your private, offline-first Markdown knowledge base.
                 </p>
 
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%', marginBottom: '24px' }}>
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
                     <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
                         <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} aria-hidden="true" />
                         <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Browser Storage</h3>
@@ -212,48 +217,6 @@ export default function WelcomeScreen({ openHelp }) {
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Connect your Google Drive to sync notes across devices seamlessly.</p>
                     </button>
                 </div>
-
-                {error && (
-                    <div style={{
-                        background: 'rgba(239, 68, 68, 0.1)',
-                        border: '1px solid #ef4444',
-                        color: '#ef4444',
-                        padding: '12px 20px',
-                        borderRadius: '12px',
-                        fontSize: '14px',
-                        maxWidth: '500px',
-                        marginBottom: '24px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                        textAlign: 'left'
-                    }}>
-                        <div style={{ fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <Box size={16} /> Connection Error
-                        </div>
-                        <div style={{ opacity: 0.9 }}>{error}</div>
-                        {error.includes('redirect_uri_mismatch') && (
-                            <div style={{ fontSize: '12px', background: 'rgba(239, 68, 68, 0.1)', padding: '8px', borderRadius: '6px', marginTop: '4px' }}>
-                                <strong>Tip:</strong> This usually means your development URL (localhost) isn't authorized in Google Cloud. Reset your storage or check your Client ID.
-                            </div>
-                        )}
-                        <button
-                            onClick={() => setError(null)}
-                            style={{
-                                background: 'transparent',
-                                border: 'none',
-                                color: '#ef4444',
-                                fontWeight: '700',
-                                padding: '4px 0',
-                                cursor: 'pointer',
-                                fontSize: '12px',
-                                textDecoration: 'underline'
-                            }}
-                        >
-                            Dismiss
-                        </button>
-                    </div>
-                )}
                 {renderBackupModal()}
             </div>
         );
