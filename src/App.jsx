@@ -49,6 +49,17 @@ function App() {
         e.preventDefault();
         disconnectWorkspace();
       }
+      if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        // Focus the focused or active sidebar item
+        const sidebarTarget = document.querySelector('.tree-item.focused') || document.querySelector('.tree-item.active');
+        if (sidebarTarget) {
+          sidebarTarget.focus();
+        } else {
+          // Fallback to sidebar content if no specific item
+          document.querySelector('.sidebar-content')?.focus();
+        }
+      }
     };
     window.addEventListener('keydown', handleKeyDown);
     if (activeFileId && showTasks) {

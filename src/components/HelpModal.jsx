@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, Cloud, RefreshCw } from 'lucide-react';
+import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, Cloud, RefreshCw, Trash2, Edit2 } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 import logo from '../assets/logo.png';
 
@@ -108,6 +108,18 @@ export default function HelpModal({ isOpen, onClose }) {
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Change Workspace</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>W</kbd></div>
 
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><RefreshCw size={14} /> Rename <span style={{ fontSize: '0.85em', opacity: 0.7 }}>(Focused Item)</span></span>
+                            <div><kbd style={kbdStyle}>F2</kbd></div>
+
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Trash2 size={14} /> Delete <span style={{ fontSize: '0.85em', opacity: 0.7 }}>(Confirmation req.)</span></span>
+                            <div><kbd style={kbdStyle}>Delete</kbd></div>
+
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Edit2 size={14} /> Jump to Editor</span>
+                            <div><kbd style={kbdStyle}>Tab</kbd></div>
+
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Menu size={14} /> Jump to Sidebar</span>
+                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>S</kbd></div>
+
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Help</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>/</kbd></div>
                         </div>
@@ -121,7 +133,7 @@ export default function HelpModal({ isOpen, onClose }) {
                             <b>Recent Files:</b> Re-open your most recently edited notes straight from the top of the Welcome Screen.<br />
                             <b>Folder Counts:</b> Every folder displays the number of items it contains next to its name.<br />
                             <b>Expand/Collapse All:</b> Use the double-chevron icons at the top of the sidebar to instantly open or close your entire folder tree.<br />
-                            <b>Keyboard Control:</b> Use Arrow Keys (<kbd style={kbdStyle}>↑</kbd> <kbd style={kbdStyle}>↓</kbd> <kbd style={kbdStyle}>←</kbd> <kbd style={kbdStyle}>→</kbd>) to traverse the folder tree. Press <kbd style={kbdStyle}>Enter</kbd> to open.
+                            <b>Keyboard Control:</b> Use Arrow Keys (<kbd style={kbdStyle}>↑</kbd> <kbd style={kbdStyle}>↓</kbd> <kbd style={kbdStyle}>←</kbd> <kbd style={kbdStyle}>→</kbd>) to traverse the tree. Press <kbd style={kbdStyle}>Enter</kbd> to open. Once a note is selected, press <kbd style={kbdStyle}>Tab</kbd> to jump straight into the editor!
                         </p>
                     </div>
 
