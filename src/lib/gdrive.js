@@ -80,7 +80,8 @@ export const getAccessToken = async () => {
             error_callback: (err) => {
                 isResolved = true;
                 console.error('[GDrive] Token client error:', err);
-                reject(new Error('Token client initialization failed.'));
+                const detail = err?.type || err?.message || (typeof err === 'string' ? err : 'Initialization failed');
+                reject(new Error(`Token client error: ${detail}`));
             }
         });
 
