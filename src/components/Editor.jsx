@@ -15,7 +15,7 @@ import taskLists from 'markdown-it-task-lists';
 import { parseDateString } from '../utils/dateHelpers';
 import InlineDateInput from './InlineDateInput';
 import CodeBlock from '@tiptap/extension-code-block';
-import Link from '@tiptap/extension-link';
+import TiptapLink from '@tiptap/extension-link';
 
 
 // React Component for TaskItem Node View
@@ -112,7 +112,15 @@ const InlineDateInputNodeView = (props) => {
 
 const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: false });
 
-const td = new TurndownService({ headingStyle: 'atx', hr: '---', bulletListMarker: '-', codeBlockStyle: 'fenced' });
+const td = new TurndownService({
+    headingStyle: 'atx',
+    hr: '---',
+    bulletListMarker: '-',
+    codeBlockStyle: 'fenced',
+    blankReplacement: (content, node) => {
+        return node.nodeName === 'P' ? '&nbsp;\n\n' : (node.isBlock ? '\n\n' : '');
+    }
+});
 // Task Item serialization
 td.addRule('taskItem', {
     filter: (node) => node.nodeName === 'LI' && (
@@ -195,6 +203,117 @@ const SLASH_OPTIONS = [
     { label: 'Divider', icon: '—', command: (editor) => editor.chain().focus().setHorizontalRule().run() },
 ];
 
+const BubbleMenuUI = ({ editor, bubbleMenu, setBubbleMenu }) => {
+    const [, setTick] = useState(0);
+
+    useEffect(() => {
+        if (!editor || !bubbleMenu.isOpen) return;
+        const update = () => setTick(t => t + 1);
+        editor.on('transaction', update);
+        return () => editor.off('transaction', update);
+    }, [editor, bubbleMenu.isOpen]);
+
+    if (!bubbleMenu.isOpen || !editor || typeof bubbleMenu.top !== 'number' || typeof bubbleMenu.left !== 'number') return null;
+
+    return (
+        <div
+            className="custom-bubble-menu"
+            style={{ position: 'fixed', top: bubbleMenu.top, left: bubbleMenu.left, zIndex: 100 }}
+            onMouseDown={(e) => e.preventDefault()} // Prevent stealing focus from the editor
+        >
+            <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''} title="Heading 1"><Heading1 size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''} title="Heading 2"><Heading2 size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''} title="Heading 3"><Heading3 size={16} /></button>
+            <button onClick={() => editor.chain().focus().setParagraph().run()} className={editor.isActive('paragraph') ? 'is-active' : ''} title="Text"><span style={{ fontSize: '12px', fontWeight: 'bold' }}>T</span></button>
+
+            <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Bold"><Bold size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''} title="Italic"><Italic size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''} title="Strikethrough"><Strikethrough size={16} /></button>
+
+            {!editor.isActive('link') && (
+                <button
+                    onClick={() => {
+                        const url = window.prompt('URL');
+                        if (url) editor.chain().focus().setLink({ href: url }).run();
+                    }}
+                    title="Add Link"
+                >
+                    <LinkIcon size={16} />
+                </button>
+            )}
+
+            {editor.isActive('link') && (
+                <>
+                    <button
+                        onClick={() => {
+                            const currentUrl = editor.getAttributes('link').href;
+                            const url = window.prompt('Edit URL', currentUrl);
+                            if (url === null) return;
+
+                            // Accurately find the link bounds
+                            const { selection, doc } = editor.state;
+                            let linkStart = selection.from;
+                            let linkEnd = selection.to;
+
+                            doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+                                if (node.marks.find(m => m.type.name === 'link')) {
+                                    linkStart = Math.min(linkStart, pos);
+                                    linkEnd = Math.max(linkEnd, pos + node.nodeSize);
+                                }
+                            });
+
+                            const currentText = doc.textBetween(linkStart, linkEnd, ' ');
+                            const text = window.prompt('Edit Display Text', currentText);
+
+                            if (url === '') {
+                                editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                                if (text !== null && text !== currentText) {
+                                    editor.chain().focus().deleteRange({ from: linkStart, to: linkEnd }).insertContent(text).run();
+                                }
+                                return;
+                            }
+
+                            if (text !== null && text !== currentText) {
+                                editor.chain().focus()
+                                    .deleteRange({ from: linkStart, to: linkEnd })
+                                    .insertContent({
+                                        type: 'text',
+                                        text: text,
+                                        marks: [{ type: 'link', attrs: { href: url } }]
+                                    })
+                                    .run();
+                            } else {
+                                editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
+                            }
+                        }}
+                        className="is-active"
+                        title="Edit Link"
+                        style={{ fontSize: '12px', padding: '4px 8px', whiteSpace: 'nowrap' }}
+                    >
+                        Edit Link
+                    </button>
+                    <button
+                        onClick={() => {
+                            editor.chain().focus().extendMarkRange('link').unsetLink().run();
+                        }}
+                        title="Remove Link"
+                        style={{ color: 'var(--danger-color)', fontSize: '12px', padding: '4px 8px', whiteSpace: 'nowrap' }}
+                    >
+                        Unlink
+                    </button>
+                </>
+            )}
+
+            <button onClick={() => editor.chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''} title="Code Inline"><Code size={16} /></button>
+            <div className="menu-separator" />
+            <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''} title="Bullet List"><List size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''} title="Numbered List"><ListOrdered size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={editor.isActive('taskList') ? 'is-active' : ''} title="Todo List"><CheckSquare size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'is-active' : ''} title="Quote"><Quote size={16} /></button>
+            <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={editor.isActive('codeBlock') ? 'is-active' : ''} title="Code Block"><ExternalLink size={16} /></button>
+        </div>
+    );
+};
 
 export default function Editor({ fileId }) {
     const { nodes, editNode, removeNode } = useNotes();
@@ -204,8 +323,8 @@ export default function Editor({ fileId }) {
     const [localTitle, setLocalTitle] = useState('');
     const [slashMenu, setSlashMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
     const [bubbleMenu, setBubbleMenu] = useState({ isOpen: false, top: 0, left: 0 });
-    // Force re-render for bubble menu active states
-    const [, setForceRender] = useState(0);
+    const [forceRender, setForceRender] = useState(0);
+    const slashMenuListRef = useRef(null);
 
     const debouncedSave = useCallback((updates) => {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -224,7 +343,7 @@ export default function Editor({ fileId }) {
         CodeBlock.configure({
             HTMLAttributes: { class: 'tiptap-code-block' },
         }),
-        Link.configure({
+        TiptapLink.configure({
             openOnClick: false,
             autolink: true,
             linkOnPaste: true,
@@ -587,6 +706,15 @@ export default function Editor({ fileId }) {
     }, [slashMenu, editor]);
 
     useEffect(() => {
+        if (slashMenu.isOpen && slashMenuListRef.current) {
+            const activeItem = slashMenuListRef.current.children[slashMenu.selectedIndex];
+            if (activeItem) {
+                activeItem.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }, [slashMenu.selectedIndex, slashMenu.isOpen]);
+
+    useEffect(() => {
         const f = nodes.find(n => n.id === fileId);
         if (f) {
             const isInitialLoad = !file || file.id !== fileId;
@@ -635,7 +763,7 @@ export default function Editor({ fileId }) {
                     if (isExternalUpdate) {
                         try {
                             editor.commands.setTextSelection(selection);
-                        } catch (e) { }
+                        } catch (e) { /* ignore */ }
                     }
                 }
             }
@@ -670,110 +798,7 @@ export default function Editor({ fileId }) {
                 <EditorContent editor={editor} className="tiptap-container" />
 
                 {/* Custom Bubble (Formatting) Menu */}
-                {bubbleMenu.isOpen && editor && typeof bubbleMenu.top === 'number' && typeof bubbleMenu.left === 'number' && (
-                    <div
-                        className="custom-bubble-menu"
-                        style={{ position: 'fixed', top: bubbleMenu.top, left: bubbleMenu.left, zIndex: 100 }}
-                        onMouseDown={(e) => e.preventDefault()} // Prevent stealing focus from the editor
-                    >
-
-                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''} title="Heading 1"><Heading1 size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''} title="Heading 2"><Heading2 size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()} className={editor.isActive('heading', { level: 3 }) ? 'is-active' : ''} title="Heading 3"><Heading3 size={16} /></button>
-                        <button onClick={() => editor.chain().focus().setParagraph().run()} className={editor.isActive('paragraph') ? 'is-active' : ''} title="Text"><span style={{ fontSize: '12px', fontWeight: 'bold' }}>T</span></button>
-
-                        <button onClick={() => editor.chain().focus().toggleBold().run()} className={editor.isActive('bold') ? 'is-active' : ''} title="Bold"><Bold size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleItalic().run()} className={editor.isActive('italic') ? 'is-active' : ''} title="Italic"><Italic size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleStrike().run()} className={editor.isActive('strike') ? 'is-active' : ''} title="Strikethrough"><Strikethrough size={16} /></button>
-                        {!editor.isActive('link') && (
-                            <button
-                                onClick={() => {
-                                    const url = window.prompt('URL');
-                                    if (url) editor.chain().focus().setLink({ href: url }).run();
-                                }}
-                                title="Add Link"
-                            >
-                                <LinkIcon size={16} />
-                            </button>
-                        )}
-                        {editor.isActive('link') && (
-                            <>
-                                <button
-                                    onClick={() => {
-                                        const currentUrl = editor.getAttributes('link').href;
-                                        const url = window.prompt('Edit URL', currentUrl);
-                                        if (url === null) return;
-
-                                        // Accurately find the link bounds
-                                        const { selection, doc } = editor.state;
-                                        let linkStart = selection.from;
-                                        let linkEnd = selection.to;
-
-                                        // Attempt to expand range to encompass the entire link mark
-                                        doc.nodesBetween(selection.from, selection.to, (node, pos) => {
-                                            if (node.marks.find(m => m.type.name === 'link')) {
-                                                linkStart = Math.min(linkStart, pos);
-                                                linkEnd = Math.max(linkEnd, pos + node.nodeSize);
-                                            }
-                                        });
-
-                                        const currentText = doc.textBetween(linkStart, linkEnd, ' ');
-                                        const text = window.prompt('Edit Display Text', currentText);
-
-                                        if (url === '') {
-                                            editor.chain().focus().extendMarkRange('link').unsetLink().run();
-                                            if (text !== null && text !== currentText) {
-                                                editor.chain().focus().deleteRange({ from: linkStart, to: linkEnd }).insertContent(text).run();
-                                            }
-                                            return;
-                                        }
-
-                                        // Update the text if it changed, then apply the link
-                                        if (text !== null && text !== currentText) {
-                                            editor.chain().focus()
-                                                .deleteRange({ from: linkStart, to: linkEnd })
-                                                .insertContent({
-                                                    type: 'text',
-                                                    text: text,
-                                                    marks: [{ type: 'link', attrs: { href: url } }]
-                                                })
-                                                .run();
-                                        } else {
-                                            // Just update the URL
-                                            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-                                        }
-                                    }}
-                                    className="is-active"
-                                    title="Edit Link"
-                                    style={{ fontSize: '12px', padding: '4px 8px', whiteSpace: 'nowrap' }}
-                                >
-                                    Edit Link
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        editor.chain().focus().extendMarkRange('link').unsetLink().run();
-                                    }}
-                                    title="Remove Link"
-                                    style={{ color: 'var(--danger-color)', fontSize: '12px', padding: '4px 8px', whiteSpace: 'nowrap' }}
-                                >
-                                    Unlink
-                                </button>
-                            </>
-                        )}
-                        <button onClick={() => editor.chain().focus().toggleCode().run()} className={editor.isActive('code') ? 'is-active' : ''} title="Code Inline"><Code size={16} /></button>
-
-
-                        <div className="menu-separator" />
-
-                        <button onClick={() => editor.chain().focus().toggleBulletList().run()} className={editor.isActive('bulletList') ? 'is-active' : ''} title="Bullet List"><List size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleOrderedList().run()} className={editor.isActive('orderedList') ? 'is-active' : ''} title="Numbered List"><ListOrdered size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleTaskList().run()} className={editor.isActive('taskList') ? 'is-active' : ''} title="Todo List"><CheckSquare size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleBlockquote().run()} className={editor.isActive('blockquote') ? 'is-active' : ''} title="Quote"><Quote size={16} /></button>
-                        <button onClick={() => editor.chain().focus().toggleCodeBlock().run()} className={editor.isActive('codeBlock') ? 'is-active' : ''} title="Code Block"><ExternalLink size={16} /></button>
-
-                    </div>
-
-                )}
+                <BubbleMenuUI editor={editor} bubbleMenu={bubbleMenu} setBubbleMenu={setBubbleMenu} />
 
                 {/* Custom Slash Menu */}
                 {slashMenu.isOpen && (
@@ -792,7 +817,7 @@ export default function Editor({ fileId }) {
                         overflowY: 'auto'
                     }}>
 
-                        <ul style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                        <ul ref={slashMenuListRef} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
                             {SLASH_OPTIONS.filter(o => o.label.toLowerCase().includes(slashMenu.query.toLowerCase())).map((opt, idx) => (
                                 <li
                                     key={idx}
