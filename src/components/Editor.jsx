@@ -35,7 +35,7 @@ const CustomTaskItemComponent = (props) => {
             <label contentEditable={false} style={{ marginTop: '4px', cursor: 'pointer', display: 'flex' }}>
                 <input
                     type="checkbox"
-                    checked={!!node.attrs.checked}
+                    checked={node.attrs.checked}
                     onChange={e => {
                         updateAttributes({ checked: e.target.checked });
                     }}
@@ -253,7 +253,12 @@ export default function Editor({ fileId }) {
                     checked: {
                         default: false,
                         keepAttributes: true,
-                        parseHTML: element => element.getAttribute('data-checked') === 'true' || element.hasAttribute('checked'),
+                        parseHTML: element => {
+                            if (element.hasAttribute('data-checked')) return element.getAttribute('data-checked') === 'true';
+                            if (element.hasAttribute('checked')) return true;
+                            const checkbox = element.querySelector('input[type="checkbox"]');
+                            return checkbox ? checkbox.checked : false;
+                        },
                         renderHTML: attributes => ({
                             'data-checked': attributes.checked,
                             checked: attributes.checked ? 'checked' : null
@@ -322,10 +327,11 @@ export default function Editor({ fileId }) {
                 };
             },
 
-            renderHTML({ HTMLAttributes }) {
+            renderHTML({ node, HTMLAttributes }) {
                 // Ensure data-checked accurately reflects the checked attribute
                 return ['li', mergeAttributes(HTMLAttributes, {
-                    'data-type': 'taskItem'
+                    'data-type': 'taskItem',
+                    'data-checked': node.attrs.checked ? 'true' : 'false'
                 }), 0];
             },
 
@@ -467,7 +473,8 @@ export default function Editor({ fileId }) {
                             return;
                         }
 
-                        const coords = editor.view.coordsAtPos(from);
+                        // Use coordsAtPos for the end of the selection to place the menu nicely
+                        const coords = editor.view.coordsAtPos(to);
                         if (coords && typeof coords.top === 'number' && typeof coords.left === 'number') {
                             setBubbleMenu({
                                 isOpen: true,
