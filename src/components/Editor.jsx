@@ -211,11 +211,7 @@ const SLASH_OPTIONS = [
     { label: 'Code Block', icon: '</>', command: (editor) => editor.chain().focus().toggleCodeBlock().run() },
     {
         label: 'Table', icon: '田', command: (editor) => {
-            const rows = parseInt(window.prompt('Number of rows', '3') || '0');
-            const cols = parseInt(window.prompt('Number of columns', '3') || '0');
-            if (rows > 0 && cols > 0) {
-                editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
-            }
+            editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
         }
     },
     { label: 'Divider', icon: '—', command: (editor) => editor.chain().focus().setHorizontalRule().run() },
