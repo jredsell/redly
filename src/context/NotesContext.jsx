@@ -6,7 +6,6 @@ import { checkUpcomingTasks } from '../utils/notificationManager';
 const NotesContext = createContext(undefined);
 
 export const NotesProvider = ({ children }) => {
-    console.log('[NotesContext] NotesProvider rendering started');
     const [nodes, setNodes] = useState([]);
     const [workspaceHandle, setWorkspaceHandle] = useState(null); // 'active' flag
     const [storageMode, setStorageMode] = useState(null);
