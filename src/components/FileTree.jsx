@@ -149,10 +149,29 @@ export default function FileTree({ node, depth }) {
                 tabIndex={0}
                 onKeyDown={(e) => {
                     if (e.target.tagName === 'INPUT') return;
+
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        e.stopPropagation(); // add stopPropagation so parent folders don't also handle the Enter key!
+                        e.stopPropagation();
                         handleClick(e);
+                    } else if (e.key === 'F2') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsEditing(true);
+                    } else if (e.key === 'Delete') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete(e);
+                    } else if (e.key === 'Tab' && !e.shiftKey) {
+                        // If it's a file and it's active, jump to editor
+                        if (!isFolder && isActive) {
+                            const editor = document.querySelector('.ProseMirror');
+                            if (editor) {
+                                e.preventDefault();
+                                e.stopPropagation();
+                                editor.focus();
+                            }
+                        }
                     }
                 }}
 
