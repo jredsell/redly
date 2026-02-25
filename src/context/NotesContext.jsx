@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle } from '../lib/db';
+import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent } from '../lib/db';
 
 const NotesContext = createContext(undefined);
 
@@ -237,7 +237,7 @@ export const NotesProvider = ({ children }) => {
 
     const value = {
         nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
-        addNode, editNode, removeNode, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
+        addNode, editNode, removeNode, getFileContent, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
         installApp, isInstallable: !!deferredPrompt
     };

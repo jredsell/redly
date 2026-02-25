@@ -1,6 +1,29 @@
 // --- Driver for OPFS and Native File System API ---
 
 let currentRootHandle = null;
+let operationLock = Promise.resolve();
+
+async function withLock(fn) {
+    const next = operationLock.then(fn);
+    operationLock = next.catch(() => { });
+    return next;
+}
+
+async function withRetry(fn, retries = 3, delay = 50) {
+    for (let i = 0; i < retries; i++) {
+        try {
+            return await fn();
+        } catch (err) {
+            const isStateError = err.message?.includes('state had changed') || err.name === 'ModificationError';
+            if (isStateError && i < retries - 1) {
+                console.warn(`[local_driver] Operation failed (state changed), retrying ${i + 1}/${retries}...`);
+                await new Promise(r => setTimeout(r, delay));
+                continue;
+            }
+            throw err;
+        }
+    }
+}
 
 export const setRootHandle = (handle) => { currentRootHandle = handle; };
 
@@ -23,13 +46,11 @@ export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') 
 
             if (entry.kind === 'file' && entry.name.endsWith('.md')) {
                 const file = await entry.getFile();
-                const content = await file.text();
                 nodes.push({
                     id: nodePath,
                     name: entry.name.replace('.md', ''),
                     type: 'file',
                     parentId: currentPath || null,
-                    content,
                     updatedAt: file.lastModified
                 });
             } else if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
@@ -44,17 +65,31 @@ export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') 
     return nodes;
 };
 
+export const getFileContent = async (id) => {
+    return withLock(() => withRetry(async () => {
+        const parts = id.split('/');
+        const fileName = parts.pop();
+        const parentPath = parts.join('/');
+        const parentHandle = await getDirHandleFromPath(parentPath);
+        const fileHandle = await parentHandle.getFileHandle(fileName);
+        const file = await fileHandle.getFile();
+        return await file.text();
+    }));
+};
+
 export const createNode = async (node) => {
-    const parentHandle = await getDirHandleFromPath(node.parentId, true);
-    if (node.type === 'folder') {
-        await parentHandle.getDirectoryHandle(node.name, { create: true });
-    } else {
-        const fileHandle = await parentHandle.getFileHandle(`${node.name}.md`, { create: true });
-        const writable = await fileHandle.createWritable();
-        await writable.write(node.content || '');
-        await writable.close();
-    }
-    return node;
+    return withLock(() => withRetry(async () => {
+        const parentHandle = await getDirHandleFromPath(node.parentId, true);
+        if (node.type === 'folder') {
+            await parentHandle.getDirectoryHandle(node.name, { create: true });
+        } else {
+            const fileHandle = await parentHandle.getFileHandle(`${node.name}.md`, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(node.content || '');
+            await writable.close();
+        }
+        return node;
+    }));
 };
 
 // Helper for recursive folder copy (fallback when .move() is unavailable)
@@ -74,85 +109,89 @@ async function copyFolderContents(sourceHandle, targetHandle) {
 }
 
 export const updateNode = async (id, updates, oldNode) => {
-    const parentHandle = await getDirHandleFromPath(oldNode.parentId);
-    let currentHandle = oldNode.type === 'file'
-        ? await parentHandle.getFileHandle(`${oldNode.name}.md`)
-        : await parentHandle.getDirectoryHandle(oldNode.name);
+    return withLock(() => withRetry(async () => {
+        const parentHandle = await getDirHandleFromPath(oldNode.parentId);
+        let currentHandle = oldNode.type === 'file'
+            ? await parentHandle.getFileHandle(`${oldNode.name}.md`)
+            : await parentHandle.getDirectoryHandle(oldNode.name);
 
-    let finalNode = { ...oldNode, ...updates };
+        let finalNode = { ...oldNode, ...updates };
 
-    // 1. Handle Renaming or Moving (Storage Level)
-    if ((updates.name && updates.name !== oldNode.name) || (updates.parentId !== undefined && updates.parentId !== oldNode.parentId)) {
-        const newName = updates.name || oldNode.name;
-        const newParentId = updates.parentId !== undefined ? updates.parentId : oldNode.parentId;
-        const newParentHandle = await getDirHandleFromPath(newParentId, true);
-        const fileName = oldNode.type === 'file' ? `${newName}.md` : newName;
+        // 1. Handle Renaming or Moving (Storage Level)
+        if ((updates.name && updates.name !== oldNode.name) || (updates.parentId !== undefined && updates.parentId !== oldNode.parentId)) {
+            const newName = updates.name || oldNode.name;
+            const newParentId = updates.parentId !== undefined ? updates.parentId : oldNode.parentId;
+            const newParentHandle = await getDirHandleFromPath(newParentId, true);
+            const fileName = oldNode.type === 'file' ? `${newName}.md` : newName;
 
-        let moveSuccessful = false;
-        if (currentHandle.move) {
-            try {
-                await currentHandle.move(newParentHandle, fileName);
-                // After move, we need to update the handle reference if we want to write content later
-                currentHandle = oldNode.type === 'file'
-                    ? await newParentHandle.getFileHandle(fileName)
-                    : await newParentHandle.getDirectoryHandle(newName);
-                moveSuccessful = true;
-            } catch (moveErr) {
-                console.warn('Native move failed, falling back to copy/delete:', moveErr);
+            let moveSuccessful = false;
+            if (currentHandle.move) {
+                try {
+                    await currentHandle.move(newParentHandle, fileName);
+                    // After move, we need to update the handle reference if we want to write content later
+                    currentHandle = oldNode.type === 'file'
+                        ? await newParentHandle.getFileHandle(fileName)
+                        : await newParentHandle.getDirectoryHandle(newName);
+                    moveSuccessful = true;
+                } catch (moveErr) {
+                    console.warn('Native move failed, falling back to copy/delete:', moveErr);
+                }
             }
-        }
 
-        if (!moveSuccessful) {
-            // Fallback: Copy and Delete
+            if (!moveSuccessful) {
+                // Fallback: Copy and Delete
+                if (oldNode.type === 'file') {
+                    const file = await currentHandle.getFile();
+                    const content = updates.content !== undefined ? updates.content : await file.text();
+                    const newFileHandle = await newParentHandle.getFileHandle(fileName, { create: true });
+                    const writable = await newFileHandle.createWritable();
+                    await writable.write(content);
+                    await writable.close();
+
+                    // Ensure we use the correct filename including extension for removal
+                    const oldFileName = oldNode.type === 'file' ? `${oldNode.name}.md` : oldNode.name;
+                    await parentHandle.removeEntry(oldFileName, { recursive: oldNode.type === 'folder' });
+                    currentHandle = newFileHandle;
+                    // Mark content as handled so we don't write it again below
+                    updates.content = undefined;
+                } else {
+                    const newFolderHandle = await newParentHandle.getDirectoryHandle(newName, { create: true });
+                    await copyFolderContents(currentHandle, newFolderHandle);
+                    await parentHandle.removeEntry(oldNode.name, { recursive: true });
+                    currentHandle = newFolderHandle;
+                }
+            }
+
+
+            // Update ID
             if (oldNode.type === 'file') {
-                const file = await currentHandle.getFile();
-                const content = updates.content !== undefined ? updates.content : await file.text();
-                const newFileHandle = await newParentHandle.getFileHandle(fileName, { create: true });
-                const writable = await newFileHandle.createWritable();
-                await writable.write(content);
-                await writable.close();
-
-                // Ensure we use the correct filename including extension for removal
-                const oldFileName = oldNode.type === 'file' ? `${oldNode.name}.md` : oldNode.name;
-                await parentHandle.removeEntry(oldFileName, { recursive: oldNode.type === 'folder' });
-                currentHandle = newFileHandle;
-                // Mark content as handled so we don't write it again below
-                updates.content = undefined;
+                finalNode.id = newParentId ? `${newParentId}/${fileName}` : fileName;
             } else {
-                const newFolderHandle = await newParentHandle.getDirectoryHandle(newName, { create: true });
-                await copyFolderContents(currentHandle, newFolderHandle);
-                await parentHandle.removeEntry(oldNode.name, { recursive: true });
-                currentHandle = newFolderHandle;
+                // For folders, we need to be careful with ID replacement if it's a nested path
+                const oldPath = oldNode.id;
+                const parentPath = oldNode.parentId || '';
+                finalNode.id = parentPath ? `${parentPath}/${newName}` : newName;
             }
         }
 
-
-        // Update ID
-        if (oldNode.type === 'file') {
-            finalNode.id = newParentId ? `${newParentId}/${fileName}` : fileName;
-        } else {
-            // For folders, we need to be careful with ID replacement if it's a nested path
-            const oldPath = oldNode.id;
-            const parentPath = oldNode.parentId || '';
-            finalNode.id = parentPath ? `${parentPath}/${newName}` : newName;
+        // 2. Handle Content Updates (File only)
+        if (oldNode.type === 'file' && updates.content !== undefined) {
+            const writable = await currentHandle.createWritable();
+            await writable.write(updates.content);
+            await writable.close();
         }
-    }
 
-    // 2. Handle Content Updates (File only)
-    if (oldNode.type === 'file' && updates.content !== undefined) {
-        const writable = await currentHandle.createWritable();
-        await writable.write(updates.content);
-        await writable.close();
-    }
-
-    return finalNode;
+        return finalNode;
+    }));
 };
 
 export const deleteNode = async (id, type) => {
-    const name = id.split('/').pop();
-    const parentId = id.substring(0, id.lastIndexOf('/')) || null;
-    const parentHandle = await getDirHandleFromPath(parentId);
-    // name already includes .md for files because id is nodePath which is entry.name
-    await parentHandle.removeEntry(name, { recursive: true });
+    return withLock(() => withRetry(async () => {
+        const name = id.split('/').pop();
+        const parentId = id.substring(0, id.lastIndexOf('/')) || null;
+        const parentHandle = await getDirHandleFromPath(parentId);
+        // name already includes .md for files because id is nodePath which is entry.name
+        await parentHandle.removeEntry(name, { recursive: true });
+    }));
 };
 

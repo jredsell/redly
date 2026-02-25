@@ -121,8 +121,10 @@ export default function FileTree({ node, depth }) {
             // unless we are actively using the sidebar
             if (document.activeElement !== itemRef.current && document.activeElement?.closest('.sidebar-content')) {
                 itemRef.current.focus();
+                itemRef.current.scrollIntoView({ block: 'nearest' });
             } else if (!document.activeElement || document.activeElement === document.body) {
                 itemRef.current.focus();
+                itemRef.current.scrollIntoView({ block: 'nearest' });
             }
         }
     }, [isFocused]);

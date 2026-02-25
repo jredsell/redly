@@ -316,25 +316,31 @@ const BubbleMenuUI = ({ editor, bubbleMenu, setBubbleMenu }) => {
 };
 
 export default function Editor({ fileId }) {
-    const { nodes, editNode, removeNode } = useNotes();
+    const { nodes, editNode, removeNode, getFileContent } = useNotes();
     const [file, setFile] = useState(null);
     const saveTimeoutRef = useRef(null);
     const lastSavedContentRef = useRef(''); // Track the last saved state to prevent echo updates
     const [localTitle, setLocalTitle] = useState('');
+    const pendingUpdatesRef = useRef({}); // Merge updates (name, content) to prevent race conditions during renames
     const [slashMenu, setSlashMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
     const [bubbleMenu, setBubbleMenu] = useState({ isOpen: false, top: 0, left: 0 });
     const [forceRender, setForceRender] = useState(0);
     const slashMenuListRef = useRef(null);
 
     const debouncedSave = useCallback((updates) => {
+        // Merge new updates into the pending buffer
+        pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
+
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
-        saveTimeoutRef.current = setTimeout(() => {
-            if (updates.content) {
-                updates.content = td.turndown(updates.content);
-                // We just converted it to saving-format markdown. Save this to lastSaved.
-                lastSavedContentRef.current = updates.content;
+        saveTimeoutRef.current = setTimeout(async () => {
+            const currentUpdates = { ...pendingUpdatesRef.current };
+            pendingUpdatesRef.current = {}; // Clear buffer BEFORE the async call
+
+            if (currentUpdates.content) {
+                currentUpdates.content = td.turndown(currentUpdates.content);
+                lastSavedContentRef.current = currentUpdates.content;
             }
-            editNode(fileId, updates);
+            editNode(fileId, currentUpdates);
         }, 1000);
     }, [fileId, editNode]);
 
@@ -719,7 +725,9 @@ export default function Editor({ fileId }) {
         if (f) {
             const isInitialLoad = !file || file.id !== fileId;
             // Only update if it's NOT the content we just saved (prevent echo)
+            // AND ensure f.content is actually defined (it might be undefined if not yet loaded on-demand)
             const isExternalUpdate = !isInitialLoad &&
+                f.content !== undefined &&
                 f.content !== (file?.content || '') &&
                 f.content !== lastSavedContentRef.current &&
                 f.updatedAt > (file?.updatedAt || 0);
@@ -734,37 +742,52 @@ export default function Editor({ fileId }) {
                 }
 
                 if (editor) {
-                    let content = f.content || '';
-                    // Ensure task list markers have a space after them for markdown-it-task-lists
-                    content = content.replace(/^(\s*-\s*\[[ xX]\])(\S)/gm, '$1 $2');
-
-                    let html = md.render(content);
-
-                    // Convert regular task lists to data-type="taskList" and items to taskItem
-                    html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
-                        .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
-
-                    // Extract @date and move to attribute, but keep other content clean
-                    html = html.replace(/(<li data-type="taskItem"[^>]*>)([\s\S]*?)(<\/li>)/gi, (match, openTag, liContent, closeTag) => {
-                        const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
-                        const dateMatch = liContent.match(dateRegex);
-                        if (dateMatch) {
-                            const dateStr = dateMatch[1];
-                            const cleanedContent = liContent.replace(dateRegex, '').trim();
-                            // Only add attributes if they don't already exist from a previous parse/save cycle
-                            return `${openTag.replace('>', ` data-date="${dateStr}" data-has-date="true" data-has-time="${dateStr.includes(':')}">`)}${cleanedContent}${closeTag}`;
+                    const loadContent = async () => {
+                        let content = f.content;
+                        // On-demand loading: if content is missing from node state, fetch it
+                        if (content === undefined) {
+                            try {
+                                content = await getFileContent(fileId);
+                                // Update local state so we don't fetch again
+                                setFile(prev => prev?.id === fileId ? { ...prev, content } : prev);
+                            } catch (err) {
+                                console.error('[Editor] Failed to load file content:', err);
+                                return;
+                            }
                         }
-                        return match;
-                    });
 
-                    const selection = editor.state.selection;
-                    editor.commands.setContent(html, false);
+                        lastSavedContentRef.current = content || '';
 
-                    if (isExternalUpdate) {
-                        try {
-                            editor.commands.setTextSelection(selection);
-                        } catch (e) { /* ignore */ }
-                    }
+                        // Ensure task list markers have a space after them for markdown-it-task-lists
+                        const preparedContent = (content || '').replace(/^(\s*-\s*\[[ xX]\])(\S)/gm, '$1 $2');
+                        let html = md.render(preparedContent);
+
+                        // Convert regular task lists to data-type="taskList" and items to taskItem
+                        html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
+                            .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
+
+                        // Extract @date and move to attribute, but keep other content clean
+                        html = html.replace(/(<li data-type="taskItem"[^>]*>)([\s\S]*?)(<\/li>)/gi, (match, openTag, liContent, closeTag) => {
+                            const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
+                            const dateMatch = liContent.match(dateRegex);
+                            if (dateMatch) {
+                                const dateStr = dateMatch[1];
+                                const cleanedContent = liContent.replace(dateRegex, '').trim();
+                                return `${openTag.replace('>', ` data-date="${dateStr}" data-has-date="true" data-has-time="${dateStr.includes(':')}">`)}${cleanedContent}${closeTag}`;
+                            }
+                            return match;
+                        });
+
+                        const selection = editor.state.selection;
+                        editor.commands.setContent(html, false);
+
+                        if (isExternalUpdate) {
+                            try {
+                                editor.commands.setTextSelection(selection);
+                            } catch (e) { /* ignore */ }
+                        }
+                    };
+                    loadContent();
                 }
             }
         }

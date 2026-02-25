@@ -137,16 +137,11 @@ export const getNodes = async () => {
                 nodes.push({ id: nodePath, name: file.name, type: 'folder', parentId: currentPath || null, gdriveId: file.id });
                 await fetchPath(file.id, nodePath);
             } else if (file.name.endsWith('.md')) {
-                const contentRes = await fetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`, {
-                    headers: { 'Authorization': `Bearer ${accessToken}` }
-                });
-                const content = await contentRes.text();
                 nodes.push({
                     id: nodePath,
                     name: file.name.replace('.md', ''),
                     type: 'file',
                     parentId: currentPath || null,
-                    content,
                     updatedAt: new Date(file.modifiedTime).getTime(),
                     gdriveId: file.id
                 });
@@ -155,6 +150,20 @@ export const getNodes = async () => {
     };
     await fetchPath(rootId);
     return nodes;
+};
+
+export const getFileContent = async (id) => {
+    // This is slightly tricky because we need the gdriveId.
+    // We can fetch it by looking up the name in the parent folder or by caching nodes.
+    // For now, let's assume getNodes has been called and we can find the node by ID.
+    const freshNodes = await getNodes();
+    const node = freshNodes.find(n => n.id === id);
+    if (!node || !node.gdriveId) return '';
+
+    const contentRes = await fetch(`https://www.googleapis.com/drive/v3/files/${node.gdriveId}?alt=media`, {
+        headers: { 'Authorization': `Bearer ${accessToken || await getAccessToken()}` }
+    });
+    return await contentRes.text();
 };
 
 export const createNode = async (node) => {
