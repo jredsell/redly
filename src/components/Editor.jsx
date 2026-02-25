@@ -204,6 +204,8 @@ export default function Editor({ fileId }) {
     const [localTitle, setLocalTitle] = useState('');
     const [slashMenu, setSlashMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
     const [bubbleMenu, setBubbleMenu] = useState({ isOpen: false, top: 0, left: 0 });
+    // Force re-render for bubble menu active states
+    const [, setForceRender] = useState(0);
 
     const debouncedSave = useCallback((updates) => {
         if (saveTimeoutRef.current) clearTimeout(saveTimeoutRef.current);
@@ -448,6 +450,10 @@ export default function Editor({ fileId }) {
         extensions,
         content: '',
         onUpdate: ({ editor }) => debouncedSave({ content: editor.getHTML() }),
+        onTransaction: () => {
+            // Force UI to re-read editor.isActive() to eliminate active state delays
+            setForceRender(prev => prev + 1);
+        },
         onSelectionUpdate: ({ editor }) => {
             try {
                 const { from, to, empty } = editor.state.selection;
@@ -698,28 +704,43 @@ export default function Editor({ fileId }) {
                                         const url = window.prompt('Edit URL', currentUrl);
                                         if (url === null) return;
 
-                                        const { from, to } = editor.state.selection;
-                                        const currentText = editor.state.doc.textBetween(from, to, ' ');
+                                        // Accurately find the link bounds
+                                        const { selection, doc } = editor.state;
+                                        let linkStart = selection.from;
+                                        let linkEnd = selection.to;
+
+                                        // Attempt to expand range to encompass the entire link mark
+                                        doc.nodesBetween(selection.from, selection.to, (node, pos) => {
+                                            if (node.marks.find(m => m.type.name === 'link')) {
+                                                linkStart = Math.min(linkStart, pos);
+                                                linkEnd = Math.max(linkEnd, pos + node.nodeSize);
+                                            }
+                                        });
+
+                                        const currentText = doc.textBetween(linkStart, linkEnd, ' ');
                                         const text = window.prompt('Edit Display Text', currentText);
 
                                         if (url === '') {
                                             editor.chain().focus().extendMarkRange('link').unsetLink().run();
                                             if (text !== null && text !== currentText) {
-                                                editor.chain().focus().insertContent(text).run();
+                                                editor.chain().focus().deleteRange({ from: linkStart, to: linkEnd }).insertContent(text).run();
                                             }
                                             return;
                                         }
 
-                                        // Set the new link
-                                        editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
-
-                                        // Update the text if it changed
+                                        // Update the text if it changed, then apply the link
                                         if (text !== null && text !== currentText) {
-                                            const newSelection = editor.state.selection;
-                                            editor.chain().focus().deleteRange({ from: newSelection.from, to: newSelection.to }).insertContent(text).run();
-                                            // Re-apply link to the newly inserted text
-                                            const finalPos = editor.state.selection.from;
-                                            editor.chain().focus().setTextSelection({ from: finalPos - text.length, to: finalPos }).setLink({ href: url }).run();
+                                            editor.chain().focus()
+                                                .deleteRange({ from: linkStart, to: linkEnd })
+                                                .insertContent({
+                                                    type: 'text',
+                                                    text: text,
+                                                    marks: [{ type: 'link', attrs: { href: url } }]
+                                                })
+                                                .run();
+                                        } else {
+                                            // Just update the URL
+                                            editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run();
                                         }
                                     }}
                                     className="is-active"
