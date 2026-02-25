@@ -169,19 +169,36 @@ export const NotesProvider = ({ children }) => {
         localStorage.setItem('redly_notificationSettings', JSON.stringify(notificationSettings));
     }, [notificationSettings]);
 
+    // Keep a ref to latest notification settings to avoid stale closures in the interval
+    const notificationSettingsRef = useRef(notificationSettings);
+    useEffect(() => { notificationSettingsRef.current = notificationSettings; }, [notificationSettings]);
+
     // Background task notification checker
     useEffect(() => {
         if (!notificationSettings.enabled || !workspaceHandle) return;
 
-        const check = () => {
+        const check = async () => {
             const currentNodes = nodesRef.current;
-            const tasks = parseTasksFromNodes(currentNodes);
+            // Nodes from getNodes() don't have content — we must load it here
+            const nodesWithContent = await Promise.all(
+                currentNodes.map(async (node) => {
+                    if (node.type !== 'file') return node;
+                    if (node.content !== undefined) return node;
+                    try {
+                        const content = await getFileContent(node.id);
+                        return { ...node, content };
+                    } catch {
+                        return node;
+                    }
+                })
+            );
 
-            // Note: We use the function form of setNotifiedTaskIds to avoid dependency on notifiedTaskIds itself
+            const tasks = parseTasksFromNodes(nodesWithContent);
+            const settings = notificationSettingsRef.current;
+
             setNotifiedTaskIds(prevNotifiedIds => {
-                const newNotifiedIds = checkUpcomingTasks(tasks, notificationSettings, prevNotifiedIds);
+                const newNotifiedIds = checkUpcomingTasks(tasks, settings, prevNotifiedIds);
                 if (newNotifiedIds.length === 0) return prevNotifiedIds;
-
                 const next = new Set(prevNotifiedIds);
                 newNotifiedIds.forEach(id => next.add(id));
                 return next;
@@ -189,10 +206,10 @@ export const NotesProvider = ({ children }) => {
         };
 
         const interval = setInterval(check, 60000); // Check every minute
-        check(); // Initial check
+        check(); // Run immediately on enable
 
         return () => clearInterval(interval);
-    }, [notificationSettings.enabled, notificationSettings.leadTime, workspaceHandle]);
+    }, [notificationSettings.enabled, workspaceHandle]);
 
     const tree = buildTree(nodes);
 

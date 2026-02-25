@@ -78,36 +78,45 @@ export const parseDateString = (input) => {
         dateObj.setDate(dateObj.getDate() + 1);
         hasDate = true;
     } else {
-        // DD/MM or DD/MM/YYYY or DD/MM/YY
-        const dateMatch = dateStrWithoutTime.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
-        if (dateMatch) {
+        // ISO format: YYYY-MM-DD (from stored data-date attributes on reload)
+        const isoMatch = dateStrWithoutTime.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
+        if (isoMatch) {
             hasDate = true;
-            const dStr = parseInt(dateMatch[1], 10);
-            const mStr = parseInt(dateMatch[2], 10) - 1;
-            dateObj.setMonth(mStr);
-            dateObj.setDate(dStr);
-            if (dateMatch[3]) {
-                let y = parseInt(dateMatch[3], 10);
-                if (y < 100) y += 2000;
-                dateObj.setFullYear(y);
-            }
+            dateObj.setFullYear(parseInt(isoMatch[1], 10));
+            dateObj.setMonth(parseInt(isoMatch[2], 10) - 1);
+            dateObj.setDate(parseInt(isoMatch[3], 10));
         } else {
-            // Days of week
-            const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-            let nextIndex = -1;
-            for (let i = 0; i < days.length; i++) {
-                if (dateStrWithoutTime.includes(days[i])) {
-                    nextIndex = i;
-                    break;
-                }
-            }
-            if (nextIndex !== -1) {
+            // DD/MM or DD/MM/YYYY or DD/MM/YY
+            const dateMatch = dateStrWithoutTime.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+            if (dateMatch) {
                 hasDate = true;
-                const isNext = dateStrWithoutTime.includes('next');
-                let dayDiff = nextIndex - dateObj.getDay();
-                if (dayDiff <= 0) dayDiff += 7; // Always jump to future
-                if (isNext) dayDiff += 7; // jump to week after
-                dateObj.setDate(dateObj.getDate() + dayDiff);
+                const dStr = parseInt(dateMatch[1], 10);
+                const mStr = parseInt(dateMatch[2], 10) - 1;
+                dateObj.setMonth(mStr);
+                dateObj.setDate(dStr);
+                if (dateMatch[3]) {
+                    let y = parseInt(dateMatch[3], 10);
+                    if (y < 100) y += 2000;
+                    dateObj.setFullYear(y);
+                }
+            } else {
+                // Days of week
+                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                let nextIndex = -1;
+                for (let i = 0; i < days.length; i++) {
+                    if (dateStrWithoutTime.includes(days[i])) {
+                        nextIndex = i;
+                        break;
+                    }
+                }
+                if (nextIndex !== -1) {
+                    hasDate = true;
+                    const isNext = dateStrWithoutTime.includes('next');
+                    let dayDiff = nextIndex - dateObj.getDay();
+                    if (dayDiff <= 0) dayDiff += 7; // Always jump to future
+                    if (isNext) dayDiff += 7; // jump to week after
+                    dateObj.setDate(dateObj.getDate() + dayDiff);
+                }
             }
         }
     }

@@ -17,10 +17,15 @@ export default function InlineDateInput({
 
     if (initialDate) {
         try {
-            const [datePart, timePart] = initialDate.split('T');
+            // Handle both T-separator ("2026-02-25T22:00") and space-separator ("2026-02-25 22:00")
+            const sep = initialDate.includes('T') ? 'T' : ' ';
+            const sepIdx = initialDate.indexOf(sep);
+            const datePart = sepIdx !== -1 ? initialDate.substring(0, sepIdx) : initialDate;
+            const timePart = (sepIdx !== -1 && isTimeSet) ? initialDate.substring(sepIdx + 1, sepIdx + 6) : '';
             const [y, m, d] = datePart.split('-');
-            const formattedTime = (isTimeSet && timePart) ? timePart.substring(0, 5) : '';
-            display = `${d}/${m}/${y} ${formattedTime}`.trim();
+            if (y && m && d) {
+                display = `${d}/${m}/${y}${timePart ? ' ' + timePart : ''}`.trim();
+            }
         } catch (e) { }
         dateColor = getDateColor(initialDate, isTimeSet);
     }

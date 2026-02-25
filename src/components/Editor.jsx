@@ -454,7 +454,10 @@ export default function Editor({ fileId }) {
                         default: '',
                         parseHTML: element => {
                             const attrDate = element.getAttribute('data-date');
-                            if (attrDate) return attrDate;
+                            if (attrDate) {
+                                // Normalize space-separated ISO dates to T-format: "2026-02-25 22:00" -> "2026-02-25T22:00"
+                                return attrDate.replace(/^(\d{4}-\d{2}-\d{2}) (\d{2}:\d{2})$/, '$1T$2');
+                            }
 
                             // Fallback: try to extract from text content
                             const text = element.textContent || '';
