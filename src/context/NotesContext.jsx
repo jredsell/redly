@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent } from '../lib/db';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
@@ -6,6 +6,7 @@ import { checkUpcomingTasks } from '../utils/notificationManager';
 const NotesContext = createContext(undefined);
 
 export const NotesProvider = ({ children }) => {
+    console.log('[NotesContext] NotesProvider rendering started');
     const [nodes, setNodes] = useState([]);
     const [workspaceHandle, setWorkspaceHandle] = useState(null); // 'active' flag
     const [storageMode, setStorageMode] = useState(null);

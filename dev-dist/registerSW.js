@@ -1,0 +1,1 @@
+if('serviceWorker' in navigator) navigator.serviceWorker.register('/redly/dev-sw.js?dev-sw', { scope: '/redly/', type: 'classic' })
