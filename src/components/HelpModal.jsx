@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, Cloud, RefreshCw } from 'lucide-react';
+import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, Cloud, RefreshCw, Table2, Bell } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 import logo from '../assets/logo.png';
 
@@ -62,6 +62,34 @@ export default function HelpModal({ isOpen, onClose }) {
                         </h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                             Type <kbd style={kbdStyle}>/</kbd> inside any note to open the rich formatting menu. You can quickly add Headings, Todo lists, blockquotes, and lists natively while you type.
+                        </p>
+                    </div>
+
+                    <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Table2 size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Tables
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            Type <kbd style={kbdStyle}>/</kbd> and choose <b>Table</b> to insert a 3&times;3 table with a header row instantly.
+                            <br /><br />
+                            Once inside a table, a <b>toolbar appears at the top-right of the editor</b> with buttons to:
+                            <br />
+                            <b>+ Row / &minus; Row:</b> Add or remove rows.<br />
+                            <b>+ Col / &minus; Col:</b> Add or remove columns.<br />
+                            Use <kbd style={kbdStyle}>Tab</kbd> to jump between cells.
+                        </p>
+                    </div>
+
+                    <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <Bell size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Task Notifications
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            Click the <b>🔔 bell icon</b> at the bottom of the sidebar to open notification settings.
+                            <br /><br />
+                            <b>Enable:</b> Toggle notifications on — your browser will ask for permission. Click <i>Allow</i>.<br />
+                            <b>Lead Time:</b> Use the slider to set how many minutes <i>before</i> a task is due you'll be notified.<br />
+                            <b>How it works:</b> Any Todo item with an <code>@date</code> badge will trigger a desktop notification when it enters the lead time window. Each task only notifies once per session.
                         </p>
                     </div>
 
