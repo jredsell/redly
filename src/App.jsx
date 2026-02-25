@@ -5,10 +5,68 @@ import Editor from './components/Editor';
 import HelpModal from './components/HelpModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
-import { Menu, Sun, Moon } from 'lucide-react';
+import { Menu, Sun, Moon, Bell } from 'lucide-react';
+import { requestNotificationPermission } from './utils/notificationManager';
+
+function NotificationToggle() {
+  const { notificationSettings, setNotificationSettings } = useNotes();
+  const [expanded, setExpanded] = useState(false);
+
+  const handleToggle = async () => {
+    if (!notificationSettings.enabled) {
+      const granted = await requestNotificationPermission();
+      if (!granted) return;
+    }
+    setNotificationSettings(prev => ({ ...prev, enabled: !prev.enabled }));
+    if (!notificationSettings.enabled) setExpanded(true);
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', position: 'relative' }}>
+      <button
+        className="icon-button"
+        onClick={handleToggle}
+        title={notificationSettings.enabled ? 'Notifications on — click to disable' : 'Enable task notifications'}
+        style={{ position: 'relative' }}
+      >
+        <Bell size={18} style={{ color: notificationSettings.enabled ? 'var(--accent-color)' : 'inherit' }} />
+        {notificationSettings.enabled && (
+          <span style={{
+            position: 'absolute', top: 4, right: 4, width: 7, height: 7,
+            borderRadius: '50%', background: 'var(--accent-color)',
+            border: '1.5px solid var(--bg-primary)'
+          }} />
+        )}
+      </button>
+      {notificationSettings.enabled && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            Alert
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="1440"
+            value={notificationSettings.leadTime}
+            onChange={e => setNotificationSettings(prev => ({ ...prev, leadTime: Number(e.target.value) }))}
+            style={{
+              width: '44px', fontSize: '12px', padding: '2px 4px',
+              background: 'var(--bg-secondary)', border: '1px solid var(--border-color)',
+              borderRadius: '4px', color: 'var(--text-primary)', textAlign: 'center'
+            }}
+            title="Minutes before task is due to notify"
+          />
+          <label style={{ fontSize: '12px', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+            min before
+          </label>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function App() {
-  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace } = useNotes();
+  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
@@ -116,14 +174,16 @@ function App() {
             `}</style>
           </div>
 
-          <button
-            className="icon-button"
-            onClick={() => setIsDarkMode(!isDarkMode)}
-            title="Toggle Theme"
-            style={{ marginRight: '16px' }}
-          >
-            {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
+            <button
+              className="icon-button"
+              onClick={() => setIsDarkMode(!isDarkMode)}
+              title="Toggle Theme"
+            >
+              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+            </button>
+            <NotificationToggle />
+          </div>
         </div>
 
         {showTasks && <GlobalTasks />}

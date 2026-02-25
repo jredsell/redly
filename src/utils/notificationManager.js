@@ -24,7 +24,7 @@ export const sendNotification = (title, options = {}) => {
     if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         try {
             new Notification(title, {
-                icon: '/redly_logo.png',
+                icon: new URL('/redly/redly_logo.png', window.location.origin).href,
                 ...options
             });
             return true;
@@ -56,7 +56,6 @@ export const checkUpcomingTasks = (tasks, settings, notifiedIds) => {
         const taskTime = new Date(task.date).getTime();
         const timeUntilTask = taskTime - now.getTime();
 
-        // If task is in the future and within lead time (or was due in the last 1 minute to catch missed ones)
         if (timeUntilTask <= leadTimeMs && timeUntilTask > -60000) {
             const timeDesc = timeUntilTask > 0
                 ? `Due in ${Math.round(timeUntilTask / 60000)} minutes`
@@ -64,7 +63,7 @@ export const checkUpcomingTasks = (tasks, settings, notifiedIds) => {
 
             sendNotification(`Task Reminder: ${task.text}`, {
                 body: `${timeDesc}\nFrom: ${task.path.join(' > ')}`,
-                tag: task.id // Prevent duplicate notifications for the same task
+                tag: task.id
             });
 
             newNotifiedIds.push(task.id);

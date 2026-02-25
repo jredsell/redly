@@ -85,11 +85,11 @@ export default function HelpModal({ isOpen, onClose }) {
                             <Bell size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Task Notifications
                         </h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            Click the <b>🔔 bell icon</b> at the bottom of the sidebar to open notification settings.
+                            Click the <b>🔔 bell icon</b> in the <b>top-right bar</b> (next to the theme toggle) to enable notifications. Your browser will ask for permission — click <i>Allow</i>.
                             <br /><br />
-                            <b>Enable:</b> Toggle notifications on — your browser will ask for permission. Click <i>Allow</i>.<br />
-                            <b>Lead Time:</b> Use the slider to set how many minutes <i>before</i> a task is due you'll be notified.<br />
-                            <b>How it works:</b> Any Todo item with an <code>@date</code> badge will trigger a desktop notification when it enters the lead time window. Each task only notifies once per session.
+                            <b>Lead Time:</b> Once enabled, an <b>Alert [X] min before</b> input appears inline. Set how many minutes before a task is due you want to be notified (0 = notify right at due time).<br />
+                            <b>How it works:</b> Any Todo item with an <code>@date</code> badge triggers a desktop notification when it enters the window. Each task only notifies once per session.<br />
+                            <b>Not seeing popups?</b> Check Windows Settings → Notifications and ensure Focus Assist / Do Not Disturb is off for Chrome.
                         </p>
                     </div>
 

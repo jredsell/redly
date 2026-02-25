@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { Plus, FolderPlus, X, FileText, Download, Upload, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp, FolderArchive, Bell } from 'lucide-react';
+import { Plus, FolderPlus, X, FileText, Download, Upload, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp, FolderArchive } from 'lucide-react';
 import FileTree from './FileTree';
-import NotificationSettings from './NotificationSettings';
 import logo from '../assets/logo.png';
 
 export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onGoHome }) {
     const { tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll, editNode, isInitializing, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId, expandedFolders, toggleFolder, disconnectWorkspace } = useNotes();
     const [newName, setNewName] = useState('');
-    const [showNotificationSettings, setShowNotificationSettings] = useState(false);
 
     const isAdding = globalAddingState.type;
     const targetFolder = globalAddingState.parentId;
@@ -170,20 +168,6 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                 </button>
             </div>
 
-            <div style={{ position: 'relative', margin: '0 8px' }}>
-                {showNotificationSettings && (
-                    <div style={{
-                        position: 'absolute',
-                        bottom: '100%',
-                        left: '0',
-                        width: 'calc(100% - 16px)',
-                        marginBottom: '8px',
-                        zIndex: 1000
-                    }}>
-                        <NotificationSettings onClose={() => setShowNotificationSettings(false)} />
-                    </div>
-                )}
-            </div>
 
             <div
                 className="sidebar-content"
@@ -250,19 +234,6 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
 
                 </button>
 
-                <button
-                    onClick={() => setShowNotificationSettings(!showNotificationSettings)}
-                    aria-label="Notification Settings"
-                    style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        background: showNotificationSettings ? 'var(--bg-accent)' : 'transparent',
-                        border: '1px solid var(--border-color)', padding: '8px', borderRadius: '6px',
-                        color: 'var(--text-secondary)', cursor: 'pointer'
-                    }}
-                    title="Notifications"
-                >
-                    <Bell size={16} style={{ color: showNotificationSettings ? 'var(--accent-color)' : 'inherit' }} />
-                </button>
             </div>
         </aside>
     );

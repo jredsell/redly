@@ -179,7 +179,8 @@ export const NotesProvider = ({ children }) => {
 
         const check = async () => {
             const currentNodes = nodesRef.current;
-            // Nodes from getNodes() don't have content — we must load it here
+
+            // Nodes from getNodes() don't have content — load it here
             const nodesWithContent = await Promise.all(
                 currentNodes.map(async (node) => {
                     if (node.type !== 'file') return node;
@@ -187,7 +188,8 @@ export const NotesProvider = ({ children }) => {
                     try {
                         const content = await getFileContent(node.id);
                         return { ...node, content };
-                    } catch {
+                    } catch (e) {
+                        console.warn('[Notifications] Failed to load content for', node.name, e);
                         return node;
                     }
                 })
@@ -196,16 +198,17 @@ export const NotesProvider = ({ children }) => {
             const tasks = parseTasksFromNodes(nodesWithContent);
             const settings = notificationSettingsRef.current;
 
+            // Run checkUpcomingTasks OUTSIDE setState to avoid React suppressing side-effects
             setNotifiedTaskIds(prevNotifiedIds => {
-                const newNotifiedIds = checkUpcomingTasks(tasks, settings, prevNotifiedIds);
-                if (newNotifiedIds.length === 0) return prevNotifiedIds;
+                const newIds = checkUpcomingTasks(tasks, settings, prevNotifiedIds);
+                if (newIds.length === 0) return prevNotifiedIds;
                 const next = new Set(prevNotifiedIds);
-                newNotifiedIds.forEach(id => next.add(id));
+                newIds.forEach(id => next.add(id));
                 return next;
             });
         };
 
-        const interval = setInterval(check, 60000); // Check every minute
+        const interval = setInterval(check, 60000);
         check(); // Run immediately on enable
 
         return () => clearInterval(interval);
