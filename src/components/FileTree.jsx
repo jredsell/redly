@@ -135,6 +135,7 @@ export default function FileTree({ node, depth }) {
                     if (e.target.tagName === 'INPUT') return;
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
+                        e.stopPropagation(); // add stopPropagation so parent folders don't also handle the Enter key!
                         handleClick(e);
                     }
                 }}
