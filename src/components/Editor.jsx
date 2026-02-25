@@ -665,7 +665,11 @@ export default function Editor({ fileId }) {
 
                 {/* Custom Bubble (Formatting) Menu */}
                 {bubbleMenu.isOpen && editor && typeof bubbleMenu.top === 'number' && typeof bubbleMenu.left === 'number' && (
-                    <div className="custom-bubble-menu" style={{ position: 'fixed', top: bubbleMenu.top, left: bubbleMenu.left, zIndex: 100 }}>
+                    <div
+                        className="custom-bubble-menu"
+                        style={{ position: 'fixed', top: bubbleMenu.top, left: bubbleMenu.left, zIndex: 100 }}
+                        onMouseDown={(e) => e.preventDefault()} // Prevent stealing focus from the editor
+                    >
 
                         <button onClick={() => editor.chain().focus().toggleHeading({ level: 1 }).run()} className={editor.isActive('heading', { level: 1 }) ? 'is-active' : ''} title="Heading 1"><Heading1 size={16} /></button>
                         <button onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()} className={editor.isActive('heading', { level: 2 }) ? 'is-active' : ''} title="Heading 2"><Heading2 size={16} /></button>
