@@ -21,7 +21,7 @@ export const requestNotificationPermission = async () => {
 };
 
 export const sendNotification = (title, options = {}) => {
-    if (Notification.permission === 'granted') {
+    if (typeof Notification !== 'undefined' && Notification.permission === 'granted') {
         try {
             new Notification(title, {
                 icon: '/redly_logo.png',
@@ -44,7 +44,7 @@ export const sendNotification = (title, options = {}) => {
  * @returns {Array} - List of new notified IDs.
  */
 export const checkUpcomingTasks = (tasks, settings, notifiedIds) => {
-    if (!settings.enabled || Notification.permission !== 'granted') return [];
+    if (!settings.enabled || typeof Notification === 'undefined' || Notification.permission !== 'granted') return [];
 
     const now = new Date();
     const leadTimeMs = settings.leadTime * 60 * 1000;

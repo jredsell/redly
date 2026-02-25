@@ -22,6 +22,10 @@ export const NotesProvider = ({ children }) => {
     const [lastInteractedNodeId, setLastInteractedNodeId] = useState(null);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
 
+    // Refs for performance-sensitive background tasks
+    const nodesRef = useRef(nodes);
+    useEffect(() => { nodesRef.current = nodes; }, [nodes]);
+
     const [notificationSettings, setNotificationSettings] = useState(() => {
         const saved = localStorage.getItem('redly_notificationSettings');
         return saved ? JSON.parse(saved) : { enabled: false, leadTime: 10 };
@@ -170,23 +174,25 @@ export const NotesProvider = ({ children }) => {
         if (!notificationSettings.enabled || !workspaceHandle) return;
 
         const check = () => {
-            const tasks = parseTasksFromNodes(nodes);
-            const newNotified = checkUpcomingTasks(tasks, notificationSettings, notifiedTaskIds);
+            const currentNodes = nodesRef.current;
+            const tasks = parseTasksFromNodes(currentNodes);
 
-            if (newNotified.length > 0) {
-                setNotifiedTaskIds(prev => {
-                    const next = new Set(prev);
-                    newNotified.forEach(id => next.add(id));
-                    return next;
-                });
-            }
+            // Note: We use the function form of setNotifiedTaskIds to avoid dependency on notifiedTaskIds itself
+            setNotifiedTaskIds(prevNotifiedIds => {
+                const newNotifiedIds = checkUpcomingTasks(tasks, notificationSettings, prevNotifiedIds);
+                if (newNotifiedIds.length === 0) return prevNotifiedIds;
+
+                const next = new Set(prevNotifiedIds);
+                newNotifiedIds.forEach(id => next.add(id));
+                return next;
+            });
         };
 
         const interval = setInterval(check, 60000); // Check every minute
         check(); // Initial check
 
         return () => clearInterval(interval);
-    }, [nodes, notificationSettings, workspaceHandle, notifiedTaskIds]);
+    }, [notificationSettings.enabled, notificationSettings.leadTime, workspaceHandle]);
 
     const tree = buildTree(nodes);
 
