@@ -1,21 +1,17 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3, List, ListOrdered, Quote, CheckSquare, Link as LinkIcon, ExternalLink } from 'lucide-react';
-
-
-import { useEditor, EditorContent, ReactNodeViewRenderer, NodeViewWrapper, NodeViewContent } from '@tiptap/react';
-import { Node, mergeAttributes, InputRule } from '@tiptap/core';
-import TurndownService from 'turndown';
-import markdownit from 'markdown-it';
-import StarterKit from '@tiptap/starter-kit';
-import Placeholder from '@tiptap/extension-placeholder';
-import TaskItem from '@tiptap/extension-task-item';
-import TaskList from '@tiptap/extension-task-list';
-import taskLists from 'markdown-it-task-lists';
-import { parseDateString } from '../utils/dateHelpers';
-import InlineDateInput from './InlineDateInput';
 import CodeBlock from '@tiptap/extension-code-block';
 import TiptapLink from '@tiptap/extension-link';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableCell from '@tiptap/extension-table-cell';
+import TableHeader from '@tiptap/extension-table-header';
+import { gfm } from 'turndown-plugin-gfm';
+import {
+    Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
+    List, ListOrdered, Quote, CheckSquare, Link as LinkIcon, ExternalLink,
+    Table as TableIcon, PlusSquare, MinusSquare, Columns, Rows
+} from 'lucide-react';
 
 
 // React Component for TaskItem Node View
@@ -121,6 +117,7 @@ const td = new TurndownService({
         return node.nodeName === 'P' ? '&nbsp;\n\n' : (node.isBlock ? '\n\n' : '');
     }
 });
+td.use(gfm);
 // Task Item serialization
 td.addRule('taskItem', {
     filter: (node) => node.nodeName === 'LI' && (
@@ -200,6 +197,15 @@ const SLASH_OPTIONS = [
     { label: 'Todo List', icon: '☐', command: (editor) => editor.chain().focus().toggleTaskList().run() },
     { label: 'Quote', icon: '”', command: (editor) => editor.chain().focus().toggleBlockquote().run() },
     { label: 'Code Block', icon: '</>', command: (editor) => editor.chain().focus().toggleCodeBlock().run() },
+    {
+        label: 'Table', icon: '田', command: (editor) => {
+            const rows = parseInt(window.prompt('Number of rows', '3') || '0');
+            const cols = parseInt(window.prompt('Number of columns', '3') || '0');
+            if (rows > 0 && cols > 0) {
+                editor.chain().focus().insertTable({ rows, cols, withHeaderRow: true }).run();
+            }
+        }
+    },
     { label: 'Divider', icon: '—', command: (editor) => editor.chain().focus().setHorizontalRule().run() },
 ];
 
@@ -315,6 +321,42 @@ const BubbleMenuUI = ({ editor, bubbleMenu, setBubbleMenu }) => {
     );
 };
 
+const TableBubbleMenuUI = ({ editor, bubbleMenu }) => {
+    const [, setTick] = useState(0);
+
+    useEffect(() => {
+        if (!editor || !bubbleMenu.isOpen) return;
+        const update = () => setTick(t => t + 1);
+        editor.on('transaction', update);
+        return () => editor.off('transaction', update);
+    }, [editor, bubbleMenu.isOpen]);
+
+    if (!editor.isActive('table') || !bubbleMenu.isOpen) return null;
+
+    return (
+        <div
+            className="custom-bubble-menu table-controls"
+            style={{ position: 'fixed', top: bubbleMenu.top, left: bubbleMenu.left, zIndex: 100 }}
+            onMouseDown={(e) => e.preventDefault()}
+        >
+            <button onClick={() => editor.chain().focus().addColumnBefore().run()} title="Add Column Before"><Columns size={16} style={{ transform: 'rotate(90deg)' }} /></button>
+            <button onClick={() => editor.chain().focus().addColumnAfter().run()} title="Add Column After"><Columns size={16} style={{ transform: 'rotate(-90deg)' }} /></button>
+            <button onClick={() => editor.chain().focus().deleteColumn().run()} title="Delete Column" style={{ color: 'var(--danger-color)' }}><Columns size={16} />✕</button>
+
+            <div className="menu-separator" />
+
+            <button onClick={() => editor.chain().focus().addRowBefore().run()} title="Add Row Above"><Rows size={16} /></button>
+            <button onClick={() => editor.chain().focus().addRowAfter().run()} title="Add Row Below"><Rows size={16} /></button>
+            <button onClick={() => editor.chain().focus().deleteRow().run()} title="Delete Row" style={{ color: 'var(--danger-color)' }}><Rows size={16} />✕</button>
+
+            <div className="menu-separator" />
+
+            <button onClick={() => editor.chain().focus().toggleHeaderRow().run()} className={editor.isActive('tableHeader') ? 'is-active' : ''} title="Toggle Header Row">H</button>
+            <button onClick={() => editor.chain().focus().deleteTable().run()} title="Delete Table" style={{ color: 'var(--danger-color)' }}><Trash size={16} /></button>
+        </div>
+    );
+};
+
 export default function Editor({ fileId }) {
     const { nodes, editNode, removeNode, getFileContent } = useNotes();
     const [file, setFile] = useState(null);
@@ -359,6 +401,12 @@ export default function Editor({ fileId }) {
                 target: '_blank',
             },
         }),
+        Table.configure({
+            resizable: true,
+        }),
+        TableRow,
+        TableHeader,
+        TableCell,
         Placeholder.configure({ placeholder: "Start typing..." }),
 
         TaskList.configure({
@@ -821,7 +869,10 @@ export default function Editor({ fileId }) {
                 <EditorContent editor={editor} className="tiptap-container" />
 
                 {/* Custom Bubble (Formatting) Menu */}
-                <BubbleMenuUI editor={editor} bubbleMenu={bubbleMenu} setBubbleMenu={setBubbleMenu} />
+                {!editor.isActive('table') && <BubbleMenuUI editor={editor} bubbleMenu={bubbleMenu} setBubbleMenu={setBubbleMenu} />}
+
+                {/* Table Controls Menu */}
+                {editor.isActive('table') && <TableBubbleMenuUI editor={editor} bubbleMenu={bubbleMenu} />}
 
                 {/* Custom Slash Menu */}
                 {slashMenu.isOpen && (
