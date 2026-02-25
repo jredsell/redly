@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, Cloud, RefreshCw, Trash2, Edit2 } from 'lucide-react';
+import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, Cloud, RefreshCw, Trash2, Edit2, Menu } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 import logo from '../assets/logo.png';
 
