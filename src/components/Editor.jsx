@@ -2,10 +2,10 @@ import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react'
 import { useNotes } from '../context/NotesContext';
 import CodeBlock from '@tiptap/extension-code-block';
 import TiptapLink from '@tiptap/extension-link';
-import Table from '@tiptap/extension-table';
-import TableRow from '@tiptap/extension-table-row';
-import TableCell from '@tiptap/extension-table-cell';
-import TableHeader from '@tiptap/extension-table-header';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableCell } from '@tiptap/extension-table-cell';
+import { TableHeader } from '@tiptap/extension-table-header';
 import { gfm } from 'turndown-plugin-gfm';
 import {
     Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
@@ -486,13 +486,6 @@ export default function Editor({ fileId }) {
 
 
 
-            parseHTML() {
-                return [
-                    { tag: 'li[data-type="taskItem"]', priority: 100 },
-                    { tag: 'li.task-list-item', priority: 100 },
-                    { tag: 'li', getAttrs: element => element.classList.contains('task-list-item') && { 'data-type': 'taskItem' } },
-                ];
-            },
 
             addNodeView() { return ReactNodeViewRenderer(CustomTaskItemComponent); },
 
@@ -528,7 +521,8 @@ export default function Editor({ fileId }) {
             },
             parseHTML() {
                 return [
-                    { tag: 'li[data-type="taskItem"]', priority: 100 },
+                    { tag: 'li[data-type="taskItem"]', priority: 101 },
+                    { tag: 'li', getAttrs: element => element.classList.contains('task-list-item') && { 'data-type': 'taskItem' } },
                     {
                         tag: 'li.task-list-item',
                         priority: 100,
