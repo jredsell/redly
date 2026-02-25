@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent } from '../lib/db';
+import { parseTasksFromNodes } from '../utils/taskParser';
+import { checkUpcomingTasks } from '../utils/notificationManager';
 
 const NotesContext = createContext(undefined);
 
@@ -19,6 +21,12 @@ export const NotesProvider = ({ children }) => {
     const [globalAddingState, setGlobalAddingState] = useState({ type: null, parentId: null });
     const [lastInteractedNodeId, setLastInteractedNodeId] = useState(null);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
+
+    const [notificationSettings, setNotificationSettings] = useState(() => {
+        const saved = localStorage.getItem('redly_notificationSettings');
+        return saved ? JSON.parse(saved) : { enabled: false, leadTime: 10 };
+    });
+    const [notifiedTaskIds, setNotifiedTaskIds] = useState(new Set());
 
     useEffect(() => {
         const handleBeforeInstallPrompt = (e) => {
@@ -153,6 +161,33 @@ export const NotesProvider = ({ children }) => {
         localStorage.setItem('redly_expandedFolders', JSON.stringify(Array.from(expandedFolders)));
     }, [expandedFolders]);
 
+    useEffect(() => {
+        localStorage.setItem('redly_notificationSettings', JSON.stringify(notificationSettings));
+    }, [notificationSettings]);
+
+    // Background task notification checker
+    useEffect(() => {
+        if (!notificationSettings.enabled || !workspaceHandle) return;
+
+        const check = () => {
+            const tasks = parseTasksFromNodes(nodes);
+            const newNotified = checkUpcomingTasks(tasks, notificationSettings, notifiedTaskIds);
+
+            if (newNotified.length > 0) {
+                setNotifiedTaskIds(prev => {
+                    const next = new Set(prev);
+                    newNotified.forEach(id => next.add(id));
+                    return next;
+                });
+            }
+        };
+
+        const interval = setInterval(check, 60000); // Check every minute
+        check(); // Initial check
+
+        return () => clearInterval(interval);
+    }, [nodes, notificationSettings, workspaceHandle, notifiedTaskIds]);
+
     const tree = buildTree(nodes);
 
     const toggleFolder = (folderId) => {
@@ -270,7 +305,8 @@ export const NotesProvider = ({ children }) => {
         nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
         addNode, editNode, removeNode, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
-        installApp, isInstallable: !!deferredPrompt
+        installApp, isInstallable: !!deferredPrompt,
+        notificationSettings, setNotificationSettings
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;
