@@ -53,6 +53,8 @@ Redly is built on a "No Data Collection" philosophy.
 - **Standard Formats**: Your notes are yours. Even if you stop using Redly, your files are standard Markdown or JSON.
 - **Transparent**: No hidden background processes or external telemetry.
 
+For more details, see our full [Privacy Policy](PRIVACY.md).
+
 ## 🛠️ Development
 
 ```bash
