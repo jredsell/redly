@@ -108,7 +108,6 @@ export default function WelcomeScreen({ openHelp }) {
             <div className="welcome-container">
                 <style>{SHARED_STYLES}</style>
                 {renderLogo(isDarkMode)}
-                <h1 style={{ fontSize: '32px', marginBottom: '12px', fontWeight: '900', letterSpacing: '-1.5px' }}>Redly</h1>
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '48px', maxWidth: '550px', lineHeight: '1.5' }}>
                     Your private, offline-first Markdown knowledge base.
                 </p>
