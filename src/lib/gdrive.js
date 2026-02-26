@@ -5,7 +5,9 @@ let accessToken = null;
 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
 const SCOPES = 'https://www.googleapis.com/auth/drive.file';
-const CLIENT_ID = import.meta.env.VITE_GDRIVE_CLIENT_ID;
+// Client ID is a public identifier — safe to include in source. The deploy workflow also
+// injects it via VITE_GDRIVE_CLIENT_ID env var (set as a GitHub repo variable).
+const CLIENT_ID = import.meta.env.VITE_GDRIVE_CLIENT_ID || '747035091008-jcps855ub365ck2893203ucgce1hcn4h.apps.googleusercontent.com';
 
 console.log('[GDrive] Driver initialized. Client ID present:', !!CLIENT_ID);
 

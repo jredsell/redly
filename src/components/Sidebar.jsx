@@ -3,44 +3,9 @@ import { useNotes } from '../context/NotesContext';
 import { Plus, FolderPlus, X, FileText, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp } from 'lucide-react';
 import FileTree from './FileTree';
 import logo from '../assets/logo.png';
-import { getAccessToken } from '../lib/gdrive';
-
-// Official Google "G" coloured logo (Google brand guidelines)
-const GoogleGLogo = ({ size = 16 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-    </svg>
-);
 
 export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onGoHome }) {
-    const { tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll, editNode, isInitializing, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId, expandedFolders, toggleFolder, disconnectWorkspace, selectWorkspace, storageMode } = useNotes();
-    const [gdriveConnecting, setGdriveConnecting] = useState(false);
-
-    const handleGDriveClick = useCallback(async () => {
-        if (gdriveConnecting) return;
-        setGdriveConnecting(true);
-        try {
-            // Must call getAccessToken() within the click handler to stay in the user-gesture window
-            // so the browser allows the OAuth popup to open.
-            await getAccessToken();
-            await selectWorkspace('gdrive');
-        } catch (e) {
-            if (e.message?.includes('Sign-in cancelled')) {
-                // User closed popup — no alert needed
-            } else if (e.message?.includes('timed out') || e.message?.includes('popup')) {
-                alert('Connection timed out. Please check if popups are blocked in your browser.');
-            } else if (e.message?.includes('Client ID')) {
-                alert('Google Drive is not configured. Please check the app settings.');
-            } else {
-                alert('Google Drive connection failed: ' + (e.message || 'Unknown error'));
-            }
-        } finally {
-            setGdriveConnecting(false);
-        }
-    }, [gdriveConnecting, selectWorkspace]);
+    const { tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll, editNode, isInitializing, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId, expandedFolders, toggleFolder, disconnectWorkspace } = useNotes();
     const [newName, setNewName] = useState('');
 
     const isAdding = globalAddingState.type;
@@ -266,30 +231,6 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                     title="Shortcuts & Help"
                 >
                     <HelpCircle size={16} aria-hidden="true" /> Redly Guide
-                </button>
-
-                <button
-                    onClick={handleGDriveClick}
-                    aria-label={storageMode === 'gdrive' ? 'Connected to Google Drive' : 'Connect Google Drive'}
-                    disabled={gdriveConnecting}
-                    title={storageMode === 'gdrive' ? 'Google Drive — connected' : gdriveConnecting ? 'Connecting...' : 'Connect Google Drive'}
-                    style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px',
-                        background: storageMode === 'gdrive' ? 'rgba(66,133,244,0.12)' : 'var(--bg-accent)',
-                        border: storageMode === 'gdrive' ? '1px solid rgba(66,133,244,0.4)' : '1px solid transparent',
-                        padding: '8px 12px', borderRadius: '6px',
-                        color: storageMode === 'gdrive' ? '#4285F4' : 'var(--text-secondary)',
-                        cursor: gdriveConnecting ? 'wait' : 'pointer',
-                        fontSize: '13px', fontWeight: 500,
-                        opacity: gdriveConnecting ? 0.7 : 1,
-                        transition: 'all 0.2s',
-                        flexShrink: 0
-                    }}
-                    onMouseEnter={(e) => { if (!gdriveConnecting) e.currentTarget.style.background = storageMode === 'gdrive' ? 'rgba(66,133,244,0.2)' : 'var(--bg-hover)'; }}
-                    onMouseLeave={(e) => { e.currentTarget.style.background = storageMode === 'gdrive' ? 'rgba(66,133,244,0.12)' : 'var(--bg-accent)'; }}
-                >
-                    <GoogleGLogo size={16} />
-                    {storageMode === 'gdrive' ? 'Drive' : gdriveConnecting ? '...' : 'Drive'}
                 </button>
             </div>
         </aside>

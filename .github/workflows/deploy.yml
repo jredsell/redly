@@ -28,6 +28,8 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          VITE_GDRIVE_CLIENT_ID: ${{ vars.VITE_GDRIVE_CLIENT_ID }}
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
