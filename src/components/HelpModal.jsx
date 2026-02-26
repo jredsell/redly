@@ -192,6 +192,9 @@ export default function HelpModal({ isOpen, onClose }) {
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Go Home</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>H</kbd></div>
 
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Focus Editor</span>
+                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>E</kbd></div>
+
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Focus Sidebar</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>S</kbd></div>
 
@@ -213,6 +216,7 @@ export default function HelpModal({ isOpen, onClose }) {
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                             <b>Focus Sidebar:</b> Press <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>S</kbd> to focus the sidebar from anywhere.<br />
                             <b>Traverse Tree:</b> Use Arrow Keys (<kbd style={kbdStyle}>↑</kbd> <kbd style={kbdStyle}>↓</kbd> <kbd style={kbdStyle}>←</kbd> <kbd style={kbdStyle}>→</kbd>) to move through the tree. <br />
+                            <b>Enter Note:</b> Press <kbd style={kbdStyle}>→</kbd> (Right Arrow) or <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>E</kbd> to jump from the sidebar into the editor. <br />
                             <b>Open Note:</b> Press <kbd style={kbdStyle}>Enter</kbd> or <kbd style={kbdStyle}>Space</kbd> on a selected note to open it. <br />
                             <b>Rename:</b> Press <kbd style={kbdStyle}>F2</kbd> on any selected folder or note to rename it.<br />
                             <b>Delete:</b> Press <kbd style={kbdStyle}>Delete</kbd> (or <kbd style={kbdStyle}>Ctrl</kbd> + <kbd style={kbdStyle}>Backspace</kbd>) to remove an item. <br />

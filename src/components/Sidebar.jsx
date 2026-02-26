@@ -88,6 +88,9 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                         // Move to first child
                         setLastInteractedNodeId(visibleNodes[currentIndex + 1].id);
                     }
+                } else if (currentNode.type === 'file') {
+                    // Focus the editor
+                    document.querySelector('.ProseMirror')?.focus();
                 }
             } else if (e.key === 'ArrowLeft' && currentNode) {
                 e.preventDefault();
