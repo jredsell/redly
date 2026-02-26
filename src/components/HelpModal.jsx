@@ -22,10 +22,16 @@ export default function HelpModal({ isOpen, onClose }) {
             const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
+            a.style.display = 'none';
             a.href = url;
             a.download = `redly-backup-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
             a.click();
-            URL.revokeObjectURL(url);
+            // Delay revocation to ensure the browser has time to initiate the download
+            setTimeout(() => {
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            }, 1000);
         } catch (e) {
             alert('Export failed: ' + e.message);
         }
