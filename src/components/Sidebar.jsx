@@ -4,6 +4,8 @@ import { Plus, FolderPlus, X, FileText, HelpCircle, CheckSquare, ChevronsDown, C
 import FileTree from './FileTree';
 import logoLight from '../assets/logo-light.png';
 import logoDark from '../assets/logo-dark.png';
+import iconLight from '../assets/icon-light.png';
+import iconDark from '../assets/icon-dark.png';
 
 export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onGoHome }) {
     const {
@@ -13,7 +15,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
         toggleFolder, disconnectWorkspace, isDarkMode
     } = useNotes();
 
-    const logo = isDarkMode ? logoLight : logoDark;
+    const logo = isDarkMode ? iconDark : iconLight;
     const [newName, setNewName] = useState('');
 
     const isAdding = globalAddingState.type;
@@ -136,10 +138,9 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                             role="button"
                             aria-label="Redly Home"
                         >
-                            <div style={{ width: '24px', height: '24px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, display: 'flex' }}>
-                                <img src={logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} aria-hidden="true" />
+                            <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', flexShrink: 0, display: 'flex' }}>
+                                <img src={logo} alt="Redly" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             </div>
-                            <span style={{ fontWeight: 800, color: 'var(--accent-color)' }}>Redly</span>
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
