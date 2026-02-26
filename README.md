@@ -10,6 +10,7 @@ Redly is a minimalist, powerful, and aesthetically pleasing note-taking applicat
 
 - **Local-First Architecture**: Your data never leaves your machine unless you explicitly export it.
 - **Markdown Native**: Write using standard Markdown with a beautiful, rich-text live preview.
+- **Integrated Global Search**: A sleek, header-embedded search bar that finds notes by filename or content instantly as you type.
 - **Interactive Tasks**: Turn any note into a productivity hub with `@date` badges, interactive timelines, and a **Global Tasks Dashboard**.
 - **Keyboard-First Navigation**: Optimized for power users with comprehensive hotkeys for every major action.
 - **PWA Support**: Install Redly as a desktop app for a native experience.
@@ -67,4 +68,5 @@ npm run build
 
 ## 📄 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+Copyright (c) 2026 Jonathan Redsell. **All Rights Reserved.**
+Unauthorized use, copying, or distribution is strictly prohibited.
