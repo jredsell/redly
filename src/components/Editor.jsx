@@ -821,12 +821,16 @@ export default function Editor({ fileId }) {
 
                         // Extract @date and move to attribute, but keep other content clean
                         html = html.replace(/(<li data-type="taskItem"[^>]*>)([\s\S]*?)(<\/li>)/gi, (match, openTag, liContent, closeTag) => {
+                            // Support @YYYY-MM-DD or @YYYY-MM-DD HH:MM anywhere in the text
+                            // and extract it so it becomes a native Tiptap attribute
                             const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
                             const dateMatch = liContent.match(dateRegex);
                             if (dateMatch) {
                                 const dateStr = dateMatch[1];
+                                // Normalise space to T for consistent data-date attribute
+                                const isoDate = dateStr.replace(' ', 'T');
                                 const cleanedContent = liContent.replace(dateRegex, '').trim();
-                                return `${openTag.replace('>', ` data-date="${dateStr}" data-has-date="true" data-has-time="${dateStr.includes(':')}">`)}${cleanedContent}${closeTag}`;
+                                return `${openTag.replace('>', ` data-date="${isoDate}" data-has-date="true" data-has-time="${isoDate.includes('T')}">`)}${cleanedContent}${closeTag}`;
                             }
                             return match;
                         });
@@ -851,7 +855,7 @@ export default function Editor({ fileId }) {
 
     return (
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
-            <div className="editor-header">
+            <div className="editor-header-bar">
                 <input
                     className="title-input"
                     value={localTitle}

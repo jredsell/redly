@@ -170,7 +170,7 @@ function App() {
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
 
       <main className="main-area">
-        <div className="editor-header" style={{ display: 'flex', gap: '16px', borderBottom: activeFileId ? '1px solid var(--border-color)' : 'none', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div className="app-toolbar" style={{ display: 'flex', gap: '16px', borderBottom: activeFileId ? '1px solid var(--border-color)' : 'none', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
             <button
               className="icon-button mobile-menu-btn"
