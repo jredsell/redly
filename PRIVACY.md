@@ -21,9 +21,12 @@ All data you create in Redly is stored locally on your own device:
 ## 4. Third-Party Services
 Redly does **not** integrate with any third-party cloud services or APIs (e.g., Google Drive, Dropbox). Your data remains strictly local to your machine.
 
-## 5. Your Controls
+## 5. Hosting & Infrastructure
+Redly is hosted using GitHub Pages. When you access the application, GitHub may collect standard server logs (such as IP addresses and browser types) for security and operational purposes. This data is handled by GitHub in accordance with their Privacy Statement. We do not have access to this data.
+
+## 6. Your Controls
 - **Deletion**: You can delete your data at any time by deleting the notes or folders within the app, or by clearing your browser's site data.
 - **Portability**: You can export your Browser Storage data as a JSON backup or simply move your `.md` files to any other application at any time.
 
-## 6. Contact
+## 7. Contact
 Since no data is collected, there is no personal information to manage. If you have questions about the application's architecture, please visit our GitHub repository.
