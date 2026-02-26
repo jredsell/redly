@@ -63,19 +63,19 @@ export const getNodes = async () => {
   return localDriver.getNodes();
 };
 
-export const getFileContent = async (id, node) => {
+export const getFileContent = async (id) => {
   return localDriver.getFileContent(id);
 };
 
-export const createNode = async (rootPath, node) => {
+export const createNode = async (node) => {
   return localDriver.createNode(node);
 };
 
-export const updateNode = async (rootPath, id, updates, oldNode) => {
+export const updateNode = async (id, updates, oldNode) => {
   return localDriver.updateNode(id, updates, oldNode);
 };
 
-export const deleteNode = async (rootPath, id, type, node) => {
+export const deleteNode = async (id, type) => {
   return localDriver.deleteNode(id, type);
 };
 

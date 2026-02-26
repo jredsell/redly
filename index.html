@@ -4,7 +4,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://accounts.google.com https://apis.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https://*.googleusercontent.com https://*.google.com; connect-src 'self' ws://localhost:5173 https://*.googleapis.com https://*.google.com https://accounts.google.com; frame-src 'self' https://accounts.google.com https://content-storage.googleapis.com; worker-src 'self' blob:; object-src 'none';">
+    content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data:; connect-src 'self' ws://localhost:5173; frame-src 'self'; worker-src 'self' blob:; object-src 'none';">
 
   <link rel="icon" type="image/jpeg" href="Redly_favicon.jpg" />
   <link rel="manifest" href="manifest.webmanifest" />
@@ -15,7 +15,6 @@
   <meta name="apple-mobile-web-app-title" content="Redly">
   <link rel="apple-touch-icon" href="Redly_favicon.jpg">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <script src="https://accounts.google.com/gsi/client" async defer></script>
 
   <title>Redly</title>
 </head>

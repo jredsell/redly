@@ -1,7 +1,7 @@
 import React from 'react';
 import logo from '../assets/Redly_logo.png';
 
-const RedlyLogo = ({ size = 40, showText = true, isDarkMode = false, style = {} }) => {
+const RedlyLogo = ({ size = 40, showText = true, style = {} }) => {
     return (
         <img
             src={logo}

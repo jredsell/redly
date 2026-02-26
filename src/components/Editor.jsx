@@ -118,7 +118,7 @@ const InlineDateInputNodeView = (props) => {
     );
 };
 
-const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: false });
+const md = markdownit({ html: false, linkify: true, typographer: true }).use(taskLists, { label: false });
 
 const td = new TurndownService({
     headingStyle: 'atx',

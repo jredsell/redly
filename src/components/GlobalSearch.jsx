@@ -57,7 +57,7 @@ export default function GlobalSearch() {
                 let contentSnippet = null;
 
                 try {
-                    const content = await getFileContent(node.id, node);
+                    const content = await getFileContent(node.id);
                     if (content) {
                         const lowerContent = content.toLowerCase();
                         const contentIndex = lowerContent.indexOf(lowerQuery);

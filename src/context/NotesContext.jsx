@@ -59,13 +59,13 @@ export const NotesProvider = ({ children }) => {
     }, []);
 
     const installApp = async () => {
-        console.log('[NotesContext] installApp called, deferredPrompt available:', !!deferredPrompt);
+
 
         if (deferredPrompt) {
             try {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
-                console.log('[NotesContext] PWA Install User Choice Outcome:', outcome);
+
                 if (outcome === 'accepted') {
                     setDeferredPrompt(null);
                 }
@@ -88,7 +88,7 @@ export const NotesProvider = ({ children }) => {
                     setWorkspaceHandle(true);
                     let mode = await getHandle('workspace_mode');
                     if (!mode) mode = localStorage.getItem('redly_last_storage_mode');
-                    console.log('[NotesContext] Detected storage mode:', mode);
+
                     setStorageMode(mode || 'sandbox');
                     setNodes(await getNodes());
                 } else if (status === 'requires_permission') {
@@ -145,10 +145,10 @@ export const NotesProvider = ({ children }) => {
     };
 
     const disconnectWorkspace = async () => {
-        console.log('[NotesContext] Disconnecting workspace...');
+
         try {
             await clearWorkspaceHandle();
-            console.log('[NotesContext] Storage handles cleared.');
+
         } catch (e) {
             console.error('[NotesContext] Failed to clear handles, proceeding anyway:', e);
         }
@@ -159,7 +159,7 @@ export const NotesProvider = ({ children }) => {
         setNodes([]);
         setActiveFileId(null);
         setExpandedFolders(new Set());
-        console.log('[NotesContext] Workspace disconnected and state reset.');
+
     };
 
     useEffect(() => {
@@ -192,7 +192,7 @@ export const NotesProvider = ({ children }) => {
                     if (node.type !== 'file') return node;
                     if (node.content !== undefined) return node;
                     try {
-                        const content = await getFileContent(node.id, node);
+                        const content = await getFileContent(node.id);
                         return { ...node, content };
                     } catch (e) {
                         console.warn('[Notifications] Failed to load content for', node.name, e);
@@ -266,7 +266,7 @@ export const NotesProvider = ({ children }) => {
         }
 
         try {
-            await createNode(null, newNode);
+            await createNode(newNode);
             // We don't necessarily need to loadNodes() here if createNode 
             // successfully updates the backend-specific metadata (like gdriveId) 
             // in the local driver's internal state/cache. 
@@ -299,7 +299,7 @@ export const NotesProvider = ({ children }) => {
         }));
 
         try {
-            const updatedNode = await updateNode(null, id, updates, oldNode);
+            const updatedNode = await updateNode(id, updates, oldNode);
             if (updatedNode && updatedNode.id !== id) {
                 if (activeFileId === id) setActiveFileId(updatedNode.id);
                 if (lastInteractedNodeId === id) setLastInteractedNodeId(updatedNode.id);
@@ -325,7 +325,7 @@ export const NotesProvider = ({ children }) => {
         if (lastInteractedNodeId === id) setLastInteractedNodeId(null);
 
         try {
-            await deleteNode(null, id, node.type, node);
+            await deleteNode(id, node.type);
             await loadNodes();
         } catch (e) {
             console.error("Failed to remove node:", e);
@@ -338,13 +338,13 @@ export const NotesProvider = ({ children }) => {
         const filesToLoad = nodes.filter(n => n.type === 'file' && n.content === undefined);
         if (filesToLoad.length === 0) return;
 
-        console.log(`[GlobalTasks] Loading content for ${filesToLoad.length} files...`);
+
 
         // Load all missing contents
         const updatedNodes = await Promise.all(nodes.map(async (node) => {
             if (node.type === 'file' && node.content === undefined) {
                 try {
-                    const content = await getFileContent(node.id, node);
+                    const content = await getFileContent(node.id);
                     return { ...node, content };
                 } catch (e) {
                     console.error(`Failed to load content for ${node.id}:`, e);

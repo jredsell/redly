@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, ArrowRight, Monitor, Share, PlusSquare, MoreVertical, X } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, HardDrive, ShieldCheck, Box, Unlock, Monitor, Share, PlusSquare, MoreVertical, X } from 'lucide-react';
 import RedlyLogo from './RedlyLogo';
 
 const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
@@ -77,9 +77,9 @@ const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
     );
 };
 
-const renderLogo = (isDarkMode, size = 80) => (
+const renderLogo = (size = 80) => (
     <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-        <RedlyLogo size={size} showText={true} isDarkMode={isDarkMode} style={{ maxWidth: '320px' }} />
+        <RedlyLogo size={size} showText={true} style={{ maxWidth: '320px' }} />
     </div>
 );
 
@@ -164,7 +164,7 @@ export default function WelcomeScreen({ openHelp }) {
         return (
             <div className="welcome-container">
                 <style>{SHARED_STYLES}</style>
-                {renderLogo(isDarkMode)}
+                {renderLogo()}
                 <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800', letterSpacing: '-0.5px' }}>Reconnect Workspace</h1>
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '40px', maxWidth: '500px' }}>
                     Browser security requires you re-verify access to your local <code>Redly</code> folder for this session.
@@ -181,7 +181,7 @@ export default function WelcomeScreen({ openHelp }) {
         return (
             <div className="welcome-container">
                 <style>{SHARED_STYLES}</style>
-                {renderLogo(isDarkMode)}
+                {renderLogo()}
 
                 {isInstallable && (
                     <button
@@ -230,7 +230,7 @@ export default function WelcomeScreen({ openHelp }) {
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
                     </button>
                 </div>
-                <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} isDarkMode={isDarkMode} />
+                <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
             </div>
         );
     }
@@ -238,38 +238,7 @@ export default function WelcomeScreen({ openHelp }) {
     return (
         <div className="welcome-container">
             <style>{SHARED_STYLES}</style>
-            {renderLogo(isDarkMode, 60)}
-
-            {isInstallable && (
-                <button
-                    onClick={installApp}
-                    style={{
-                        marginBottom: '40px',
-                        fontSize: '14px',
-                        padding: '12px 24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        gap: '12px',
-                        background: 'var(--bg-secondary)',
-                        color: 'var(--accent-color)',
-                        border: '1px solid var(--border-color)',
-                        borderRadius: '12px',
-                        fontWeight: '600',
-                        cursor: 'pointer',
-                        width: '100%',
-                        maxWidth: '320px',
-                        boxShadow: 'var(--shadow-sm)',
-                        transition: 'all 0.2s ease',
-                    }}
-                    onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                    onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                    aria-label="Install Redly as a Desktop App"
-                >
-                    <ShieldCheck size={20} />
-                    <span>Install Redly Desktop App</span>
-                </button>
-            )}
+            {renderLogo(60)}
 
             <h1 style={{ fontSize: '32px', marginBottom: '32px', fontWeight: '800', letterSpacing: '-0.5px', textAlign: 'center' }}>What's next?</h1>
 

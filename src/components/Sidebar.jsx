@@ -134,7 +134,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                             role="button"
                             aria-label="Redly Home"
                         >
-                            <RedlyLogo size={28} showText={false} isDarkMode={isDarkMode} />
+                            <RedlyLogo size={28} showText={false} />
                         </div>
                     </div>
                     <div style={{ display: 'flex', gap: '4px' }}>
