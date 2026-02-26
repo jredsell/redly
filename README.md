@@ -55,16 +55,25 @@ Redly is built on a "No Data Collection" philosophy.
 
 For more details, see our full [Privacy Policy](PRIVACY.md).
 
-## 🛠️ Development
+## 📲 Installation (PWA)
+
+Redly is a Progressive Web App (PWA). You don't need to install any dependencies to use it.
+1.  Open [Redly](https://jredsell.github.io/redly/) in your browser.
+2.  Click the **"Install"** button in the browser's address bar or find it in the App menu.
+3.  Launch Redly directly from your desktop or home screen!
+
+## 🔨 Developer Setup
+
+These commands are only required if you want to modify the source code or build the project from scratch.
 
 ```bash
-# Install dependencies
+# 1. Install dependencies
 npm install
 
-# Run development server
+# 2. Run development server
 npm run dev
 
-# Build for production
+# 3. Build for production (outputs to /dist)
 npm run build
 ```
 
