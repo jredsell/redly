@@ -151,8 +151,19 @@ export default function FileTree({ node, depth }) {
                     if (e.target.tagName === 'INPUT') return;
                     if (e.key === 'Enter' || e.key === ' ') {
                         e.preventDefault();
-                        e.stopPropagation(); // add stopPropagation so parent folders don't also handle the Enter key!
+                        e.stopPropagation();
                         handleClick(e);
+                    } else if (e.key === 'Delete' || (e.key === 'Backspace' && (e.metaKey || e.ctrlKey))) {
+                        // Delete item (require ctrl/meta for backspace to avoid accidental deletion)
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDelete(e);
+                    } else if (e.key === 'F2') {
+                        // Rename item
+                        e.preventDefault();
+                        e.stopPropagation();
+                        setIsEditing(true);
+                        setShowMenu(false);
                     }
                 }}
 

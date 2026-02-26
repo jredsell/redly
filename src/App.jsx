@@ -103,6 +103,12 @@ function App() {
         setShowTasks(false);
         setSidebarOpen(false);
       }
+      if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 's') {
+        e.preventDefault();
+        // Simply toggling sidebar open/close or focusing it
+        setSidebarOpen(true);
+        // We rely on the Sidebar/FileTree's auto-focus logic once visible
+      }
       if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 't') {
         e.preventDefault();
         setActiveFileId(null);
