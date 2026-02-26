@@ -21,6 +21,7 @@ export const NotesProvider = ({ children }) => {
     const [globalAddingState, setGlobalAddingState] = useState({ type: null, parentId: null });
     const [lastInteractedNodeId, setLastInteractedNodeId] = useState(null);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
+    const [showInstallModal, setShowInstallModal] = useState(false);
 
     const [isDarkMode, setIsDarkMode] = useState(() => {
         const saved = localStorage.getItem('theme');
@@ -58,17 +59,23 @@ export const NotesProvider = ({ children }) => {
     }, []);
 
     const installApp = async () => {
-        console.log('installApp called, deferredPrompt available:', !!deferredPrompt);
-        if (!deferredPrompt) return;
-        try {
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-            console.log('PWA Install User Choice Outcome:', outcome);
-            if (outcome === 'accepted') {
-                setDeferredPrompt(null);
+        console.log('[NotesContext] installApp called, deferredPrompt available:', !!deferredPrompt);
+
+        if (deferredPrompt) {
+            try {
+                deferredPrompt.prompt();
+                const { outcome } = await deferredPrompt.userChoice;
+                console.log('[NotesContext] PWA Install User Choice Outcome:', outcome);
+                if (outcome === 'accepted') {
+                    setDeferredPrompt(null);
+                }
+            } catch (err) {
+                console.error('[NotesContext] PWA Install Prompt Failed:', err);
+                setShowInstallModal(true); // Fallback to modal on error
             }
-        } catch (err) {
-            console.error('PWA Install Prompt Failed:', err);
+        } else {
+            // No native prompt available, show our premium guide instead
+            setShowInstallModal(true);
         }
     };
 
@@ -354,7 +361,8 @@ export const NotesProvider = ({ children }) => {
         nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
         addNode, editNode, removeNode, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
-        installApp, isInstallable: !!deferredPrompt,
+        installApp, isInstallable: true, // Always show button, we have a fallback modal now
+        showInstallModal, setShowInstallModal,
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode
     };

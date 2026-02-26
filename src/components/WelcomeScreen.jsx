@@ -1,7 +1,81 @@
 import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, ArrowRight } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, ArrowRight, Monitor, Share, PlusSquare, MoreVertical, X } from 'lucide-react';
 import RedlyLogo from './RedlyLogo';
+
+const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
+    if (!isOpen) return null;
+
+    const browser = (() => {
+        const ua = navigator.userAgent.toLowerCase();
+        if (ua.includes('chrome')) return 'chrome';
+        if (ua.includes('safari') && !ua.includes('chrome')) return 'safari';
+        if (ua.includes('edge')) return 'edge';
+        return 'chrome';
+    })();
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>Install Redly</h2>
+                    <button onClick={onClose} className="icon-button" style={{ padding: '8px' }}>
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                    <div style={{
+                        width: '80px',
+                        height: '80px',
+                        background: 'var(--bg-secondary)',
+                        borderRadius: '20px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        margin: '0 auto 16px',
+                        border: '1px solid var(--border-color)'
+                    }}>
+                        <Monitor size={40} style={{ color: 'var(--accent-color)' }} />
+                    </div>
+                    <p style={{ fontSize: '15px', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        Install Redly as a standalone app for an offline-first, distraction-free experience.
+                    </p>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                    {browser === 'safari' ? (
+                        <>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', minWidth: '32px', textAlign: 'center' }}>1</div>
+                                <p style={{ margin: 0, fontSize: '14px' }}>Tap the <strong>Share</strong> button <Share size={16} style={{ verticalAlign: 'middle' }} /> in the toolbar.</p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', minWidth: '32px', textAlign: 'center' }}>2</div>
+                                <p style={{ margin: 0, fontSize: '14px' }}>Scroll down and select <strong>'Add to Home Screen'</strong> <PlusSquare size={16} style={{ verticalAlign: 'middle' }} />.</p>
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', minWidth: '32px', textAlign: 'center' }}>1</div>
+                                <p style={{ margin: 0, fontSize: '14px' }}>Click the <strong>Menu</strong> icon <MoreVertical size={16} style={{ verticalAlign: 'middle' }} /> in the top-right corner.</p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', minWidth: '32px', textAlign: 'center' }}>2</div>
+                                <p style={{ margin: 0, fontSize: '14px' }}>Select <strong>'Install Redly'</strong> or <strong>'App &gt; Install this site'</strong>.</p>
+                            </div>
+                        </>
+                    )}
+                </div>
+
+                <button onClick={onClose} className="primary-action-btn" style={{ width: '100%', marginTop: '32px', padding: '12px', fontSize: '16px', justifyContent: 'center' }}>
+                    Got it
+                </button>
+            </div>
+        </div>
+    );
+};
 
 const renderLogo = (isDarkMode, size = 80) => (
     <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
@@ -79,7 +153,7 @@ const SHARED_STYLES = `
 `;
 
 export default function WelcomeScreen({ openHelp }) {
-    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable, isDarkMode } = useNotes();
+    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable, isDarkMode, showInstallModal, setShowInstallModal } = useNotes();
     const recentFiles = nodes
         .filter(n => n.type === 'file')
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
@@ -109,6 +183,64 @@ export default function WelcomeScreen({ openHelp }) {
                 <style>{SHARED_STYLES}</style>
                 {renderLogo(isDarkMode)}
 
+                {isInstallable && (
+                    <button
+                        onClick={installApp}
+                        style={{
+                            marginBottom: '40px',
+                            fontSize: '14px',
+                            padding: '12px 24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--accent-color)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            width: '100%',
+                            maxWidth: '320px',
+                            boxShadow: 'var(--shadow-sm)',
+                            transition: 'all 0.2s ease',
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        aria-label="Install Redly as a Desktop App"
+                    >
+                        <ShieldCheck size={20} />
+                        <span>Install Redly Desktop App</span>
+                    </button>
+                )}
+
+                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '48px', maxWidth: '550px', lineHeight: '1.5' }}>
+                    Your private, offline-first Markdown knowledge base.
+                </p>
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
+                    <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
+                        <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} aria-hidden="true" />
+                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Browser Storage</h3>
+                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Store notes in a hidden, secure browser sandbox. Fast and zero-config.</p>
+                    </button>
+
+                    <button onClick={() => selectWorkspace('local')} className="storage-option-btn" aria-label="Select Local Storage: Visible markdown files on your computer">
+                        <HardDrive size={24} style={{ color: 'var(--accent-color)', marginBottom: '12px' }} aria-hidden="true" />
+                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Local Storage</h3>
+                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
+                    </button>
+                </div>
+                <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} isDarkMode={isDarkMode} />
+            </div>
+        );
+    }
+
+    return (
+        <div className="welcome-container">
+            <style>{SHARED_STYLES}</style>
+            {renderLogo(isDarkMode, 60)}
+
+            {isInstallable && (
                 <button
                     onClick={installApp}
                     style={{
@@ -129,70 +261,15 @@ export default function WelcomeScreen({ openHelp }) {
                         maxWidth: '320px',
                         boxShadow: 'var(--shadow-sm)',
                         transition: 'all 0.2s ease',
-                        opacity: isInstallable ? 1 : 0.7
                     }}
                     onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
                     onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                     aria-label="Install Redly as a Desktop App"
                 >
                     <ShieldCheck size={20} />
-                    <span>{isInstallable ? 'Install Redly Desktop App' : 'Redly Desktop App (Use Browser Menu)'}</span>
+                    <span>Install Redly Desktop App</span>
                 </button>
-
-                <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '48px', maxWidth: '550px', lineHeight: '1.5' }}>
-                    Your private, offline-first Markdown knowledge base.
-                </p>
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
-                    <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
-                        <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} aria-hidden="true" />
-                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Browser Storage</h3>
-                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Store notes in a hidden, secure browser sandbox. Fast and zero-config.</p>
-                    </button>
-
-                    <button onClick={() => selectWorkspace('local')} className="storage-option-btn" aria-label="Select Local Storage: Visible markdown files on your computer">
-                        <HardDrive size={24} style={{ color: 'var(--accent-color)', marginBottom: '12px' }} aria-hidden="true" />
-                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Local Storage</h3>
-                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
-                    </button>
-                </div>
-            </div>
-        );
-    }
-
-    return (
-        <div className="welcome-container">
-            <style>{SHARED_STYLES}</style>
-            {renderLogo(isDarkMode, 60)}
-
-            <button
-                onClick={installApp}
-                style={{
-                    marginBottom: '40px',
-                    fontSize: '14px',
-                    padding: '12px 24px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    gap: '12px',
-                    background: 'var(--bg-secondary)',
-                    color: 'var(--accent-color)',
-                    border: '1px solid var(--border-color)',
-                    borderRadius: '12px',
-                    fontWeight: '600',
-                    cursor: 'pointer',
-                    width: '100%',
-                    maxWidth: '320px',
-                    boxShadow: 'var(--shadow-sm)',
-                    transition: 'all 0.2s ease',
-                    opacity: isInstallable ? 1 : 0.7
-                }}
-                onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
-                aria-label="Install Redly as a Desktop App"
-            >
-                <ShieldCheck size={20} />
-                <span>{isInstallable ? 'Install Redly Desktop App' : 'Redly Desktop App (Use Browser Menu)'}</span>
-            </button>
+            )}
 
             <h1 style={{ fontSize: '32px', marginBottom: '32px', fontWeight: '800', letterSpacing: '-0.5px', textAlign: 'center' }}>What's next?</h1>
 

@@ -22,18 +22,20 @@ export default defineConfig({
           {
             src: 'Redly_favicon.jpg',
             sizes: '192x192',
-            type: 'image/jpeg'
-          },
-          {
-            src: 'Redly_favicon.jpg',
-            sizes: '512x512',
-            type: 'image/jpeg'
+            type: 'image/jpeg',
+            purpose: 'any'
           },
           {
             src: 'Redly_favicon.jpg',
             sizes: '512x512',
             type: 'image/jpeg',
-            purpose: 'any maskable'
+            purpose: 'any'
+          },
+          {
+            src: 'Redly_favicon.jpg',
+            sizes: '512x512',
+            type: 'image/jpeg',
+            purpose: 'maskable'
           }
         ]
       },
