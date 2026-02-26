@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, CloudUpload, ArrowRight } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, ArrowRight } from 'lucide-react';
 import logo from '../assets/logo.png';
 
 const renderLogo = (size = 80) => (
@@ -80,7 +80,6 @@ const SHARED_STYLES = `
 
 export default function WelcomeScreen({ openHelp }) {
     const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable } = useNotes();
-    const [showRecent, setShowRecent] = useState(true);
     const recentFiles = nodes
         .filter(n => n.type === 'file')
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
@@ -113,7 +112,6 @@ export default function WelcomeScreen({ openHelp }) {
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '48px', maxWidth: '550px', lineHeight: '1.5' }}>
                     Your private, offline-first Markdown knowledge base.
                 </p>
-
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
                     <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
                         <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} aria-hidden="true" />
@@ -211,7 +209,6 @@ export default function WelcomeScreen({ openHelp }) {
                     </div>
                 </div>
             )}
-            {renderBackupModal()}
         </div>
     );
 }
