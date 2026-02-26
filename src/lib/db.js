@@ -1,6 +1,5 @@
 import { setHandle, getHandle, clearHandles } from './idb_store';
 import * as localDriver from './local_driver';
-import * as gdriveDriver from './gdrive';
 
 export { getHandle };
 let currentMode = null;
@@ -17,17 +16,6 @@ export const initWorkspace = async (mode, options = {}) => {
       localDriver.setRootHandle(handle);
       await setHandle('workspace_mode', 'local');
       await setHandle('local_root', handle);
-    } else if (mode === 'gdrive') {
-      await setHandle('workspace_mode', 'gdrive');
-      const rootId = await gdriveDriver.initRootFolder();
-      await setHandle('gdrive_root_id', rootId);
-
-      if (options.migrate) {
-        const nodesToMigrate = await localDriver.getNodes();
-        for (const node of nodesToMigrate) {
-          await gdriveDriver.createNode(node);
-        }
-      }
     }
     return true;
   } catch (err) {
@@ -53,8 +41,6 @@ export const loadSavedWorkspace = async () => {
         return 'requires_permission';
       }
     }
-  } else if (mode === 'gdrive') {
-    return true; // GDrive handles its own auth check
   }
   return false;
 };
@@ -70,42 +56,26 @@ export const requestLocalPermission = async () => {
 
 export const clearWorkspaceHandle = async () => {
   await clearHandles();
-  gdriveDriver.resetAccessToken();
   currentMode = null;
 };
 
 export const getNodes = async () => {
-  if (currentMode === 'gdrive') {
-    return gdriveDriver.getNodes();
-  }
   return localDriver.getNodes();
 };
 
 export const getFileContent = async (id, node) => {
-  if (currentMode === 'gdrive') {
-    return gdriveDriver.getFileContent ? gdriveDriver.getFileContent(id, node) : '';
-  }
   return localDriver.getFileContent(id);
 };
 
 export const createNode = async (rootPath, node) => {
-  if (currentMode === 'gdrive') {
-    return gdriveDriver.createNode(node);
-  }
   return localDriver.createNode(node);
 };
 
 export const updateNode = async (rootPath, id, updates, oldNode) => {
-  if (currentMode === 'gdrive') {
-    return gdriveDriver.updateNode(id, updates, oldNode);
-  }
   return localDriver.updateNode(id, updates, oldNode);
 };
 
 export const deleteNode = async (rootPath, id, type, node) => {
-  if (currentMode === 'gdrive') {
-    return gdriveDriver.deleteNode(id, type, node.gdriveId);
-  }
   return localDriver.deleteNode(id, type);
 };
 
@@ -131,4 +101,45 @@ export const buildTree = (nodes) => {
   };
   sortNodes(roots);
   return roots;
+};
+
+// Backup and Restore for Sandbox
+export const exportSandboxData = async () => {
+  if (currentMode !== 'sandbox') throw new Error('Export only supported for Sandbox storage');
+  const nodes = await localDriver.getNodes();
+  const fullNodes = await Promise.all(nodes.map(async node => {
+    if (node.type === 'file') {
+      const content = await localDriver.getFileContent(node.id);
+      return { ...node, content };
+    }
+    return node;
+  }));
+  return {
+    version: '1.0',
+    timestamp: new Date().toISOString(),
+    nodes: fullNodes
+  };
+};
+
+export const importSandboxData = async (backup) => {
+  if (currentMode !== 'sandbox') throw new Error('Import only supported for Sandbox storage');
+  if (!backup || !backup.nodes) throw new Error('Invalid backup format');
+
+  // Clear existing sandbox
+  const nodes = await localDriver.getNodes();
+  for (const node of nodes) {
+    try {
+      await localDriver.deleteNode(node.id, node.type);
+    } catch (e) {
+      console.warn('Failed to delete node during import cleanup:', node.id);
+    }
+  }
+
+  // Restore from backup
+  // Sort by ID depth to ensure folders are created before files
+  const sortedNodes = [...backup.nodes].sort((a, b) => a.id.split('/').length - b.id.split('/').length);
+
+  for (const node of sortedNodes) {
+    await localDriver.createNode(node);
+  }
 };

@@ -3,15 +3,8 @@ import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, Har
 import { useNotes } from '../context/NotesContext';
 import logo from '../assets/logo.png';
 
-// Official Google "G" coloured logo
-const GoogleGLogo = ({ size = 18 }) => (
-    <svg width={size} height={size} viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-        <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
-        <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853" />
-        <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05" />
-        <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
-    </svg>
-);
+import { exportSandboxData, importSandboxData } from '../lib/db';
+import { Download, Upload } from 'lucide-react';
 
 export default function HelpModal({ isOpen, onClose }) {
     const { storageMode, disconnectWorkspace } = useNotes();
@@ -19,9 +12,38 @@ export default function HelpModal({ isOpen, onClose }) {
 
     const getStorageInfo = () => {
         if (storageMode === 'local') return { name: 'Local Storage', icon: <HardDrive size={18} aria-hidden="true" />, detail: 'Mapped to your computer' };
-        if (storageMode === 'gdrive') return { name: 'Google Drive', icon: <GoogleGLogo size={18} />, detail: 'Synced via Google' };
         if (storageMode === 'sandbox') return { name: 'Browser Storage', icon: <Box size={18} aria-hidden="true" />, detail: 'Private Vault' };
         return { name: 'Unknown', icon: <Box size={18} aria-hidden="true" />, detail: 'Not connected' };
+    };
+
+    const handleExport = async () => {
+        try {
+            const data = await exportSandboxData();
+            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `redly-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+        } catch (e) {
+            alert('Export failed: ' + e.message);
+        }
+    };
+
+    const handleImport = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        if (!window.confirm('This will OVERWRITE all your current browser notes. Continue?')) return;
+
+        try {
+            const text = await file.text();
+            const data = JSON.parse(text);
+            await importSandboxData(data);
+            window.location.reload(); // Refresh to see changes
+        } catch (e) {
+            alert('Import failed: ' + e.message);
+        }
     };
 
     const storage = getStorageInfo();
@@ -61,9 +83,30 @@ export default function HelpModal({ isOpen, onClose }) {
                                 Change
                             </button>
                         </div>
-                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', opacity: 0.8 }}>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', opacity: 0.8, marginBottom: '16px' }}>
                             {storage.detail}. Your notes are stored here securely and privately.
                         </p>
+
+                        {storageMode === 'sandbox' && (
+                            <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                                <button
+                                    onClick={handleExport}
+                                    className="secondary-action-btn"
+                                    style={{ flex: 1, padding: '8px', fontSize: '12px', borderRadius: '8px', justifyContent: 'center' }}
+                                >
+                                    <Download size={14} style={{ marginRight: '6px' }} />
+                                    Export Backup
+                                </button>
+                                <label
+                                    className="secondary-action-btn"
+                                    style={{ flex: 1, padding: '8px', fontSize: '12px', borderRadius: '8px', justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                >
+                                    <Upload size={14} style={{ marginRight: '6px' }} />
+                                    Import Backup
+                                    <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+                                </label>
+                            </div>
+                        )}
                     </div>
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>

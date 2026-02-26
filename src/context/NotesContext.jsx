@@ -94,27 +94,9 @@ export const NotesProvider = ({ children }) => {
         }
         catch (e) {
             console.error('Failed to load nodes:', e);
-            if (e.status === 401) disconnectWorkspace(); // Handle expired tokens
         }
     }, [workspaceHandle]);
 
-    // Focus refresh & Periodic polling for GDrive
-    useEffect(() => {
-        if (!workspaceHandle || storageMode !== 'gdrive') return;
-
-        const refresh = () => {
-            console.log('[GDrive] Refreshing nodes from cloud...');
-            loadNodes();
-        };
-
-        window.addEventListener('focus', refresh);
-        const poll = setInterval(refresh, 30000); // 30s poll
-
-        return () => {
-            window.removeEventListener('focus', refresh);
-            clearInterval(poll);
-        };
-    }, [workspaceHandle, storageMode, loadNodes]);
 
     // Function to request permission on boot if returning to a local folder
     const grantLocalPermission = async () => {
