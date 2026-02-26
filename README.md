@@ -32,10 +32,13 @@ Type `@today`, `@friday 2pm`, or `@next monday` next to any task. Redly will aut
 
 | Action | Shortcut |
 |---|---|
+| **Global Search** | `Alt + K` |
 | New Note | `Alt + N` |
 | New Folder | `Alt + F` |
 | Go Home | `Alt + H` |
 | Focus Sidebar | `Alt + S` |
+| **Focus Editor** | `Alt + E` |
+| **Enter Note** | `→` (Right Arrow) |
 | Global Tasks | `Alt + T` |
 | Change Workspace | `Alt + W` |
 | Help & Guide | `Alt + /` |

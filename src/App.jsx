@@ -5,8 +5,8 @@ import Editor from './components/Editor';
 import HelpModal from './components/HelpModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
-import SearchModal from './components/SearchModal'; // Added
-import { Menu, Sun, Moon, Bell, Search } from 'lucide-react'; // Added Search
+import GlobalSearch from './components/GlobalSearch';
+import { Menu, Sun, Moon, Bell } from 'lucide-react';
 import { requestNotificationPermission } from './utils/notificationManager';
 
 function NotificationToggle() {
@@ -71,7 +71,6 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false); // Added
 
   const [isDarkMode, setIsDarkMode] = useState(() => {
     const saved = localStorage.getItem('theme');
@@ -99,15 +98,15 @@ function App() {
         e.preventDefault();
         setHelpOpen(prev => !prev);
       }
-      if (e.altKey && e.key.toLowerCase() === 'k') {
-        e.preventDefault();
-        setSearchOpen(prev => !prev);
-      }
       if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'h') {
         e.preventDefault();
         setActiveFileId(null);
         setShowTasks(false);
         setSidebarOpen(false);
+      }
+      if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'e') {
+        e.preventDefault();
+        document.querySelector('.ProseMirror')?.focus();
       }
       if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
@@ -174,7 +173,6 @@ function App() {
         onGoHome={() => { setActiveFileId(null); setShowTasks(false); setSidebarOpen(false); }}
       />
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
-      <SearchModal isOpen={searchOpen} onClose={() => setSearchOpen(false)} />
 
       <main className="main-area">
         <div className="editor-header" style={{ display: 'flex', gap: '16px', borderBottom: activeFileId ? '1px solid var(--border-color)' : 'none', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -193,14 +191,9 @@ function App() {
             `}</style>
           </div>
 
+          <GlobalSearch />
+
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
-            <button
-              className="icon-button"
-              onClick={() => setSearchOpen(true)}
-              title="Search (Alt + K)"
-            >
-              <Search size={20} />
-            </button>
             <button
               className="icon-button"
               onClick={() => setIsDarkMode(!isDarkMode)}
