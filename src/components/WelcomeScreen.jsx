@@ -1,16 +1,11 @@
 import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
 import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, ArrowRight } from 'lucide-react';
-import logoLight from '../assets/logo-light.png';
-import logoDark from '../assets/logo-dark.png';
+import RedlyLogo from './RedlyLogo';
 
 const renderLogo = (isDarkMode, size = 80) => (
     <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-        <img
-            src={isDarkMode ? logoLight : logoDark}
-            alt="Redly Logo"
-            style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain' }}
-        />
+        <RedlyLogo size={size} showText={true} isDarkMode={isDarkMode} style={{ maxWidth: '320px' }} />
     </div>
 );
 
