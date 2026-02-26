@@ -106,13 +106,24 @@ function App() {
       }
       if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'e') {
         e.preventDefault();
-        document.querySelector('.ProseMirror')?.focus();
+        const editor = document.querySelector('.ProseMirror');
+        if (editor) {
+          editor.focus();
+        }
       }
       if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 's') {
         e.preventDefault();
-        // Simply toggling sidebar open/close or focusing it
         setSidebarOpen(true);
-        // We rely on the Sidebar/FileTree's auto-focus logic once visible
+        // Explicitly focus the sidebar content or the last interacted node
+        setTimeout(() => {
+          const sidebarContent = document.querySelector('.sidebar-content');
+          if (sidebarContent) {
+            const focusedItem = sidebarContent.querySelector('.tree-item.focused') ||
+              sidebarContent.querySelector('.tree-item.active') ||
+              sidebarContent.querySelector('.tree-item');
+            focusedItem?.focus();
+          }
+        }, 50);
       }
       if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 't') {
         e.preventDefault();
