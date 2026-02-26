@@ -125,6 +125,37 @@ export default function WelcomeScreen({ openHelp }) {
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
                     </button>
                 </div>
+
+                {isInstallable && (
+                    <button
+                        onClick={installApp}
+                        style={{
+                            marginTop: '32px',
+                            fontSize: '14px',
+                            padding: '12px 24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '12px',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--accent-color)',
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '12px',
+                            fontWeight: '600',
+                            cursor: 'pointer',
+                            width: '100%',
+                            maxWidth: '500px',
+                            boxShadow: 'var(--shadow-sm)',
+                            transition: 'all 0.2s ease'
+                        }}
+                        onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
+                        aria-label="Install Redly as a Desktop App"
+                    >
+                        <ShieldCheck size={20} />
+                        <span>Install Redly Desktop App</span>
+                    </button>
+                )}
             </div>
         );
     }
