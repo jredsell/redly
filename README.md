@@ -1,16 +1,67 @@
-# React + Vite
+# Redly
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+![Redly Hero](docs/assets/hero.png)
 
-Currently, two official plugins are available:
+### Your private, offline-first Markdown knowledge base.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) (or [oxc](https://oxc.rs) when used in [rolldown-vite](https://vite.dev/guide/rolldown)) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+Redly is a minimalist, powerful, and aesthetically pleasing note-taking application designed for people who value privacy, speed, and standard formats. It turns your local folders or browser storage into a sleek, searchable knowledge base.
 
-## React Compiler
+## 🚀 Key Features
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **Local-First Architecture**: Your data never leaves your machine unless you explicitly export it.
+- **Markdown Native**: Write using standard Markdown with a beautiful, rich-text live preview.
+- **Interactive Tasks**: Turn any note into a productivity hub with `@date` badges, interactive timelines, and a **Global Tasks Dashboard**.
+- **Keyboard-First Navigation**: Optimized for power users with comprehensive hotkeys for every major action.
+- **PWA Support**: Install Redly as a desktop app for a native experience.
+- **Dark Mode**: Beautifully curated themes for both night owls and day dreamers.
+- **Backup & Restore**: Easily export and import your browser storage as JSON.
 
-## Expanding the ESLint configuration
+## 📦 Getting Started
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### 1. Choose Your Storage
+- **Local Storage**: Map Redly to a folder on your computer. Your notes are stored as plain `.md` files that you can open with any other editor.
+- **Browser Storage**: Store your notes in a secure, hidden browser sandbox. Zero-config and incredibly fast.
+
+### 2. Create Your First Note
+Click the **New Note** button or press `Alt + N`. Start typing! Use `#` for headers, `- [ ]` for tasks, and `---` for horizontal rules.
+
+### 3. Add Deadlines
+Type `@today`, `@friday 2pm`, or `@next monday` next to any task. Redly will automatically parse the date and color-code the badge.
+
+## ⌨️ Power User Hotkeys
+
+| Action | Shortcut |
+|---|---|
+| New Note | `Alt + N` |
+| New Folder | `Alt + F` |
+| Go Home | `Alt + H` |
+| Focus Sidebar | `Alt + S` |
+| Global Tasks | `Alt + T` |
+| Change Workspace | `Alt + W` |
+| Help & Guide | `Alt + /` |
+| Rename Selection | `F2` |
+| Delete Selection | `Delete` |
+
+## 🛡️ Privacy & Security
+
+Redly is built on a "No Data Collection" philosophy. 
+- **Offline First**: No cloud syncing, no logins, no tracking.
+- **Standard Formats**: Your notes are yours. Even if you stop using Redly, your files are standard Markdown or JSON.
+- **Transparent**: No hidden background processes or external telemetry.
+
+## 🛠️ Development
+
+```bash
+# Install dependencies
+npm install
+
+# Run development server
+npm run dev
+
+# Build for production
+npm run build
+```
+
+## 📄 License
+
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
