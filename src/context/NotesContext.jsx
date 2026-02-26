@@ -135,6 +135,7 @@ export const NotesProvider = ({ children }) => {
             setNodes(await getNodes());
         } catch (e) {
             console.error("Workspace selection error", e);
+            throw e; // Re-throw so callers (Sidebar, WelcomeScreen) can handle auth errors
         }
     };
 
