@@ -81,9 +81,9 @@ export const getNodes = async () => {
   return localDriver.getNodes();
 };
 
-export const getFileContent = async (id) => {
+export const getFileContent = async (id, node) => {
   if (currentMode === 'gdrive') {
-    return gdriveDriver.getFileContent ? gdriveDriver.getFileContent(id) : ''; // GDrive driver might need update too
+    return gdriveDriver.getFileContent ? gdriveDriver.getFileContent(id, node) : '';
   }
   return localDriver.getFileContent(id);
 };

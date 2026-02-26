@@ -4,7 +4,7 @@ import { getHandle, setHandle } from './idb_store';
 let accessToken = null;
 
 const DISCOVERY_DOC = 'https://www.googleapis.com/discovery/v1/apis/drive/v3/rest';
-const SCOPES = 'https://www.googleapis.com/auth/drive.file';
+const SCOPES = 'https://www.googleapis.com/auth/drive';
 // Client ID is a public identifier — safe to include in source. The deploy workflow also
 // injects it via VITE_GDRIVE_CLIENT_ID env var (set as a GitHub repo variable).
 const CLIENT_ID = import.meta.env.VITE_GDRIVE_CLIENT_ID || '747035091008-jcps855ub365ck2893203ucgce1hcn4h.apps.googleusercontent.com';
@@ -135,45 +135,79 @@ const driveRequest = async (path, options = {}) => {
     return res.json();
 };
 
+let nodeCache = [];
+
 export const getNodes = async () => {
     const rootId = await getHandle('gdrive_root_id');
     if (!rootId) return [];
 
-    const nodes = [];
-    const fetchPath = async (folderId, currentPath = '') => {
-        const q = `'${folderId}' in parents and trashed = false`;
-        const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,modifiedTime)`);
+    console.log('[GDrive] Batch fetching all nodes...');
+    // Fetch all files that are not trashed and have the rootId or some other parent.
+    // We use a flat query to get everything at once.
+    const q = "trashed = false";
+    const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,modifiedTime,parents)&pageSize=1000`);
 
-        for (const file of data.files) {
-            const nodePath = currentPath ? `${currentPath}/${file.name}` : file.name;
-            if (file.mimeType === 'application/vnd.google-apps.folder') {
-                nodes.push({ id: nodePath, name: file.name, type: 'folder', parentId: currentPath || null, gdriveId: file.id });
-                await fetchPath(file.id, nodePath);
-            } else if (file.name.endsWith('.md')) {
-                nodes.push({
-                    id: nodePath,
-                    name: file.name.replace('.md', ''),
-                    type: 'file',
-                    parentId: currentPath || null,
-                    updatedAt: new Date(file.modifiedTime).getTime(),
-                    gdriveId: file.id
-                });
+    if (!data.files) return [];
+
+    const allFiles = data.files;
+    const nodes = [];
+
+    // Map to quickly find gdriveId -> nodePath
+    const idToPath = new Map();
+    idToPath.set(rootId, '');
+
+    // We might need multiple passes to build paths if parents aren't ordered
+    const processQueue = [...allFiles];
+    let lastLength = -1;
+
+    while (processQueue.length > 0 && processQueue.length !== lastLength) {
+        lastLength = processQueue.length;
+        for (let i = processQueue.length - 1; i >= 0; i--) {
+            const file = processQueue[i];
+            const parentId = file.parents?.[0];
+
+            if (idToPath.has(parentId)) {
+                const parentPath = idToPath.get(parentId);
+                const nodePath = parentPath ? `${parentPath}/${file.name}` : file.name;
+
+                idToPath.set(file.id, nodePath);
+
+                if (file.mimeType === 'application/vnd.google-apps.folder') {
+                    nodes.push({ id: nodePath, name: file.name, type: 'folder', parentId: parentPath || null, gdriveId: file.id });
+                } else if (file.name.endsWith('.md')) {
+                    nodes.push({
+                        id: nodePath,
+                        name: file.name.replace('.md', ''),
+                        type: 'file',
+                        parentId: parentPath || null,
+                        updatedAt: new Date(file.modifiedTime).getTime(),
+                        gdriveId: file.id
+                    });
+                }
+                processQueue.splice(i, 1);
             }
         }
-    };
-    await fetchPath(rootId);
+    }
+
+    console.log(`[GDrive] Processed ${nodes.length} nodes from ${allFiles.length} files.`);
+    nodeCache = nodes;
     return nodes;
 };
 
-export const getFileContent = async (id) => {
-    // This is slightly tricky because we need the gdriveId.
-    // We can fetch it by looking up the name in the parent folder or by caching nodes.
-    // For now, let's assume getNodes has been called and we can find the node by ID.
-    const freshNodes = await getNodes();
-    const node = freshNodes.find(n => n.id === id);
-    if (!node || !node.gdriveId) return '';
+export const getFileContent = async (id, node) => {
+    // If we have the node object with gdriveId, use it directly. 
+    // Otherwise try to find it in cache.
+    const targetNode = node?.gdriveId ? node : nodeCache.find(n => n.id === id);
 
-    const contentRes = await fetch(`https://www.googleapis.com/drive/v3/files/${node.gdriveId}?alt=media`, {
+    if (!targetNode || !targetNode.gdriveId) {
+        // Fallback: one last attempt to refresh cache if missing
+        const freshNodes = await getNodes();
+        const refoundNode = freshNodes.find(n => n.id === id);
+        if (!refoundNode) return '';
+        return getFileContent(id, refoundNode);
+    }
+
+    const contentRes = await fetch(`https://www.googleapis.com/drive/v3/files/${targetNode.gdriveId}?alt=media`, {
         headers: { 'Authorization': `Bearer ${accessToken || await getAccessToken()}` }
     });
     return await contentRes.text();

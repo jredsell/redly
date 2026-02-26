@@ -187,7 +187,7 @@ export const NotesProvider = ({ children }) => {
                     if (node.type !== 'file') return node;
                     if (node.content !== undefined) return node;
                     try {
-                        const content = await getFileContent(node.id);
+                        const content = await getFileContent(node.id, node);
                         return { ...node, content };
                     } catch (e) {
                         console.warn('[Notifications] Failed to load content for', node.name, e);
@@ -315,7 +315,7 @@ export const NotesProvider = ({ children }) => {
         const updatedNodes = await Promise.all(nodes.map(async (node) => {
             if (node.type === 'file' && node.content === undefined) {
                 try {
-                    const content = await getFileContent(node.id);
+                    const content = await getFileContent(node.id, node);
                     return { ...node, content };
                 } catch (e) {
                     console.error(`Failed to load content for ${node.id}:`, e);
