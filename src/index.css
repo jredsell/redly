@@ -243,7 +243,8 @@ body {
   position: sticky;
   top: 0;
   background: var(--bg-primary);
-  z-index: 10;
+  z-index: 50; /* Increased to ensure search dropdown popovers are above content */
+  overflow: visible;
 }
 
 

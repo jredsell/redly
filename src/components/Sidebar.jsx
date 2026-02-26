@@ -128,7 +128,9 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                             role="button"
                             aria-label="Redly Home"
                         >
-                            <img src={logo} alt="" style={{ width: '24px', height: '24px', borderRadius: '6px' }} aria-hidden="true" />
+                            <div style={{ width: '24px', height: '24px', borderRadius: '6px', overflow: 'hidden', flexShrink: 0, display: 'flex' }}>
+                                <img src={logo} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} aria-hidden="true" />
+                            </div>
                             <span style={{ fontWeight: 800, color: 'var(--accent-color)' }}>Redly</span>
                         </div>
                     </div>
