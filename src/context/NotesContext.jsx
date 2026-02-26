@@ -247,24 +247,31 @@ export const NotesProvider = ({ children }) => {
 
         const newNode = {
             id: finalIdPath,
-            name: safeName, // Use the clean name without extension
+            name: safeName,
             type,
             parentId,
             ...(type === 'file' ? { content: '' } : {})
         };
 
+        const previousNodes = nodes;
+        setNodes(prev => [...prev, newNode]);
+        if (type === 'file') setActiveFileId(newNode.id);
+        if (parentId && !expandedFolders.has(parentId)) {
+            setExpandedFolders(prev => new Set(prev).add(parentId));
+        }
 
         try {
             await createNode(null, newNode);
+            // We don't necessarily need to loadNodes() here if createNode 
+            // successfully updates the backend-specific metadata (like gdriveId) 
+            // in the local driver's internal state/cache. 
+            // But for safety and to get formal IDs:
             await loadNodes();
-
-            if (type === 'file') setActiveFileId(newNode.id);
-            if (parentId && !expandedFolders.has(parentId)) setExpandedFolders(prev => new Set(prev).add(parentId));
         } catch (e) {
             console.error("Failed to add node:", e);
-            alert("Error: Could not create " + type);
+            setNodes(previousNodes);
+            alert("Error: Could not create " + type + ". Reverting changes.");
         }
-
     };
 
     const editNode = async (id, updates) => {
@@ -272,7 +279,19 @@ export const NotesProvider = ({ children }) => {
         const oldNode = nodes.find(n => n.id === id);
         if (!oldNode) return;
 
-        if (updates.name) updates.name = updates.name.replace(/[\\/:*?"<>|]/g, '-').replace(/\.md$/i, '').trim();
+        const previousNodes = nodes;
+        const previousActiveFileId = activeFileId;
+        const previousLastInteractedNodeId = lastInteractedNodeId;
+
+        // Optimistically update
+        setNodes(prev => prev.map(n => {
+            if (n.id !== id) return n;
+            const updated = { ...n, ...updates };
+            // Note: if name changed, id should probably change too for local logic
+            // but the current architecture uses path as ID. 
+            // If the name changed, we'll wait for the backend's result to get the new formal path ID.
+            return updated;
+        }));
 
         try {
             const updatedNode = await updateNode(null, id, updates, oldNode);
@@ -283,9 +302,11 @@ export const NotesProvider = ({ children }) => {
             await loadNodes();
         } catch (e) {
             console.error("Failed to edit node:", e);
-            alert("Error: Could not rename accurately or move. " + (e.message || ""));
+            setNodes(previousNodes);
+            setActiveFileId(previousActiveFileId);
+            setLastInteractedNodeId(previousLastInteractedNodeId);
+            alert("Error: Could not update item. Reverting changes.");
         }
-
     };
 
     const removeNode = async (id) => {
@@ -293,16 +314,19 @@ export const NotesProvider = ({ children }) => {
         const node = nodes.find(n => n.id === id);
         if (!node) return;
 
+        const previousNodes = nodes;
+        setNodes(prev => prev.filter(n => n.id !== id));
+        if (activeFileId === id) setActiveFileId(null);
+        if (lastInteractedNodeId === id) setLastInteractedNodeId(null);
+
         try {
             await deleteNode(null, id, node.type, node);
-            if (activeFileId === id) setActiveFileId(null);
-            if (lastInteractedNodeId === id) setLastInteractedNodeId(null);
             await loadNodes();
         } catch (e) {
             console.error("Failed to remove node:", e);
-            alert("Error: Could not delete item.");
+            setNodes(previousNodes);
+            alert("Error: Could not delete item. Reverting changes.");
         }
-
     };
 
     const ensureAllContentsLoaded = async () => {

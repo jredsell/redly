@@ -200,6 +200,11 @@ export const getNodes = async () => {
     }
 
     console.log(`[GDrive] Processed ${nodes.length} nodes from ${allFiles.length} files.`);
+    if (processQueue.length > 0) {
+        console.warn(`[GDrive] ${processQueue.length} files were unreachable (unlinked from redly root).`);
+        // We could optionally list them in a "Global/Unlinked" section, 
+        // but for now we stick to the redly folder hierarchy.
+    }
     nodeCache = nodes;
     return nodes;
 };
@@ -261,7 +266,9 @@ export const createNode = async (node) => {
             method: 'POST',
             body: JSON.stringify(metadata)
         });
-        return { ...node, gdriveId: res.id };
+        const createdNode = { ...node, gdriveId: res.id };
+        nodeCache.push(createdNode);
+        return createdNode;
     } else {
         const form = new FormData();
         form.append('metadata', new Blob([JSON.stringify(metadata)], { type: 'application/json' }));
@@ -273,7 +280,9 @@ export const createNode = async (node) => {
             body: form
         });
         const data = await res.json();
-        return { ...node, gdriveId: data.id };
+        const createdNode = { ...node, gdriveId: data.id };
+        nodeCache.push(createdNode);
+        return createdNode;
     }
 };
 
@@ -301,14 +310,28 @@ export const updateNode = async (id, updates, oldNode) => {
 
         if (updates.parentId) {
             // Resolve the REAL gdriveId of the parent path from our cache
-            const parentNode = nodeCache.find(n => n.id === updates.parentId);
+            let parentNode = nodeCache.find(n => n.id === updates.parentId);
+
+            if (!parentNode) {
+                // Cache miss - maybe it was just created manually or metadata is stale
+                console.log(`[GDrive] Cache miss for ${updates.parentId}, refreshing...`);
+                await getNodes();
+                parentNode = nodeCache.find(n => n.id === updates.parentId);
+            }
+
             if (parentNode?.gdriveId) {
                 newParentId = parentNode.gdriveId;
             } else {
-                // Fallback: slow lookup if cache missed
-                const q = `'${rootId}' in parents and name='${updates.parentId.split('/').pop()}'&fields=files(id)`;
-                const data = await driveRequest(`/files?q=${encodeURIComponent(q)}`);
-                if (data.files?.[0]) newParentId = data.files[0].id;
+                // Ultimate fallback: resolve by path part-by-part
+                const parts = updates.parentId.split('/');
+                let curId = rootId;
+                for (const part of parts) {
+                    const q = `'${curId}' in parents and name = '${part}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+                    const d = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+                    if (d.files?.[0]) curId = d.files[0].id;
+                    else throw new Error(`Could not resolve parent path: ${updates.parentId}`);
+                }
+                newParentId = curId;
             }
         }
 
@@ -321,9 +344,21 @@ export const updateNode = async (id, updates, oldNode) => {
         });
     }
 
-    return { ...oldNode, ...updates };
+    const updatedNode = { ...oldNode, ...updates };
+    // Synchronize cache
+    const cacheIndex = nodeCache.findIndex(n => n.gdriveId === oldNode.gdriveId);
+    if (cacheIndex !== -1) {
+        nodeCache[cacheIndex] = { ...nodeCache[cacheIndex], ...updates };
+        // If it was a move or rename, the local 'id' (path) would change too.
+        // We'll rely on the next getNodes() to formally refresh paths if complex,
+        // but for basic drag-and-drop within session, this keeps IDs linked.
+    }
+
+    return updatedNode;
 };
 
 export const deleteNode = async (id, type, gdriveId) => {
     await driveRequest(`/files/${gdriveId}`, { method: 'DELETE' });
+    // Synchronize cache
+    nodeCache = nodeCache.filter(n => n.gdriveId !== gdriveId);
 };
