@@ -132,6 +132,7 @@ const driveRequest = async (path, options = {}) => {
         }
     });
     if (!res.ok) throw await res.json();
+    if (res.status === 204) return {}; // Handle No Content responses (like DELETE)
     return res.json();
 };
 
@@ -142,15 +143,24 @@ export const getNodes = async () => {
     if (!rootId) return [];
 
     console.log('[GDrive] Batch fetching all nodes...');
-    // Fetch all files that are not trashed and have the rootId or some other parent.
-    // We use a flat query to get everything at once.
-    const q = "trashed = false";
-    const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id,name,mimeType,modifiedTime,parents)&pageSize=1000`);
-
-    if (!data.files) return [];
-
-    const allFiles = data.files;
     const nodes = [];
+    const allFiles = [];
+    let pageToken = null;
+
+    try {
+        do {
+            const q = "trashed = false";
+            const urlString = `/files?q=${encodeURIComponent(q)}&fields=nextPageToken,files(id,name,mimeType,modifiedTime,parents)&pageSize=1000${pageToken ? `&pageToken=${pageToken}` : ''}`;
+            const data = await driveRequest(urlString);
+            if (data.files) allFiles.push(...data.files);
+            pageToken = data.nextPageToken;
+        } while (pageToken);
+    } catch (e) {
+        console.error('[GDrive] Failed to fetch nodes:', e);
+        return [];
+    }
+
+    if (allFiles.length === 0) return [];
 
     // Map to quickly find gdriveId -> nodePath
     const idToPath = new Map();
@@ -216,20 +226,28 @@ export const getFileContent = async (id, node) => {
 export const createNode = async (node) => {
     const rootId = await getHandle('gdrive_root_id');
     let parentGDriveId = rootId;
+
     if (node.parentId) {
-        const parts = node.parentId.split('/');
-        let currentFolderId = rootId;
-        for (const part of parts) {
-            const q = `'${currentFolderId}' in parents and name = '${part}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
-            const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id)`);
-            if (data.files && data.files.length > 0) {
-                currentFolderId = data.files[0].id;
-            } else {
-                currentFolderId = rootId;
-                break;
+        // Try cache first for instant resolution
+        const parentNode = nodeCache.find(n => n.id === node.parentId);
+        if (parentNode?.gdriveId) {
+            parentGDriveId = parentNode.gdriveId;
+        } else {
+            // Fallback to path lookup if not in cache
+            const parts = node.parentId.split('/');
+            let currentFolderId = rootId;
+            for (const part of parts) {
+                const q = `'${currentFolderId}' in parents and name = '${part}' and mimeType = 'application/vnd.google-apps.folder' and trashed = false`;
+                const data = await driveRequest(`/files?q=${encodeURIComponent(q)}&fields=files(id)`);
+                if (data.files && data.files.length > 0) {
+                    currentFolderId = data.files[0].id;
+                } else {
+                    currentFolderId = rootId;
+                    break;
+                }
             }
+            parentGDriveId = currentFolderId;
         }
-        parentGDriveId = currentFolderId;
     }
 
     const metadata = {
@@ -280,11 +298,18 @@ export const updateNode = async (id, updates, oldNode) => {
         // Move in GDrive: requires adding new parent and removing old parent
         const rootId = await getHandle('gdrive_root_id');
         let newParentId = rootId;
+
         if (updates.parentId) {
-            // This is a bit simplified, ideally we'd look up the gdriveId of the new parentId path
-            // But for now, we'll try to find it in the current nodes list or root
-            const newParentNode = (await driveRequest(`/files?q='${rootId}' in parents and name='${updates.parentId.split('/').pop()}'&fields=files(id)`)).files[0];
-            if (newParentNode) newParentId = newParentNode.id;
+            // Resolve the REAL gdriveId of the parent path from our cache
+            const parentNode = nodeCache.find(n => n.id === updates.parentId);
+            if (parentNode?.gdriveId) {
+                newParentId = parentNode.gdriveId;
+            } else {
+                // Fallback: slow lookup if cache missed
+                const q = `'${rootId}' in parents and name='${updates.parentId.split('/').pop()}'&fields=files(id)`;
+                const data = await driveRequest(`/files?q=${encodeURIComponent(q)}`);
+                if (data.files?.[0]) newParentId = data.files[0].id;
+            }
         }
 
         // To do a proper move we need the current parents
