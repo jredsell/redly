@@ -22,6 +22,22 @@ export const NotesProvider = ({ children }) => {
     const [lastInteractedNodeId, setLastInteractedNodeId] = useState(null);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
 
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const saved = localStorage.getItem('theme');
+        if (saved) return saved === 'dark';
+        return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+    });
+
+    useEffect(() => {
+        if (isDarkMode) {
+            document.documentElement.classList.add('dark');
+            localStorage.setItem('theme', 'dark');
+        } else {
+            document.documentElement.classList.remove('dark');
+            localStorage.setItem('theme', 'light');
+        }
+    }, [isDarkMode]);
+
     // Refs for performance-sensitive background tasks
     const nodesRef = useRef(nodes);
     useEffect(() => { nodesRef.current = nodes; }, [nodes]);
@@ -339,7 +355,8 @@ export const NotesProvider = ({ children }) => {
         addNode, editNode, removeNode, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
         installApp, isInstallable: !!deferredPrompt,
-        notificationSettings, setNotificationSettings
+        notificationSettings, setNotificationSettings,
+        isDarkMode, setIsDarkMode
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

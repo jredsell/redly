@@ -2,10 +2,18 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNotes } from '../context/NotesContext';
 import { Plus, FolderPlus, X, FileText, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp } from 'lucide-react';
 import FileTree from './FileTree';
-import logo from '../assets/logo.png';
+import logoLight from '../assets/logo-light.png';
+import logoDark from '../assets/logo-dark.png';
 
 export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onGoHome }) {
-    const { tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll, editNode, isInitializing, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId, expandedFolders, toggleFolder, disconnectWorkspace } = useNotes();
+    const {
+        tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll,
+        editNode, isInitializing, globalAddingState, setGlobalAddingState,
+        lastInteractedNodeId, setLastInteractedNodeId, expandedFolders,
+        toggleFolder, disconnectWorkspace, isDarkMode
+    } = useNotes();
+
+    const logo = isDarkMode ? logoLight : logoDark;
     const [newName, setNewName] = useState('');
 
     const isAdding = globalAddingState.type;

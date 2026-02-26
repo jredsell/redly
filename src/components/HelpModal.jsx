@@ -1,7 +1,6 @@
 import React from 'react';
 import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
-import logo from '../assets/logo.png';
 
 import { exportSandboxData, importSandboxData } from '../lib/db';
 import { Download, Upload } from 'lucide-react';

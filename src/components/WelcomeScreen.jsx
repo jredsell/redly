@@ -1,11 +1,16 @@
 import React, { useState } from 'react';
 import { useNotes } from '../context/NotesContext';
 import { FileText, FolderPlus, ListTodo, Clock, ChevronDown, ChevronRight, HardDrive, ShieldCheck, Box, Unlock, ArrowRight } from 'lucide-react';
-import logo from '../assets/logo.png';
+import logoLight from '../assets/logo-light.png';
+import logoDark from '../assets/logo-dark.png';
 
-const renderLogo = (size = 80) => (
+const renderLogo = (isDarkMode, size = 80) => (
     <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
-        <img src={logo} alt="Redly Logo" style={{ width: `${size}px`, height: `${size}px`, borderRadius: '20px', boxShadow: 'var(--shadow-md)' }} />
+        <img
+            src={isDarkMode ? logoLight : logoDark}
+            alt="Redly Logo"
+            style={{ width: `${size}px`, height: `${size}px`, objectFit: 'contain' }}
+        />
     </div>
 );
 
@@ -79,7 +84,7 @@ const SHARED_STYLES = `
 `;
 
 export default function WelcomeScreen({ openHelp }) {
-    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable } = useNotes();
+    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable, isDarkMode } = useNotes();
     const recentFiles = nodes
         .filter(n => n.type === 'file')
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
@@ -90,7 +95,7 @@ export default function WelcomeScreen({ openHelp }) {
         return (
             <div className="welcome-container">
                 <style>{SHARED_STYLES}</style>
-                {renderLogo()}
+                {renderLogo(isDarkMode)}
                 <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800', letterSpacing: '-0.5px' }}>Reconnect Workspace</h1>
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '40px', maxWidth: '500px' }}>
                     Browser security requires you re-verify access to your local <code>Redly</code> folder for this session.
@@ -107,8 +112,8 @@ export default function WelcomeScreen({ openHelp }) {
         return (
             <div className="welcome-container">
                 <style>{SHARED_STYLES}</style>
-                {renderLogo()}
-                <h1 style={{ fontSize: '42px', marginBottom: '12px', fontWeight: '900', letterSpacing: '-1.5px' }}>Redly</h1>
+                {renderLogo(isDarkMode)}
+                <h1 style={{ fontSize: '32px', marginBottom: '12px', fontWeight: '900', letterSpacing: '-1.5px' }}>Redly</h1>
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '48px', maxWidth: '550px', lineHeight: '1.5' }}>
                     Your private, offline-first Markdown knowledge base.
                 </p>
@@ -132,7 +137,7 @@ export default function WelcomeScreen({ openHelp }) {
     return (
         <div className="welcome-container">
             <style>{SHARED_STYLES}</style>
-            {renderLogo(60)}
+            {renderLogo(isDarkMode, 60)}
 
             {isInstallable && (
                 <button
