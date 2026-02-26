@@ -192,6 +192,9 @@ export default function HelpModal({ isOpen, onClose }) {
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Go Home</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>H</kbd></div>
 
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Global Tasks</span>
+                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>T</kbd></div>
+
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Change Workspace</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>W</kbd></div>
 

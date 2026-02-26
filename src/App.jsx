@@ -103,6 +103,12 @@ function App() {
         setShowTasks(false);
         setSidebarOpen(false);
       }
+      if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 't') {
+        e.preventDefault();
+        setActiveFileId(null);
+        setShowTasks(true);
+        setSidebarOpen(false);
+      }
       if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'w') {
         e.preventDefault();
         disconnectWorkspace();
