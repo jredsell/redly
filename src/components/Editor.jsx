@@ -118,7 +118,7 @@ const InlineDateInputNodeView = (props) => {
     );
 };
 
-const md = markdownit({ html: false, linkify: true, typographer: true }).use(taskLists, { label: false });
+const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: false });
 
 const td = new TurndownService({
     headingStyle: 'atx',
@@ -126,10 +126,21 @@ const td = new TurndownService({
     bulletListMarker: '-',
     codeBlockStyle: 'fenced',
     blankReplacement: (content, node) => {
+        // Prevent blank replacement inside tables which can break GFM syntax
+        if (node.closest('table')) return content;
         return node.nodeName === 'P' ? '&nbsp;\n\n' : (node.isBlock ? '\n\n' : '');
     }
 });
 td.use(gfm);
+
+// Table support fix for Tiptap's nested <p> tags
+td.addRule('tableCell', {
+    filter: ['th', 'td'],
+    replacement: (content) => {
+        // Strip newlines and paragraph markers inside table cells to maintain GFM compatibility
+        return content.replace(/\n/g, ' ').trim();
+    }
+});
 // Task Item serialization
 td.addRule('taskItem', {
     filter: (node) => node.nodeName === 'LI' && (
