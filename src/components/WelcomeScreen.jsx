@@ -186,27 +186,19 @@ export default function WelcomeScreen({ openHelp }) {
                 {isInstallable && (
                     <button
                         onClick={installApp}
+                        className="primary-action-btn"
                         style={{
                             marginBottom: '40px',
-                            fontSize: '14px',
-                            padding: '12px 24px',
-                            display: 'flex',
-                            alignItems: 'center',
+                            fontSize: '15px',
+                            padding: '14px 28px',
                             justifyContent: 'center',
-                            gap: '12px',
+                            width: '100%',
+                            maxWidth: '320px',
                             background: 'var(--bg-secondary)',
                             color: 'var(--accent-color)',
                             border: '1px solid var(--border-color)',
-                            borderRadius: '12px',
-                            fontWeight: '600',
-                            cursor: 'pointer',
-                            width: '100%',
-                            maxWidth: '320px',
-                            boxShadow: 'var(--shadow-sm)',
-                            transition: 'all 0.2s ease',
+                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                         }}
-                        onMouseOver={(e) => { e.currentTarget.style.borderColor = 'var(--accent-color)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
-                        onMouseOut={(e) => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.transform = 'translateY(0)'; }}
                         aria-label="Install Redly as a Desktop App"
                     >
                         <ShieldCheck size={20} />
@@ -240,7 +232,28 @@ export default function WelcomeScreen({ openHelp }) {
             <style>{SHARED_STYLES}</style>
             {renderLogo(60)}
 
-            <h1 style={{ fontSize: '32px', marginBottom: '32px', fontWeight: '800', letterSpacing: '-0.5px', textAlign: 'center' }}>What's next?</h1>
+            <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '800', letterSpacing: '-0.5px', textAlign: 'center' }}>What's next?</h1>
+
+            {isInstallable && (
+                <button
+                    onClick={installApp}
+                    className="primary-action-btn"
+                    style={{
+                        marginBottom: '32px',
+                        fontSize: '14px',
+                        padding: '10px 20px',
+                        justifyContent: 'center',
+                        background: 'var(--bg-secondary)',
+                        color: 'var(--accent-color)',
+                        border: '1px solid var(--border-color)',
+                        boxShadow: 'none',
+                        height: 'auto'
+                    }}
+                >
+                    <ShieldCheck size={18} />
+                    <span>Install Redly App</span>
+                </button>
+            )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', width: '100%', maxWidth: '600px', marginBottom: '48px' }}>
                 <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card" aria-label="Create a New Note">

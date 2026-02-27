@@ -361,7 +361,8 @@ export const NotesProvider = ({ children }) => {
         nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
         addNode, editNode, removeNode, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
-        installApp, isInstallable: true, // Always show button, we have a fallback modal now
+        installApp, 
+        isInstallable: !window.matchMedia('(display-mode: standalone)').matches && (!window.navigator.standalone),
         showInstallModal, setShowInstallModal,
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode

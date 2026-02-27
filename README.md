@@ -20,13 +20,32 @@ Redly is a minimalist, powerful, and aesthetically pleasing note-taking applicat
 ## 📦 Getting Started
 
 ### 1. Choose Your Storage
-- **Local Storage**: Map Redly to a folder on your computer. Your notes are stored as plain `.md` files that you can open with any other editor.
-- **Browser Storage**: Store your notes in a secure, hidden browser sandbox. Zero-config and incredibly fast.
 
-### 2. Create Your First Note
+Redly offers two distinct storage "tiers" to balance privacy, convenience, and control:
+
+- **Local Storage (Native File System)**: 
+  - **Technical**: Uses the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) to map Redly directly to a folder on your computer.
+  - **Experience**: Your notes are stored as plain `.md` files. This is the "ultimate control" mode—your files are yours, and you can edit them with any other editor simultaneously.
+  - **Compatibility**: Required Chromium-based browsers (Chrome, Edge, Opera) on Desktop.
+
+- **Browser Storage (Sandboxed)**:
+  - **Technical**: Uses the [Origin Private File System (OPFS)](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system).
+  - **Experience**: Store notes in a secure, hidden browser sandbox. It is incredibly fast and zero-config. Perfect for a quick start or private browsing.
+  - **Compatibility**: High compatibility across all modern browsers (Chrome, Edge, Safari, Firefox) on both Desktop and Mobile.
+
+### 2. Browser Compatibility Matrix
+
+| Feature | Chrome / Edge | Safari | Firefox | Mobile (iOS/Android) |
+|---|---|---|---|---|
+| **PWA Installation** | ✅ (One-click) | ✅ (Manual) | ⚠️ (Limited) | ✅ (Add to Home) |
+| **Browser Storage** | ✅ (OPFS) | ✅ (OPFS) | ✅ (OPFS) | ✅ (OPFS) |
+| **Local Storage** | ✅ (Native API) | ❌ | ❌ | ❌ |
+| **Dark Mode** | ✅ | ✅ | ✅ | ✅ |
+
+### 3. Create Your First Note
 Click the **New Note** button or press `Alt + N`. Start typing! Use `#` for headers, `- [ ]` for tasks, and `---` for horizontal rules.
 
-### 3. Add Deadlines
+### 4. Add Deadlines
 Type `@today`, `@friday 2pm`, or `@next monday` next to any task. Redly will automatically parse the date and color-code the badge.
 
 ## ⌨️ Power User Hotkeys
@@ -57,10 +76,13 @@ For more details, see our full [Privacy Policy](PRIVACY.md).
 
 ## 📲 Installation (PWA)
 
-Redly is a Progressive Web App (PWA). You don't need to install any dependencies to use it.
-1.  Open [Redly](https://jredsell.github.io/redly/) in your browser.
-2.  Click the **"Install"** button in the browser's address bar or find it in the App menu.
-3.  Launch Redly directly from your desktop or home screen!
+Redly is a Progressive Web App (PWA), meaning it can be installed as a standalone app on your device for an offline-first, distraction-free experience.
+
+- **One-Click Install**: On compatible browsers (Chrome/Edge), look for the **"Install Redly"** button prominently displayed on the Welcome and Home screens.
+- **Manual Install (Safari/Firefox)**: 
+  - On Safari (iOS): Tap the **Share** button and select **"Add to Home Screen"**.
+  - On Other Browsers: Click the menu icon and look for **"Install App"** or **"App > Install this site"**.
+- **Integrated Guide**: If a direct one-click install isn't possible, Redly provides a beautiful, step-by-step guide tailored to your specific browser.
 
 ## 🔨 Developer Setup
 
