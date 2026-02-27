@@ -42,7 +42,7 @@ Redly offers two distinct storage "tiers" to balance privacy, convenience, and c
 | **Local Storage** | ✅ (Native API) | ❌ | ❌ | ❌ |
 | **Dark Mode** | ✅ | ✅ | ✅ | ✅ |
 
-![Redly Welcome Screen](file:///C:/Users/jonat/.gemini/antigravity/brain/14f62c88-6567-4f3f-a6af-512512346b09/welcome_screen_updated_clean_1772180546928.png)
+![Redly Welcome Screen](docs/assets/welcome_screen.png)
 
 ## Quick Start
 
@@ -52,7 +52,7 @@ Redly offers two distinct storage "tiers" to balance privacy, convenience, and c
 
 ### Formatting Made Simple
 
-![Slash Menu Demo](file:///C:/Users/jonat/.gemini/antigravity/brain/14f62c88-6567-4f3f-a6af-512512346b09/slash_menu_demo_capture_1772180556000_1772180518024.webp)
+![Slash Menu Demo](docs/assets/slash_menu_demo.webp)
 
 Redly supports full Markdown and provides a powerful **Slash Menu** to make formatting effortless:
 
@@ -60,7 +60,7 @@ Redly supports full Markdown and provides a powerful **Slash Menu** to make form
 *   **Markdown Shortcuts**: Use standard syntax like `#` for headers, `**` for bold, and `---` for dividers.
 *   **Smart Tasks**: Create interactive tasks with `- [ ]`. You can even add dates like `@today` or `@tomorrow` to see them in your Global Tasks view.
 
-![Mastering Redly Hero Note](file:///C:/Users/jonat/.gemini/antigravity/brain/14f62c88-6567-4f3f-a6af-512512346b09/hero_note_perfect_1772180823888.png)
+![Mastering Redly Hero Note](docs/assets/hero_note.png)
 
 ## Features
 
@@ -68,7 +68,7 @@ Redly supports full Markdown and provides a powerful **Slash Menu** to make form
 
 Never lose track of a deadline. The **Global Tasks** view aggregates every `- [ ]` task from all your notes, categorized by status (Overdue, Today, Future).
 
-![Global Tasks Overview](file:///C:/Users/jonat/.gemini/antigravity/brain/14f62c88-6567-4f3f-a6af-512512346b09/global_tasks_updated_1772180804362.png)
+![Global Tasks Overview](docs/assets/global_tasks.png)
 
 ## ⌨️ Power User Hotkeys
 
