@@ -31,14 +31,6 @@ Redly offers two distinct storage "tiers" to balance privacy, convenience, and c
 - **Browser Storage (Sandboxed)**:
   - **Technical**: Uses the [Origin Private File System (OPFS)](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system).
   - **Experience**: Store notes in a secure, hidden browser sandbox. It is incredibly fast and zero-config. Perfect for a quick start or private browsing.
--   **Local Storage (Native File System)**:
-    -   **Technical**: Uses the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) to map Redly directly to a folder on your computer.
-    -   **Experience**: Your notes are stored as plain `.md` files. This is the "ultimate control" mode—your files are yours, and you can edit them with any other editor simultaneously.
-    -   **Compatibility**: Required Chromium-based browsers (Chrome, Edge, Opera) on Desktop.
-
--   **Browser Storage (Sandboxed)**:
-    -   **Technical**: Uses the [Origin Private File System (OPFS)](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system).
-    -   **Experience**: Store notes in a secure, hidden browser sandbox. It is incredibly fast and zero-config. Perfect for a quick start or private browsing.
     -   **Compatibility**: High compatibility across all modern browsers (Chrome, Edge, Safari, Firefox) on both Desktop and Mobile.
 
 ### 2. Browser Compatibility Matrix
