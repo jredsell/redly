@@ -45,6 +45,8 @@ function NotificationToggle() {
             Alert
           </label>
           <input
+            name="notification-lead-time"
+            id="notification-lead-time"
             type="number"
             min="0"
             max="1440"

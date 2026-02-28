@@ -96,6 +96,7 @@ const CustomTaskItemComponent = (props) => {
         <NodeViewWrapper as="li" data-type="taskItem" data-checked={node.attrs.checked} style={{ display: 'flex', alignItems: 'flex-start', margin: '4px 0', gap: '8px' }}>
             <label contentEditable={false} style={{ marginTop: '4px', cursor: 'pointer', display: 'flex' }}>
                 <input
+                    name="task-checkbox"
                     type="checkbox"
                     checked={node.attrs.checked}
                     onChange={e => {
@@ -166,7 +167,7 @@ const InlineDateInputNodeView = (props) => {
     return (
         <NodeViewWrapper as="span" style={{ display: 'inline-flex', alignItems: 'center', background: 'var(--bg-accent)', borderRadius: '4px', padding: '0 4px', color: 'var(--accent-color)' }}>
             <span style={{ fontWeight: 'bold', marginRight: '2px' }}>@</span>
-            <input ref={inputRef} type="text" value={value} onChange={e => setValue(e.target.value)} onKeyDown={handleKeyDown}
+            <input ref={inputRef} name="inline-date-input" type="text" value={value} onChange={e => setValue(e.target.value)} onKeyDown={handleKeyDown}
                 style={{ border: 'none', outline: 'none', background: 'transparent', color: 'var(--accent-color)', fontFamily: 'monospace', fontSize: '0.9em', width: '17ch' }} />
         </NodeViewWrapper>
     );
@@ -1070,6 +1071,8 @@ export default function Editor({ fileId }) {
         <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', minHeight: 0 }}>
             <div className="editor-header-bar">
                 <input
+                    name="note-title"
+                    id="note-title"
                     className="title-input"
                     value={localTitle}
                     onChange={handleTitleChange}

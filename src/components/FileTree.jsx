@@ -178,6 +178,8 @@ export default function FileTree({ node, depth }) {
 
                     {isEditing ? (
                         <input
+                            name="rename-item"
+                            id="rename-item"
                             autoFocus
                             value={editName}
                             onChange={e => setEditName(e.target.value)}
@@ -251,6 +253,8 @@ export default function FileTree({ node, depth }) {
                                 </span>
                                 <form onSubmit={handleAddSubmit} style={{ width: '100%' }}>
                                     <input
+                                        name="new-item-name"
+                                        id="new-item-name"
                                         autoFocus
                                         value={newName}
                                         onChange={e => setNewName(e.target.value)}

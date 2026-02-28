@@ -139,6 +139,8 @@ export default function GlobalSearch() {
             }}>
                 <Search size={16} style={{ color: 'var(--text-tertiary)', marginRight: '8px' }} />
                 <input
+                    name="global-search"
+                    id="global-search"
                     ref={inputRef}
                     className="global-search-input"
                     value={query}

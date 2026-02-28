@@ -203,6 +203,8 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                     <form onSubmit={handleAdd} style={{ padding: '8px', display: 'flex', gap: '8px', background: 'transparent', borderBottom: '1px solid var(--border-color)' }}>
                         {isAdding === 'folder' ? <FolderPlus size={16} /> : <FileText size={16} />}
                         <input
+                            name="sidebar-new-item"
+                            id="sidebar-new-item"
                             autoFocus
                             className="title-input"
                             style={{ fontSize: '14px', borderBottom: '1px solid var(--border-color)', borderRadius: 0, width: '100%' }}

@@ -108,7 +108,7 @@ export default function HelpModal({ isOpen, onClose }) {
                                 >
                                     <Upload size={14} style={{ marginRight: '6px' }} />
                                     Import Backup
-                                    <input type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+                                    <input name="import-backup" id="import-backup" type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
                                 </label>
                             </div>
                         )}

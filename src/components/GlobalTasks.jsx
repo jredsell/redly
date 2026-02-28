@@ -296,6 +296,8 @@ export default function GlobalTasks() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 <Tag size={16} style={{ color: 'var(--text-tertiary)' }} />
                                 <select
+                                    name="tag-filter"
+                                    id="tag-filter"
                                     ref={tagFilterRef}
                                     value={selectedTagFilter}
                                     onChange={(e) => setSelectedTagFilter(e.target.value)}
