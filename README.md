@@ -72,7 +72,7 @@ Never lose track of a deadline. The **Global Tasks** view aggregates every `- [ 
 You can instantly switch between a classic list and an interactive **Kanban Board** by pressing `Alt + V`.
 - **Project Views**: Press `Alt + G` to jump to the tag filter dropdown, instantly creating dedicated project views based on your tags.
 - **Custom Columns**: Add inline hashtags (e.g. `- [ ] Fix bugs #doing`) to sort tasks into specific stages. If you have multiple tags, the **last tag** will always determine the Kanban board column status.
-- **Drag & Drop**: Drag a task from `#todo` to `#done`, and Redly will automatically rewrite the markdown in your raw notes.
+- **Drag & Drop**: Drag a task from `#backlog` to `#done`, and Redly will automatically rewrite the markdown in your raw notes.
 - **Deep Linking**: Click anywhere on a task card to instantly auto-scroll to the exact note in your file tree.
 
 ![Kanban Board View](docs/assets/kanban_board.png)

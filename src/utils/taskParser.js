@@ -58,7 +58,7 @@ export function parseTasksFromNodes(nodes) {
                 }
 
                 // Kanban Column Extraction & Tags (Hashtags)
-                let column = isChecked ? 'done' : 'todo'; // default columns based on state
+                let column = isChecked ? 'done' : 'backlog'; // default columns based on state
                 const tagRegex = /(?:^|\s)#([a-zA-Z0-9_\-]+)/g;
                 let tagMatch;
                 let lastTagMatch = null;

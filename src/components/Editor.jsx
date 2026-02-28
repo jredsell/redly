@@ -497,7 +497,7 @@ export default function Editor({ fileId }) {
                 uniqueTags.push(tag);
             }
         });
-        const defaultTags = ['todo', 'doing', 'done', 'bug', 'feature'];
+        const defaultTags = ['backlog', 'todo', 'doing', 'review', 'done'];
         defaultTags.forEach(tag => {
             if (!seenLower.has(tag)) {
                 seenLower.add(tag);
