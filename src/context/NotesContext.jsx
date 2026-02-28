@@ -93,21 +93,21 @@ export const NotesProvider = ({ children }) => {
     }, []);
 
     const installApp = async () => {
-
-
         if (deferredPrompt) {
             try {
                 deferredPrompt.prompt();
                 const { outcome } = await deferredPrompt.userChoice;
 
                 if (outcome === 'accepted') {
-                    setDeferredPrompt(null);
                     setIsPwaInstalled(true);
                     localStorage.setItem('redly_pwa_installed', 'true');
                 }
+
+                setDeferredPrompt(null);
             } catch (err) {
                 console.error('[NotesContext] PWA Install Prompt Failed:', err);
                 setShowInstallModal(true); // Fallback to modal on error
+                setDeferredPrompt(null);
             }
         } else {
             // No native prompt available, show our premium guide instead

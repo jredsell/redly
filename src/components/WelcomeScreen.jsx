@@ -289,6 +289,8 @@ export default function WelcomeScreen({ openHelp }) {
                     </div>
                 </div>
             )}
+
+            <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
         </div>
     );
 }
