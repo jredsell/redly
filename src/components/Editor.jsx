@@ -461,6 +461,7 @@ export default function Editor({ fileId }) {
     const saveTimeoutRef = useRef(null);
     const lastSavedContentRef = useRef(''); // Track the last saved state to prevent echo updates
     const [localTitle, setLocalTitle] = useState('');
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const pendingUpdatesRef = useRef({}); // Merge updates (name, content) to prevent race conditions during renames
     const [slashMenu, setSlashMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
     const [tagMenu, setTagMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
