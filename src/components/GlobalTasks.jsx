@@ -11,6 +11,9 @@ export default function GlobalTasks() {
     const [isLoading, setIsLoading] = useState(true);
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
     const [selectedTagFilter, setSelectedTagFilter] = useState('');
+    const [tagFilterQuery, setTagFilterQuery] = useState('');
+    const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
+    const [tagDropdownIndex, setTagDropdownIndex] = useState(0);
 
     const tagFilterRef = useRef(null);
 
@@ -86,6 +89,55 @@ export default function GlobalTasks() {
         });
         return Array.from(tagSet).sort();
     }, [sortedTasks]);
+
+    const visibleDropdownTags = useMemo(() => {
+        const query = tagFilterQuery.toLowerCase();
+        let filtered = allAvailableTags;
+        if (query) {
+            filtered = allAvailableTags.filter(tag => tag.toLowerCase().includes(query));
+        }
+        return ['All Tags', ...filtered];
+    }, [allAvailableTags, tagFilterQuery]);
+
+    const handleTagFilterKeyDown = (e) => {
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            setIsTagDropdownOpen(false);
+            e.target.blur();
+            return;
+        }
+
+        if (!isTagDropdownOpen && (e.key === 'ArrowDown' || e.key === 'ArrowUp')) {
+            e.preventDefault();
+            setIsTagDropdownOpen(true);
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            setTagDropdownIndex(prev => Math.min(prev + 1, visibleDropdownTags.length - 1));
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            setTagDropdownIndex(prev => Math.max(prev - 1, 0));
+        } else if (e.key === 'Enter') {
+            e.preventDefault();
+            if (isTagDropdownOpen && visibleDropdownTags[tagDropdownIndex]) {
+                const selected = visibleDropdownTags[tagDropdownIndex];
+                if (selected === 'All Tags') {
+                    setSelectedTagFilter('');
+                    setTagFilterQuery('');
+                } else {
+                    setSelectedTagFilter(selected);
+                    setTagFilterQuery(selected);
+                }
+                setIsTagDropdownOpen(false);
+                e.target.blur();
+            } else {
+                // If closed, open dropdown on enter
+                setIsTagDropdownOpen(true);
+            }
+        }
+    };
 
     const filteredTasks = useMemo(() => {
         if (!selectedTagFilter) return sortedTasks;
@@ -295,31 +347,71 @@ export default function GlobalTasks() {
                     {/* View Toggle and Filter */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                         {allAvailableTags.length > 0 && (
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
                                 <Tag size={16} style={{ color: 'var(--text-tertiary)' }} />
-                                <select
-                                    name="tag-filter"
-                                    id="tag-filter"
-                                    ref={tagFilterRef}
-                                    value={selectedTagFilter}
-                                    onChange={(e) => setSelectedTagFilter(e.target.value)}
-                                    className="tag-filter-select"
-                                    style={{
-                                        background: 'var(--bg-secondary)',
-                                        color: 'var(--text-primary)',
-                                        border: '1px solid var(--border-color)',
-                                        borderRadius: '6px',
-                                        padding: '4px 8px',
-                                        fontSize: '13px',
-                                        cursor: 'pointer',
-                                        outline: 'none'
-                                    }}
-                                >
-                                    <option value="">All Tags</option>
-                                    {allAvailableTags.map(tag => (
-                                        <option key={tag} value={tag}>#{tag}</option>
-                                    ))}
-                                </select>
+                                <div style={{ position: 'relative' }}>
+                                    <input
+                                        type="text"
+                                        name="tag-filter"
+                                        id="tag-filter"
+                                        ref={tagFilterRef}
+                                        value={tagFilterQuery}
+                                        onChange={(e) => {
+                                            setTagFilterQuery(e.target.value);
+                                            setIsTagDropdownOpen(true);
+                                            setTagDropdownIndex(0);
+                                        }}
+                                        onFocus={() => setIsTagDropdownOpen(true)}
+                                        onBlur={() => {
+                                            // Delay hiding so clicks register
+                                            setTimeout(() => setIsTagDropdownOpen(false), 150);
+                                        }}
+                                        onKeyDown={handleTagFilterKeyDown}
+                                        placeholder="Filter by tags..."
+                                        autoComplete="off"
+                                        style={{
+                                            background: 'var(--bg-secondary)',
+                                            color: 'var(--text-primary)',
+                                            border: '1px solid var(--border-color)',
+                                            borderRadius: '6px',
+                                            padding: '4px 8px',
+                                            fontSize: '13px',
+                                            outline: 'none',
+                                            width: '140px'
+                                        }}
+                                    />
+                                    {isTagDropdownOpen && visibleDropdownTags.length > 0 && (
+                                        <ul className="tag-menu" style={{
+                                            listStyle: 'none', margin: 0, padding: '4px',
+                                            position: 'absolute', top: '100%', left: 0, marginTop: '4px',
+                                            width: '100%', maxHeight: '200px', overflowY: 'auto'
+                                        }}>
+                                            {visibleDropdownTags.map((tag, index) => (
+                                                <li key={tag}>
+                                                    <button
+                                                        type="button"
+                                                        className={index === tagDropdownIndex ? 'active' : ''}
+                                                        onClick={() => {
+                                                            if (tag === 'All Tags') {
+                                                                setSelectedTagFilter('');
+                                                                setTagFilterQuery('');
+                                                            } else {
+                                                                setSelectedTagFilter(tag);
+                                                                setTagFilterQuery(tag);
+                                                            }
+                                                            setIsTagDropdownOpen(false);
+                                                            if (tagFilterRef.current) tagFilterRef.current.blur();
+                                                        }}
+                                                        onMouseEnter={() => setTagDropdownIndex(index)}
+                                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                    >
+                                                        {tag === 'All Tags' ? tag : `#${tag}`}
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    )}
+                                </div>
                             </div>
                         )}
                         <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
