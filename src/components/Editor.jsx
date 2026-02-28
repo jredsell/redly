@@ -23,7 +23,7 @@ import { getDateColor, parseDateString } from '../utils/dateHelpers';
 import {
     Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
     List, ListOrdered, Quote, CheckSquare, Link as LinkIcon, ExternalLink,
-    Table as TableIcon, PlusSquare, MinusSquare, Columns, Rows
+    Table as TableIcon, PlusSquare, MinusSquare, Columns, Rows, MoreHorizontal
 } from 'lucide-react';
 
 
@@ -342,38 +342,62 @@ const BubbleMenuUI = ({ editor, bubbleMenu, setBubbleMenu }) => {
     );
 };
 
-const TableBubbleMenuUI = ({ editor, bubbleMenu }) => {
+const TableControlsMenu = ({ editor, trigger, onClose }) => {
     const [, setTick] = useState(0);
+    const menuRef = useRef(null);
 
     useEffect(() => {
-        if (!editor || !bubbleMenu.isOpen) return;
+        if (!editor || !trigger) return;
         const update = () => setTick(t => t + 1);
         editor.on('transaction', update);
         return () => editor.off('transaction', update);
-    }, [editor, bubbleMenu.isOpen]);
+    }, [editor, trigger]);
 
-    if (!editor.isActive('table') || !bubbleMenu.isOpen) return null;
+    // Close when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (e) => {
+            if (menuRef.current && !menuRef.current.contains(e.target)) {
+                onClose();
+            }
+        };
+        if (trigger) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+        return () => document.removeEventListener('mousedown', handleClickOutside);
+    }, [trigger, onClose]);
+
+    if (!editor.isActive('table') || !trigger) return null;
 
     return (
         <div
-            className="custom-bubble-menu table-controls"
-            style={{ position: 'fixed', top: bubbleMenu.top, left: bubbleMenu.left, zIndex: 100 }}
+            ref={menuRef}
+            className="custom-bubble-menu table-controls-enhanced"
+            style={{ position: 'fixed', top: trigger.bottom + 8, left: trigger.right, transform: 'translateX(-100%)', zIndex: 110 }}
             onMouseDown={(e) => e.preventDefault()}
         >
-            <button onClick={() => editor.chain().focus().addColumnBefore().run()} title="Add Column Before"><Columns size={16} style={{ transform: 'rotate(90deg)' }} /></button>
-            <button onClick={() => editor.chain().focus().addColumnAfter().run()} title="Add Column After"><Columns size={16} style={{ transform: 'rotate(-90deg)' }} /></button>
-            <button onClick={() => editor.chain().focus().deleteColumn().run()} title="Delete Column" style={{ color: 'var(--danger-color)' }}><Columns size={16} />✕</button>
+            <div className="table-controls-group">
+                <span className="table-group-label" style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '4px 8px', display: 'flex' }}>Columns</span>
+                <button onClick={() => { editor.chain().focus().addColumnBefore().run(); onClose(); }} title="Add Column Left"><Columns size={14} style={{ transform: 'rotate(90deg)' }} /> Add Left</button>
+                <button onClick={() => { editor.chain().focus().addColumnAfter().run(); onClose(); }} title="Add Column Right"><Columns size={14} style={{ transform: 'rotate(-90deg)' }} /> Add Right</button>
+                <button onClick={() => { editor.chain().focus().deleteColumn().run(); onClose(); }} title="Delete Column" className="danger-btn"><Columns size={14} /> Delete Col</button>
+            </div>
 
-            <div className="menu-separator" />
+            <div className="menu-separator-vertical"></div>
 
-            <button onClick={() => editor.chain().focus().addRowBefore().run()} title="Add Row Above"><Rows size={16} /></button>
-            <button onClick={() => editor.chain().focus().addRowAfter().run()} title="Add Row Below"><Rows size={16} /></button>
-            <button onClick={() => editor.chain().focus().deleteRow().run()} title="Delete Row" style={{ color: 'var(--danger-color)' }}><Rows size={16} />✕</button>
+            <div className="table-controls-group">
+                <span className="table-group-label" style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '4px 8px', display: 'flex' }}>Rows</span>
+                <button onClick={() => { editor.chain().focus().addRowBefore().run(); onClose(); }} title="Add Row Above"><Rows size={14} /> Add Above</button>
+                <button onClick={() => { editor.chain().focus().addRowAfter().run(); onClose(); }} title="Add Row Below"><Rows size={14} /> Add Below</button>
+                <button onClick={() => { editor.chain().focus().deleteRow().run(); onClose(); }} title="Delete Row" className="danger-btn"><Rows size={14} /> Delete Row</button>
+            </div>
 
-            <div className="menu-separator" />
+            <div className="menu-separator-vertical"></div>
 
-            <button onClick={() => editor.chain().focus().toggleHeaderRow().run()} className={editor.isActive('tableHeader') ? 'is-active' : ''} title="Toggle Header Row">H</button>
-            <button onClick={() => editor.chain().focus().deleteTable().run()} title="Delete Table" style={{ color: 'var(--danger-color)' }}><Trash size={16} /></button>
+            <div className="table-controls-group">
+                <span className="table-group-label" style={{ fontSize: '11px', fontWeight: 'bold', color: 'var(--text-tertiary)', textTransform: 'uppercase', padding: '4px 8px', display: 'flex' }}>Table</span>
+                <button onClick={() => { editor.chain().focus().toggleHeaderRow().run(); onClose(); }} className={editor.isActive('tableHeader') ? 'is-active' : ''} title="Toggle Header"><span style={{ fontWeight: 'bold', width: '14px', textAlign: 'center' }}>H</span> Toggle Header</button>
+                <button onClick={() => { editor.chain().focus().deleteTable().run(); onClose(); }} title="Delete Table" className="danger-btn"><Trash size={14} /> Delete Table</button>
+            </div>
         </div>
     );
 };
@@ -387,6 +411,8 @@ export default function Editor({ fileId }) {
     const pendingUpdatesRef = useRef({}); // Merge updates (name, content) to prevent race conditions during renames
     const [slashMenu, setSlashMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
     const [bubbleMenu, setBubbleMenu] = useState({ isOpen: false, top: 0, left: 0 });
+    const [tableTriggerCoords, setTableTriggerCoords] = useState(null);
+    const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
     const [forceRender, setForceRender] = useState(0);
     const slashMenuListRef = useRef(null);
 
@@ -654,6 +680,29 @@ export default function Editor({ fileId }) {
             try {
                 const { from, to, empty } = editor.state.selection;
 
+                // Handle Table floating "trigger" button visibility
+                if (editor.isActive('table')) {
+                    const view = editor.view;
+                    const { node, offset } = view.domAtPos(from);
+                    let tableElement = node;
+                    while (tableElement && tableElement.tagName !== 'TABLE' && tableElement.closest) {
+                        tableElement = tableElement.closest('table');
+                    }
+                    if (tableElement) {
+                        const rect = tableElement.getBoundingClientRect();
+                        // Anchor to top-right of table
+                        setTableTriggerCoords({
+                            top: rect.top,
+                            right: rect.right,
+                            bottom: rect.bottom, // Optional, useful if we want menu below
+                            isTableTrigger: true
+                        });
+                    }
+                } else {
+                    setTableTriggerCoords(null);
+                    setIsTableMenuOpen(false);
+                }
+
                 // Selection can sometimes be out of sync with the view during rapid changes
                 if (from < 0 || to > editor.state.doc.content.size) {
                     setBubbleMenu({ isOpen: false, top: 0, left: 0 });
@@ -895,11 +944,23 @@ export default function Editor({ fileId }) {
             <div className="editor-body" style={{ flex: 1, overflowY: 'auto', padding: '24px', position: 'relative' }} onKeyDownCapture={handleKeyDown}>
                 <EditorContent editor={editor} className="tiptap-container" />
 
+                {/* Table Trigger Button and its Menu */}
+                {tableTriggerCoords && (
+                    <>
+                        <button
+                            className="table-trigger-btn"
+                            style={{ position: 'fixed', top: tableTriggerCoords.top - 16, left: tableTriggerCoords.right - 28, zIndex: 105 }}
+                            onClick={() => setIsTableMenuOpen(!isTableMenuOpen)}
+                            title="Table Options"
+                        >
+                            <MoreHorizontal size={18} />
+                        </button>
+                        {isTableMenuOpen && <TableControlsMenu editor={editor} trigger={tableTriggerCoords} onClose={() => setIsTableMenuOpen(false)} />}
+                    </>
+                )}
+
                 {/* Custom Bubble (Formatting) Menu */}
                 {!editor.isActive('table') && <BubbleMenuUI editor={editor} bubbleMenu={bubbleMenu} setBubbleMenu={setBubbleMenu} />}
-
-                {/* Table Controls Menu */}
-                {editor.isActive('table') && <TableBubbleMenuUI editor={editor} bubbleMenu={bubbleMenu} />}
 
                 {/* Custom Slash Menu */}
                 {slashMenu.isOpen && (
@@ -982,6 +1043,38 @@ export default function Editor({ fileId }) {
                     align-self: center;
                     margin: 0 4px;
                 }
+                .table-controls-enhanced {
+                    display: flex;
+                    flex-direction: row;
+                    padding: 8px;
+                    gap: 12px;
+                }
+                .table-controls-group {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 4px;
+                }
+                .table-controls-group button {
+                    justify-content: flex-start;
+                    gap: 8px;
+                    padding: 6px 12px;
+                    width: 100%;
+                    font-size: 13px;
+                }
+                .table-controls-group button:hover {
+                    background: var(--bg-hover);
+                }
+                .menu-separator-vertical {
+                    width: 1px;
+                    background: var(--border-color);
+                    align-self: stretch;
+                }
+                button.danger-btn {
+                    color: var(--danger-color) !important;
+                }
+                button.danger-btn:hover {
+                    background: rgba(239, 68, 68, 0.1) !important;
+                }
                 .title-input {
                     background: transparent;
                     border: none;
@@ -1004,7 +1097,24 @@ export default function Editor({ fileId }) {
                 .editor-link:hover {
                     opacity: 0.8;
                 }
-
+                .table-trigger-btn {
+                    background: var(--bg-secondary);
+                    border: 1px solid var(--border-color);
+                    border-radius: 6px;
+                    padding: 4px;
+                    cursor: pointer;
+                    display: flex;
+                    align-items: center;
+                    justify-content: center;
+                    color: var(--text-secondary);
+                    box-shadow: var(--shadow-sm);
+                    transition: all 0.2s;
+                }
+                .table-trigger-btn:hover {
+                    background: var(--bg-hover);
+                    color: var(--text-primary);
+                    border-color: var(--text-tertiary);
+                }
             `}</style>
         </div>
     );
