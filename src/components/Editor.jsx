@@ -1327,10 +1327,10 @@ export default function Editor({ fileId }) {
                     background: var(--border-color);
                     align-self: stretch;
                 }
-                button.danger-btn {
+                .custom-bubble-menu button.danger-btn {
                     color: var(--danger-color) !important;
                 }
-                button.danger-btn:hover {
+                .custom-bubble-menu button.danger-btn:hover {
                     background: rgba(239, 68, 68, 0.1) !important;
                 }
                 .title-input {
