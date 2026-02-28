@@ -397,7 +397,6 @@ body {
 .tiptap {
   outline: none;
   width: 100%;
-  min-height: 100%;
   padding-bottom: 2rem;
   color: var(--text-primary);
 }
@@ -442,6 +441,41 @@ body {
 }
 
 /* --- UPDATED MULTI-LINE CODE BLOCK STYLES --- */
+.tiptap-code-block-wrapper {
+  position: relative;
+}
+
+.copy-code-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: var(--bg-secondary);
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-color);
+  padding: 6px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  opacity: 0;
+  z-index: 10;
+}
+
+.tiptap-code-block-wrapper:hover .copy-code-btn {
+  opacity: 1;
+}
+
+.copy-code-btn:hover {
+  background: var(--bg-accent);
+  color: var(--text-primary);
+}
+
+.icon-check {
+  color: var(--color-future);
+}
+
 .tiptap pre {
   background: var(--text-primary);
   /* Dark background even in light mode looks great */

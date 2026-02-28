@@ -22,6 +22,9 @@ export const NotesProvider = ({ children }) => {
     const [lastInteractedNodeId, setLastInteractedNodeId] = useState(null);
     const [deferredPrompt, setDeferredPrompt] = useState(null);
     const [showInstallModal, setShowInstallModal] = useState(false);
+    const [isPwaInstalled, setIsPwaInstalled] = useState(() => {
+        return localStorage.getItem('redly_pwa_installed') === 'true';
+    });
 
     const [isDarkMode, setIsDarkMode] = useState(() => {
         const saved = localStorage.getItem('theme');
@@ -50,12 +53,41 @@ export const NotesProvider = ({ children }) => {
     const [notifiedTaskIds, setNotifiedTaskIds] = useState(new Set());
 
     useEffect(() => {
+        // If the PWA is opened in standalone mode, auto-detect it's installed
+        if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
+            setIsPwaInstalled(true);
+            localStorage.setItem('redly_pwa_installed', 'true');
+        }
+
         const handleBeforeInstallPrompt = (e) => {
             e.preventDefault();
             setDeferredPrompt(e);
         };
+
+        const handleAppInstalled = () => {
+            setIsPwaInstalled(true);
+            localStorage.setItem('redly_pwa_installed', 'true');
+            setDeferredPrompt(null);
+        };
+
+        // Check if the global interceptor already caught it
+        if (window.__DEFERRED_PROMPT__) {
+            setDeferredPrompt(window.__DEFERRED_PROMPT__);
+        } else {
+            // Otherwise listen for the global custom event or the native event
+            window.addEventListener('deferred-prompt-captured', () => {
+                setDeferredPrompt(window.__DEFERRED_PROMPT__);
+            });
+        }
+
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        return () => window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.addEventListener('appinstalled', handleAppInstalled);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            window.removeEventListener('appinstalled', handleAppInstalled);
+            window.removeEventListener('deferred-prompt-captured', () => { });
+        };
     }, []);
 
     const installApp = async () => {
@@ -68,6 +100,8 @@ export const NotesProvider = ({ children }) => {
 
                 if (outcome === 'accepted') {
                     setDeferredPrompt(null);
+                    setIsPwaInstalled(true);
+                    localStorage.setItem('redly_pwa_installed', 'true');
                 }
             } catch (err) {
                 console.error('[NotesContext] PWA Install Prompt Failed:', err);
@@ -361,8 +395,8 @@ export const NotesProvider = ({ children }) => {
         nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
         addNode, editNode, removeNode, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
-        installApp, 
-        isInstallable: !window.matchMedia('(display-mode: standalone)').matches && (!window.navigator.standalone),
+        installApp,
+        isInstallable: !isPwaInstalled && !window.matchMedia('(display-mode: standalone)').matches && (!window.navigator.standalone),
         showInstallModal, setShowInstallModal,
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode

@@ -9,6 +9,8 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
+import CodeBlock from '@tiptap/extension-code-block';
+import CodeBlockComponent from './CodeBlockComponent';
 import { Extension, Node, mergeAttributes, InputRule } from '@tiptap/core';
 import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
@@ -409,9 +411,14 @@ export default function Editor({ fileId }) {
         StarterKit.configure({
             heading: { levels: [1, 2, 3] },
             history: true,
-            codeBlock: {
-                HTMLAttributes: { class: 'tiptap-code-block' },
+            codeBlock: false,
+        }),
+        CodeBlock.extend({
+            addNodeView() {
+                return ReactNodeViewRenderer(CodeBlockComponent);
             }
+        }).configure({
+            HTMLAttributes: { class: 'tiptap-code-block' },
         }),
         TiptapLink.configure({
             openOnClick: false,
@@ -865,7 +872,7 @@ export default function Editor({ fileId }) {
     if (!file) return null;
 
     return (
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', height: '100%', position: 'relative', minHeight: 0 }}>
             <div className="editor-header-bar">
                 <input
                     className="title-input"
