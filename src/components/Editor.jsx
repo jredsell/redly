@@ -769,6 +769,90 @@ export default function Editor({ fileId }) {
             // Force UI to re-read editor.isActive() to eliminate active state delays
             setForceRender(prev => prev + 1);
         },
+        editorProps: {
+            handleKeyDown: (view, event) => {
+                if (tagMenu.isOpen) {
+                    if (event.key === 'ArrowDown') {
+                        setTagMenu(prev => {
+                            const filteredTags = availableTags.filter(tag => tag && tag.toLowerCase().includes((prev.query || '').toLowerCase()));
+                            return { ...prev, selectedIndex: (prev.selectedIndex + 1) % (filteredTags.length || 1) };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'ArrowUp') {
+                        setTagMenu(prev => {
+                            const filteredTags = availableTags.filter(tag => tag && tag.toLowerCase().includes((prev.query || '').toLowerCase()));
+                            return { ...prev, selectedIndex: (prev.selectedIndex - 1 + (filteredTags.length || 1)) % (filteredTags.length || 1) };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'Enter') {
+                        setTagMenu(prev => {
+                            const filteredTags = availableTags.filter(tag => tag && tag.toLowerCase().includes((prev.query || '').toLowerCase()));
+                            const selectedTag = filteredTags[prev.selectedIndex];
+                            if (selectedTag) {
+                                // Must use timeout to allow state to settle before transaction
+                                setTimeout(() => {
+                                    view.dispatch(view.state.tr.delete(prev.triggerIdx, view.state.selection.from).insertText(`#${selectedTag} `));
+                                    view.focus();
+                                }, 0);
+                            } else if (prev.query) {
+                                setTimeout(() => {
+                                    view.dispatch(view.state.tr.delete(prev.triggerIdx, view.state.selection.from).insertText(`#${prev.query} `));
+                                    view.focus();
+                                }, 0);
+                            }
+                            return { ...prev, isOpen: false };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'Escape') {
+                        setTagMenu(prev => ({ ...prev, isOpen: false }));
+                        return true;
+                    }
+                }
+
+                if (slashMenu.isOpen) {
+                    if (event.key === 'ArrowDown') {
+                        setSlashMenu(prev => {
+                            const filteredOptions = SLASH_OPTIONS.filter(opt => opt.label.toLowerCase().includes(prev.query.toLowerCase()));
+                            return { ...prev, selectedIndex: (prev.selectedIndex + 1) % (filteredOptions.length || 1) };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'ArrowUp') {
+                        setSlashMenu(prev => {
+                            const filteredOptions = SLASH_OPTIONS.filter(opt => opt.label.toLowerCase().includes(prev.query.toLowerCase()));
+                            return { ...prev, selectedIndex: (prev.selectedIndex - 1 + (filteredOptions.length || 1)) % (filteredOptions.length || 1) };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'Enter') {
+                        setSlashMenu(prev => {
+                            const filteredOptions = SLASH_OPTIONS.filter(opt => opt.label.toLowerCase().includes(prev.query.toLowerCase()));
+                            const selectedOption = filteredOptions[prev.selectedIndex];
+                            if (selectedOption) {
+                                setTimeout(() => {
+                                    const tr = view.state.tr;
+                                    view.dispatch(tr.delete(prev.triggerIdx, view.state.selection.from));
+                                    // We need `editor` instance which is available since we are inside useEditor config, 
+                                    // but JS capture of `editor` might be null at creation time.
+                                    // We'll run the command async if editor is ready.
+                                    selectedOption.command(editor);
+                                }, 0);
+                            }
+                            return { ...prev, isOpen: false };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'Escape') {
+                        setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                        return true;
+                    }
+                }
+                return false;
+            }
+        },
         onSelectionUpdate: ({ editor }) => {
             try {
                 const { from, to, empty } = editor.state.selection;
@@ -926,55 +1010,8 @@ export default function Editor({ fileId }) {
     }, [debouncedSave]);
 
     const handleKeyDown = useCallback((e) => {
-        if (tagMenu.isOpen) {
-            const query = tagMenu.query || '';
-            const filteredTags = availableTags.filter(tag => tag && tag.toLowerCase().includes(query.toLowerCase()));
-            if (e.key === 'ArrowDown') {
-                e.preventDefault();
-                setTagMenu(prev => ({ ...prev, selectedIndex: (prev.selectedIndex + 1) % (filteredTags.length || 1) }));
-            } else if (e.key === 'ArrowUp') {
-                e.preventDefault();
-                setTagMenu(prev => ({ ...prev, selectedIndex: (prev.selectedIndex - 1 + (filteredTags.length || 1)) % (filteredTags.length || 1) }));
-            } else if (e.key === 'Enter') {
-                e.preventDefault();
-                const selectedTag = filteredTags[tagMenu.selectedIndex];
-                if (selectedTag) {
-                    editor.chain().focus().deleteRange({ from: tagMenu.triggerIdx, to: editor.state.selection.from }).insertContent(`#${selectedTag} `).run();
-                    setTagMenu(prev => ({ ...prev, isOpen: false }));
-                } else if (query) {
-                    editor.chain().focus().deleteRange({ from: tagMenu.triggerIdx, to: editor.state.selection.from }).insertContent(`#${query} `).run();
-                    setTagMenu(prev => ({ ...prev, isOpen: false }));
-                }
-            } else if (e.key === 'Escape') {
-                setTagMenu(prev => ({ ...prev, isOpen: false }));
-            }
-            return;
-        }
-
-        if (!slashMenu.isOpen) return;
-
-        const filteredOptions = SLASH_OPTIONS.filter(opt =>
-            opt.label.toLowerCase().includes(slashMenu.query.toLowerCase())
-        );
-
-        if (e.key === 'ArrowDown') {
-            e.preventDefault();
-            setSlashMenu(prev => ({ ...prev, selectedIndex: (prev.selectedIndex + 1) % filteredOptions.length }));
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            setSlashMenu(prev => ({ ...prev, selectedIndex: (prev.selectedIndex - 1 + filteredOptions.length) % filteredOptions.length }));
-        } else if (e.key === 'Enter') {
-            e.preventDefault();
-            const selectedOption = filteredOptions[slashMenu.selectedIndex];
-            if (selectedOption) {
-                editor.chain().focus().deleteRange({ from: slashMenu.triggerIdx, to: editor.state.selection.from }).run();
-                selectedOption.command(editor);
-                setSlashMenu(prev => ({ ...prev, isOpen: false }));
-            }
-        } else if (e.key === 'Escape') {
-            setSlashMenu(prev => ({ ...prev, isOpen: false }));
-        }
-    }, [slashMenu, editor]);
+        // Keyboard handling is now done inside editorProps.handleKeyDown
+    }, []);
 
     useEffect(() => {
         if (slashMenu.isOpen && slashMenuListRef.current) {

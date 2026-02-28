@@ -32,7 +32,9 @@ export default function GlobalTasks() {
             if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'g') {
                 e.preventDefault();
                 if (tagFilterRef.current) {
-                    tagFilterRef.current.focus();
+                    // Small timeout ensures the DOM has settled and React isn't 
+                    // capturing/reverting focus for another reason
+                    setTimeout(() => tagFilterRef.current.focus(), 10);
                 }
             }
         };
