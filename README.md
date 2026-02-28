@@ -58,6 +58,7 @@ Redly supports full Markdown and provides a powerful **Slash Menu** to make form
 
 *   **Slash Command**: Type `/` anywhere in a note to bring up a menu of formatting options (Headers, Lists, Todo items, Horizontal Rules, and more).
 *   **Markdown Shortcuts**: Use standard syntax like `#` for headers, `**` for bold, and `---` for dividers.
+*   **Tagging & Autocomplete**: Type `#` in the editor to create tags (e.g., `#ideas`). Redly will instantly display a floating autocomplete menu populated with every tag you've used across your entire workspace! Tags are also color-coded in the editor to easily distinguish them from regular text.
 *   **Smart Tasks**: Create interactive tasks with `- [ ]`. You can even add dates like `@today` or `@tomorrow` to see them in your Global Tasks view.
 
 ![Mastering Redly Hero Note](docs/assets/hero_note.png)
@@ -69,7 +70,8 @@ Redly supports full Markdown and provides a powerful **Slash Menu** to make form
 Never lose track of a deadline. The **Global Tasks** view aggregates every `- [ ]` task from all your notes, categorising them into an actionable dashboard. 
 
 You can instantly switch between a classic list and an interactive **Kanban Board** by pressing `Alt + V`.
-- **Custom Columns**: Add inline hashtags (e.g. `- [ ] Fix bugs #doing`) to sort tasks into specific stages.
+- **Project Views**: Press `Alt + G` to jump to the tag filter dropdown, instantly creating dedicated project views based on your tags.
+- **Custom Columns**: Add inline hashtags (e.g. `- [ ] Fix bugs #doing`) to sort tasks into specific stages. If you have multiple tags, the **last tag** will always determine the Kanban board column status.
 - **Drag & Drop**: Drag a task from `#todo` to `#done`, and Redly will automatically rewrite the markdown in your raw notes.
 - **Deep Linking**: Click anywhere on a task card to instantly auto-scroll to the exact note in your file tree.
 
@@ -88,6 +90,7 @@ You can instantly switch between a classic list and an interactive **Kanban Boar
 | **Enter Note** | `→` (Right Arrow) |
 | Global Tasks | `Alt + T` |
 | Toggle Kanban / List | `Alt + V` |
+| Filter Tags (Tasks View) | `Alt + G` |
 | Change Workspace | `Alt + W` |
 | Help & Guide | `Alt + /` |
 | Rename Selection | `F2` |

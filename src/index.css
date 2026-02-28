@@ -505,6 +505,20 @@ body {
   font-size: 0.9em;
 }
 
+/* Editor Tag Styling */
+.editor-tag {
+  color: var(--accent-color);
+  background: var(--bg-secondary);
+  padding: 0 4px;
+  border-radius: 4px;
+  font-weight: 500;
+  transition: background 0.2s;
+}
+
+.editor-tag:hover {
+  background: var(--bg-accent);
+}
+
 .tiptap ul,
 .tiptap ol {
   padding-left: 24px;
@@ -635,22 +649,26 @@ body {
 .kanban-board-scroll::-webkit-scrollbar {
   height: 8px;
 }
+
 .kanban-board-scroll::-webkit-scrollbar-track {
   background: transparent;
 }
+
 .kanban-board-scroll::-webkit-scrollbar-thumb {
   background-color: var(--border-color);
   border-radius: 20px;
 }
 
 .kanban-column {
-  background: rgba(0, 0, 0, 0.02); /* very subtle overlay for light mode */
+  background: rgba(0, 0, 0, 0.02);
+  /* very subtle overlay for light mode */
   border: 1px solid var(--border-color);
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
 }
 
 .dark .kanban-column {
-  background: rgba(0, 0, 0, 0.15); /* subtle dark overlay */
+  background: rgba(0, 0, 0, 0.15);
+  /* subtle dark overlay */
 }
 
 .kanban-card {

@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell } from 'lucide-react';
+import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell, LayoutList, Search } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 
 import { exportSandboxData, importSandboxData } from '../lib/db';
@@ -176,7 +176,12 @@ export default function HelpModal({ isOpen, onClose }) {
                             <b>Kanban Board View:</b> Toggle between the traditional list view and the interactive <b>Kanban Board</b> by pressing <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>V</kbd>.
                             <br /><br />
                             <b>Kanban Tags:</b> By default, tasks without a tag go into the `#backlog`. You can organise tasks into specific columns by simply picking up a card and dragging it! Redly will automatically rewrite the raw markdown in your note to append the new column's hashtag to the end of your task text (e.g. <code>- [ ] My task #doing</code>).
-                            You can even create your own unlimited custom column names—just type any `#new_tag` anywhere in your task text, and Redly will instantly generate a new column for it on the board!
+                            If you have multiple tags on a task, the <b>last tag in the text will always determine its column status</b> on the Kanban board.
+                            You can even create your own unlimited custom column names—just type any `#new_status` as the final tag in your task text, and Redly will instantly generate a new column for it on the board!
+                            <br /><br />
+                            <b>Project Tags & Filters:</b> You can add multiple tags to a task (e.g. <code>- [ ] Buy milk #groceries #urgent</code>) to categorize them by project or context! Use the dropdown filter at the top of the Global Tasks view to instantly filter your List or Board down to a specific project tag, effectively creating custom "Views"!
+                            <br /><br />
+                            <b>Editor Autocomplete:</b> Inside any note, type <code>#</code> to instantly bring up a floating autocomplete menu showing every tag you've used across your entire workspace! Tags will also be distinctively colour-coded in the editor to help them stand out.
                             <br /><br />
                             <b>Actionable:</b> Check off items directly from the dashboard, or click their interactive Date badges to change deadlines on the fly! Click anywhere on a task card to automatically open its note and scroll to the exact file in the sidebar.
                         </p>
@@ -189,6 +194,9 @@ export default function HelpModal({ isOpen, onClose }) {
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr auto', gap: '12px', fontSize: '0.9rem', color: 'var(--text-secondary)' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><FileText size={14} /> New Note <span style={{ fontSize: '0.85em', opacity: 0.7 }}>(Contextual)</span></span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>N</kbd></div>
+
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><Search size={14} /> Filter Tags <span style={{ fontSize: '0.85em', opacity: 0.7 }}>(Tasks Vw)</span></span>
+                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>G</kbd></div>
 
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}><FolderPlus size={14} /> New Folder <span style={{ fontSize: '0.85em', opacity: 0.7 }}>(Contextual)</span></span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>F</kbd></div>

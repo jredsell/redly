@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect } from 'react';
-import { CheckSquare, Square, Folder, FileText, ChevronRight, LayoutList, Columns } from 'lucide-react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
+import { CheckSquare, Square, Folder, FileText, ChevronRight, LayoutList, Columns, Tag } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNotes } from '../context/NotesContext';
 import { parseTasksFromNodes } from '../utils/taskParser';
@@ -10,6 +10,9 @@ export default function GlobalTasks() {
     const { nodes, openAndExpandFile, editNode, ensureAllContentsLoaded } = useNotes();
     const [isLoading, setIsLoading] = useState(true);
     const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
+    const [selectedTagFilter, setSelectedTagFilter] = useState('');
+
+    const tagFilterRef = useRef(null);
 
     useEffect(() => {
         const load = async () => {
@@ -25,6 +28,12 @@ export default function GlobalTasks() {
             if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'v') {
                 e.preventDefault();
                 setViewMode(prev => prev === 'list' ? 'kanban' : 'list');
+            }
+            if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'g') {
+                e.preventDefault();
+                if (tagFilterRef.current) {
+                    tagFilterRef.current.focus();
+                }
             }
         };
 
@@ -66,8 +75,23 @@ export default function GlobalTasks() {
         });
     }, [nodes]);
 
-    const pendingTasks = sortedTasks.filter(t => !t.checked);
-    const completedTasks = sortedTasks.filter(t => t.checked);
+    const allAvailableTags = useMemo(() => {
+        const tagSet = new Set();
+        sortedTasks.forEach(t => {
+            if (t.tags && t.tags.length > 0) {
+                t.tags.forEach(tag => tagSet.add(tag));
+            }
+        });
+        return Array.from(tagSet).sort();
+    }, [sortedTasks]);
+
+    const filteredTasks = useMemo(() => {
+        if (!selectedTagFilter) return sortedTasks;
+        return sortedTasks.filter(t => t.tags && t.tags.includes(selectedTagFilter));
+    }, [sortedTasks, selectedTagFilter]);
+
+    const pendingTasks = filteredTasks.filter(t => !t.checked);
+    const completedTasks = filteredTasks.filter(t => t.checked);
 
     const handleToggle = async (e, task) => {
         e.stopPropagation();
@@ -118,13 +142,13 @@ export default function GlobalTasks() {
 
     const columns = useMemo(() => {
         const allColumns = new Set(['backlog', 'todo', 'doing', 'review', 'done']);
-        sortedTasks.forEach(t => {
+        filteredTasks.forEach(t => {
             if (t.column && t.column.trim() !== '') allColumns.add(t.column.toLowerCase());
         });
         const colArray = Array.from(allColumns).filter(c => c !== 'done');
         if (allColumns.has('done')) colArray.push('done');
         return colArray;
-    }, [sortedTasks]);
+    }, [filteredTasks]);
 
     const onDragEnd = async (result) => {
         const { destination, source, draggableId } = result;
@@ -199,9 +223,24 @@ export default function GlobalTasks() {
                 <div style={{
                     fontSize: '15px', color: task.checked ? 'var(--text-tertiary)' : 'var(--text-primary)',
                     textDecoration: task.checked ? 'line-through' : 'none',
-                    lineHeight: '1.4', marginBottom: '4px'
+                    lineHeight: '1.4', marginBottom: '4px',
+                    display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '6px'
                 }}>
-                    {task.text || <em>Empty task</em>}
+                    <span>{task.text || <em>Empty task</em>}</span>
+                    {task.tags && task.tags.length > 0 && task.tags.map(tag => (
+                        <span key={tag} style={{
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--accent-color)',
+                            border: '1px solid var(--border-color)',
+                            padding: '1px 8px',
+                            borderRadius: '12px',
+                            fontSize: '11px',
+                            fontWeight: '600',
+                            textDecoration: 'none'
+                        }}>
+                            #{tag}
+                        </span>
+                    ))}
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
@@ -251,30 +290,58 @@ export default function GlobalTasks() {
                         </p>
                     </div>
 
-                    {/* View Toggle */}
-                    <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                        <button
-                            onClick={() => setViewMode('list')}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '4px', border: 'none', cursor: 'pointer',
-                                fontSize: '13px', fontWeight: 'bold', transition: 'all 0.2s',
-                                background: viewMode === 'list' ? 'var(--bg-accent)' : 'transparent',
-                                color: viewMode === 'list' ? 'var(--accent-color)' : 'var(--text-secondary)'
-                            }}
-                        >
-                            <LayoutList size={16} /> List
-                        </button>
-                        <button
-                            onClick={() => setViewMode('kanban')}
-                            style={{
-                                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '4px', border: 'none', cursor: 'pointer',
-                                fontSize: '13px', fontWeight: 'bold', transition: 'all 0.2s',
-                                background: viewMode === 'kanban' ? 'var(--bg-accent)' : 'transparent',
-                                color: viewMode === 'kanban' ? 'var(--accent-color)' : 'var(--text-secondary)'
-                            }}
-                        >
-                            <Columns size={16} /> Board
-                        </button>
+                    {/* View Toggle and Filter */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        {allAvailableTags.length > 0 && (
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <Tag size={16} style={{ color: 'var(--text-tertiary)' }} />
+                                <select
+                                    ref={tagFilterRef}
+                                    value={selectedTagFilter}
+                                    onChange={(e) => setSelectedTagFilter(e.target.value)}
+                                    className="tag-filter-select"
+                                    style={{
+                                        background: 'var(--bg-secondary)',
+                                        color: 'var(--text-primary)',
+                                        border: '1px solid var(--border-color)',
+                                        borderRadius: '6px',
+                                        padding: '4px 8px',
+                                        fontSize: '13px',
+                                        cursor: 'pointer',
+                                        outline: 'none'
+                                    }}
+                                >
+                                    <option value="">All Tags</option>
+                                    {allAvailableTags.map(tag => (
+                                        <option key={tag} value={tag}>#{tag}</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <button
+                                onClick={() => setViewMode('list')}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '4px', border: 'none', cursor: 'pointer',
+                                    fontSize: '13px', fontWeight: 'bold', transition: 'all 0.2s',
+                                    background: viewMode === 'list' ? 'var(--bg-accent)' : 'transparent',
+                                    color: viewMode === 'list' ? 'var(--accent-color)' : 'var(--text-secondary)'
+                                }}
+                            >
+                                <LayoutList size={16} /> List
+                            </button>
+                            <button
+                                onClick={() => setViewMode('kanban')}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '4px', border: 'none', cursor: 'pointer',
+                                    fontSize: '13px', fontWeight: 'bold', transition: 'all 0.2s',
+                                    background: viewMode === 'kanban' ? 'var(--bg-accent)' : 'transparent',
+                                    color: viewMode === 'kanban' ? 'var(--accent-color)' : 'var(--text-secondary)'
+                                }}
+                            >
+                                <Columns size={16} /> Board
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -328,7 +395,7 @@ export default function GlobalTasks() {
                         <DragDropContext onDragEnd={onDragEnd}>
                             <div className="kanban-board-scroll" style={{ display: 'flex', gap: '24px', padding: '12px 4px 24px 4px', overflowX: 'auto', flex: 1, height: '100%', alignItems: 'flex-start' }}>
                                 {columns.map(col => {
-                                    const colTasks = sortedTasks.filter(t => t.column === col);
+                                    const colTasks = filteredTasks.filter(t => t.column === col);
                                     return (
                                         <div key={col} className="kanban-column" style={{ minWidth: '275px', width: '275px', borderRadius: '12px', display: 'flex', flexDirection: 'column', maxHeight: '100%', overflow: 'hidden' }}>
                                             <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)' }}>
@@ -369,7 +436,25 @@ export default function GlobalTasks() {
                                                                                 {task.checked ? <CheckSquare size={18} /> : <Square size={18} />}
                                                                             </div>
                                                                             <div style={{ flex: 1, fontSize: '14.5px', color: task.checked ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: task.checked ? 'line-through' : 'none', lineHeight: '1.4', fontWeight: task.checked ? '400' : '500' }}>
-                                                                                {task.text || <em>Empty task</em>}
+                                                                                <div style={{ marginBottom: '4px' }}>{task.text || <em>Empty task</em>}</div>
+                                                                                {task.tags && task.tags.length > 0 && (
+                                                                                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '4px' }}>
+                                                                                        {task.tags.map(tag => (
+                                                                                            <span key={tag} style={{
+                                                                                                background: 'var(--bg-secondary)',
+                                                                                                color: 'var(--accent-color)',
+                                                                                                border: '1px solid var(--border-color)',
+                                                                                                padding: '1px 8px',
+                                                                                                borderRadius: '12px',
+                                                                                                fontSize: '11px',
+                                                                                                fontWeight: '600',
+                                                                                                textDecoration: 'none'
+                                                                                            }}>
+                                                                                                #{tag}
+                                                                                            </span>
+                                                                                        ))}
+                                                                                    </div>
+                                                                                )}
                                                                             </div>
                                                                         </div>
                                                                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginTop: '6px' }}>

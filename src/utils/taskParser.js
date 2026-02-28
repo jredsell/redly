@@ -57,23 +57,26 @@ export function parseTasksFromNodes(nodes) {
                     } catch (e) { }
                 }
 
-                // Kanban Column Extraction (Hashtags)
+                // Kanban Column Extraction & Tags (Hashtags)
                 let column = isChecked ? 'done' : 'todo'; // default columns based on state
                 const tagRegex = /(?:^|\s)#([a-zA-Z0-9_\-]+)/g;
                 let tagMatch;
                 let lastTagMatch = null;
+                const tags = [];
 
-                // Find the last hashtag in the string
+                // Find all hashtags in the string
                 while ((tagMatch = tagRegex.exec(text)) !== null) {
+                    const tag = tagMatch[1].toLowerCase();
+                    if (!tags.includes(tag)) tags.push(tag);
                     lastTagMatch = tagMatch;
                 }
 
                 if (lastTagMatch) {
                     column = lastTagMatch[1].toLowerCase();
-                    // Remove the column tag from the display text to keep UI clean
-                    text = text.substring(0, lastTagMatch.index) + text.substring(lastTagMatch.index + lastTagMatch[0].length);
-                    text = text.trim();
                 }
+
+                // Remove all tags from the display text to keep UI clean
+                text = text.replace(/(?:^|\s)#([a-zA-Z0-9_\-]+)/g, '').trim();
 
                 tasks.push({
                     // Stable ID based on file path and line index
@@ -85,7 +88,8 @@ export function parseTasksFromNodes(nodes) {
                     text: text,
                     date: date,
                     hasTime: hasTime,
-                    column: column
+                    column: column,
+                    tags: tags
                 });
             }
         });

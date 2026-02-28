@@ -12,6 +12,8 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import CodeBlock from '@tiptap/extension-code-block';
 import CodeBlockComponent from './CodeBlockComponent';
 import { Extension, Node, mergeAttributes, InputRule } from '@tiptap/core';
+import { Plugin, PluginKey } from '@tiptap/pm/state';
+import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import TurndownService from 'turndown';
 import { gfm } from 'turndown-plugin-gfm';
 import markdownit from 'markdown-it';
@@ -27,6 +29,56 @@ import {
 } from 'lucide-react';
 
 
+
+const TagHighlighter = Extension.create({
+    name: 'tagHighlighter',
+    addProseMirrorPlugins() {
+        return [
+            new Plugin({
+                key: new PluginKey('tagHighlighter'),
+                state: {
+                    init(_, { doc }) {
+                        const decorations = [];
+                        doc.descendants((node, pos) => {
+                            if (node.isText && node.text) {
+                                const regex = /(?:^|\s)(#[a-zA-Z0-9_\-]+)/g;
+                                let match;
+                                while ((match = regex.exec(node.text)) !== null) {
+                                    const start = pos + match.index + (match[0].startsWith(' ') ? 1 : 0);
+                                    const end = start + match[1].length;
+                                    decorations.push(Decoration.inline(start, end, { class: 'editor-tag' }));
+                                }
+                            }
+                        });
+                        return DecorationSet.create(doc, decorations);
+                    },
+                    apply(transaction, oldState) {
+                        if (!transaction.docChanged) return oldState;
+                        const doc = transaction.doc;
+                        const decorations = [];
+                        doc.descendants((node, pos) => {
+                            if (node.isText && node.text) {
+                                const regex = /(?:^|\s)(#[a-zA-Z0-9_\-]+)/g;
+                                let match;
+                                while ((match = regex.exec(node.text)) !== null) {
+                                    const start = pos + match.index + (match[0].startsWith(' ') ? 1 : 0);
+                                    const end = start + match[1].length;
+                                    decorations.push(Decoration.inline(start, end, { class: 'editor-tag' }));
+                                }
+                            }
+                        });
+                        return DecorationSet.create(doc, decorations);
+                    },
+                },
+                props: {
+                    decorations(state) {
+                        return this.getState(state);
+                    },
+                },
+            }),
+        ];
+    },
+});
 
 // React Component for TaskItem Node View
 const CustomTaskItemComponent = (props) => {
@@ -403,18 +455,50 @@ const TableControlsMenu = ({ editor, trigger, onClose }) => {
 };
 
 export default function Editor({ fileId }) {
-    const { nodes, editNode, removeNode, getFileContent } = useNotes();
+    const { nodes, editNode, removeNode, getFileContent, ensureAllContentsLoaded } = useNotes();
     const [file, setFile] = useState(null);
     const saveTimeoutRef = useRef(null);
     const lastSavedContentRef = useRef(''); // Track the last saved state to prevent echo updates
     const [localTitle, setLocalTitle] = useState('');
     const pendingUpdatesRef = useRef({}); // Merge updates (name, content) to prevent race conditions during renames
     const [slashMenu, setSlashMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
+    const [tagMenu, setTagMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
+    const [availableTags, setAvailableTags] = useState([]);
     const [bubbleMenu, setBubbleMenu] = useState({ isOpen: false, top: 0, left: 0 });
     const [tableTriggerCoords, setTableTriggerCoords] = useState(null);
     const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
     const [forceRender, setForceRender] = useState(0);
     const slashMenuListRef = useRef(null);
+    const tagMenuListRef = useRef(null);
+
+    useEffect(() => {
+        ensureAllContentsLoaded();
+    }, [ensureAllContentsLoaded]);
+
+    useEffect(() => {
+        const tagSet = new Set();
+        nodes.forEach(n => {
+            if (n.content && typeof n.content === 'string') {
+                const regex = /(?:^|\s)#([a-zA-Z0-9_\-]+)/g;
+                let match;
+                while ((match = regex.exec(n.content)) !== null) {
+                    tagSet.add(match[1]); // Ensure case preservation
+                }
+            }
+        });
+
+        // Remove duplicates case-insensitively, but keep original casing for display
+        const uniqueTags = [];
+        const seenLower = new Set();
+        Array.from(tagSet).forEach(tag => {
+            if (!seenLower.has(tag.toLowerCase())) {
+                seenLower.add(tag.toLowerCase());
+                uniqueTags.push(tag);
+            }
+        });
+
+        setAvailableTags(uniqueTags.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())));
+    }, [nodes]);
 
     const debouncedSave = useCallback((updates) => {
         // Merge new updates into the pending buffer
@@ -434,6 +518,7 @@ export default function Editor({ fileId }) {
     }, [fileId, editNode]);
 
     const extensions = useMemo(() => [
+        TagHighlighter,
         StarterKit.configure({
             heading: { levels: [1, 2, 3] },
             history: true,
@@ -750,10 +835,11 @@ export default function Editor({ fileId }) {
 
                         // textBetween can throw if offsets are invalid
                         const textBefore = parent.textBetween(0, Math.min($pos.parentOffset, parent.content.size), '\n');
-                        const match = textBefore.match(/(?:^|\s)\/([a-zA-Z0-9]*)$/);
+                        const slashMatch = textBefore.match(/(?:^|\s)\/([a-zA-Z0-9]*)$/);
+                        const tagMatch = textBefore.match(/(?:^|\s)#([a-zA-Z0-9_\-]*)$/);
 
-                        if (match) {
-                            const query = match[1];
+                        if (slashMatch) {
+                            const query = slashMatch[1];
                             const triggerIdx = from - query.length - 1;
 
                             try {
@@ -771,17 +857,42 @@ export default function Editor({ fileId }) {
                                         triggerIdx: triggerIdx,
                                         selectedIndex: 0
                                     });
-
-
-
                                 } else {
                                     setSlashMenu(prev => ({ ...prev, isOpen: false }));
                                 }
                             } catch (e) {
                                 setSlashMenu(prev => ({ ...prev, isOpen: false }));
                             }
+                            setTagMenu(prev => ({ ...prev, isOpen: false }));
+                        } else if (tagMatch) {
+                            const query = tagMatch[1];
+                            const triggerIdx = from - query.length - 1;
+
+                            try {
+                                const coords = editor.view.coordsAtPos(triggerIdx);
+                                if (coords && typeof coords.bottom === 'number' && typeof coords.left === 'number') {
+                                    const menuHeight = 200;
+                                    const viewportHeight = window.innerHeight;
+                                    const wouldOverflow = coords.bottom + menuHeight > viewportHeight - 20;
+
+                                    setTagMenu({
+                                        isOpen: true,
+                                        top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
+                                        left: coords.left,
+                                        query: query || '',
+                                        triggerIdx: triggerIdx,
+                                        selectedIndex: 0
+                                    });
+                                } else {
+                                    setTagMenu(prev => ({ ...prev, isOpen: false }));
+                                }
+                            } catch (e) {
+                                setTagMenu(prev => ({ ...prev, isOpen: false }));
+                            }
+                            setSlashMenu(prev => ({ ...prev, isOpen: false }));
                         } else {
                             setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                            setTagMenu(prev => ({ ...prev, isOpen: false }));
                         }
                     }
                 }
@@ -795,6 +906,7 @@ export default function Editor({ fileId }) {
         onBlur: () => {
             setBubbleMenu({ isOpen: false, top: 0, left: 0 });
             setSlashMenu(prev => ({ ...prev, isOpen: false }));
+            setTagMenu(prev => ({ ...prev, isOpen: false }));
         }
 
     });
@@ -806,6 +918,31 @@ export default function Editor({ fileId }) {
     }, [debouncedSave]);
 
     const handleKeyDown = useCallback((e) => {
+        if (tagMenu.isOpen) {
+            const query = tagMenu.query || '';
+            const filteredTags = availableTags.filter(tag => tag && tag.toLowerCase().includes(query.toLowerCase()));
+            if (e.key === 'ArrowDown') {
+                e.preventDefault();
+                setTagMenu(prev => ({ ...prev, selectedIndex: (prev.selectedIndex + 1) % (filteredTags.length || 1) }));
+            } else if (e.key === 'ArrowUp') {
+                e.preventDefault();
+                setTagMenu(prev => ({ ...prev, selectedIndex: (prev.selectedIndex - 1 + (filteredTags.length || 1)) % (filteredTags.length || 1) }));
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                const selectedTag = filteredTags[tagMenu.selectedIndex];
+                if (selectedTag) {
+                    editor.chain().focus().deleteRange({ from: tagMenu.triggerIdx, to: editor.state.selection.from }).insertContent(`#${selectedTag} `).run();
+                    setTagMenu(prev => ({ ...prev, isOpen: false }));
+                } else if (query) {
+                    editor.chain().focus().deleteRange({ from: tagMenu.triggerIdx, to: editor.state.selection.from }).insertContent(`#${query} `).run();
+                    setTagMenu(prev => ({ ...prev, isOpen: false }));
+                }
+            } else if (e.key === 'Escape') {
+                setTagMenu(prev => ({ ...prev, isOpen: false }));
+            }
+            return;
+        }
+
         if (!slashMenu.isOpen) return;
 
         const filteredOptions = SLASH_OPTIONS.filter(opt =>
@@ -839,6 +976,15 @@ export default function Editor({ fileId }) {
             }
         }
     }, [slashMenu.selectedIndex, slashMenu.isOpen]);
+
+    useEffect(() => {
+        if (tagMenu.isOpen && tagMenuListRef.current) {
+            const activeItem = tagMenuListRef.current.children[tagMenu.selectedIndex];
+            if (activeItem) {
+                activeItem.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }, [tagMenu.selectedIndex, tagMenu.isOpen]);
 
     useEffect(() => {
         const f = nodes.find(n => n.id === fileId);
@@ -1005,6 +1151,57 @@ export default function Editor({ fileId }) {
                                     {opt.label}
                                 </li>
                             ))}
+                        </ul>
+                    </div>
+                )}
+
+                {/* Custom Tag Menu */}
+                {tagMenu.isOpen && (
+                    <div style={{
+                        position: 'fixed',
+                        top: tagMenu.top,
+                        left: tagMenu.left,
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        boxShadow: 'var(--shadow-md)',
+                        zIndex: 1000,
+                        minWidth: '200px',
+                        padding: '4px',
+                        maxHeight: '200px',
+                        overflowY: 'auto'
+                    }}>
+                        <ul ref={tagMenuListRef} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                            {availableTags.filter(tag => tag && tag.toLowerCase().includes((tagMenu.query || '').toLowerCase())).map((tag, idx) => (
+                                <li
+                                    key={idx}
+                                    onMouseDown={(e) => {
+                                        e.preventDefault();
+                                        editor.chain().focus().deleteRange({ from: tagMenu.triggerIdx, to: editor.state.selection.from }).insertContent(`#${tag} `).run();
+                                        setTagMenu(prev => ({ ...prev, isOpen: false }));
+                                    }}
+                                    style={{
+                                        padding: '8px 12px',
+                                        cursor: 'pointer',
+                                        borderRadius: '4px',
+                                        backgroundColor: idx === tagMenu.selectedIndex ? 'var(--bg-accent)' : 'transparent',
+                                        color: idx === tagMenu.selectedIndex ? 'var(--accent-color)' : 'var(--text-primary)',
+                                        fontSize: '14px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '8px',
+                                        fontWeight: 500
+                                    }}
+                                >
+                                    <span style={{ color: 'var(--text-tertiary)' }}>#</span>
+                                    {tag}
+                                </li>
+                            ))}
+                            {availableTags.filter(tag => tag && tag.toLowerCase().includes((tagMenu.query || '').toLowerCase())).length === 0 && (
+                                <li style={{ padding: '8px 12px', color: 'var(--text-tertiary)', fontSize: '13px', fontStyle: 'italic' }}>
+                                    Keep typing to create new tag...
+                                </li>
+                            )}
                         </ul>
                     </div>
                 )}
