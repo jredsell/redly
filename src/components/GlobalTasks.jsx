@@ -16,6 +16,16 @@ export default function GlobalTasks() {
     const [tagDropdownIndex, setTagDropdownIndex] = useState(0);
 
     const tagFilterRef = useRef(null);
+    const tagMenuRef = useRef(null);
+
+    useEffect(() => {
+        if (isTagDropdownOpen && tagMenuRef.current) {
+            const activeEl = tagMenuRef.current.querySelector('button.active');
+            if (activeEl) {
+                activeEl.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }, [tagDropdownIndex, isTagDropdownOpen]);
 
     useEffect(() => {
         const load = async () => {
@@ -381,10 +391,12 @@ export default function GlobalTasks() {
                                         }}
                                     />
                                     {isTagDropdownOpen && visibleDropdownTags.length > 0 && (
-                                        <ul className="tag-menu" style={{
+                                        <ul className="tag-menu" ref={tagMenuRef} style={{
                                             listStyle: 'none', margin: 0, padding: '4px',
                                             position: 'absolute', top: '100%', left: 0, marginTop: '4px',
-                                            width: '100%', maxHeight: '200px', overflowY: 'auto'
+                                            width: '100%', maxHeight: '200px', overflowY: 'auto',
+                                            background: 'var(--bg-primary)', border: '1px solid var(--border-color)',
+                                            borderRadius: '6px', zIndex: 1000, boxShadow: 'var(--shadow-md)'
                                         }}>
                                             {visibleDropdownTags.map((tag, index) => (
                                                 <li key={tag}>
@@ -403,7 +415,12 @@ export default function GlobalTasks() {
                                                             if (tagFilterRef.current) tagFilterRef.current.blur();
                                                         }}
                                                         onMouseEnter={() => setTagDropdownIndex(index)}
-                                                        style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '6px' }}
+                                                        style={{
+                                                            width: '100%', display: 'flex', alignItems: 'center', gap: '6px',
+                                                            padding: '6px 8px', borderRadius: '4px', border: 'none',
+                                                            background: index === tagDropdownIndex ? 'var(--bg-hover)' : 'transparent',
+                                                            color: 'var(--text-primary)', cursor: 'pointer', textAlign: 'left'
+                                                        }}
                                                     >
                                                         {tag === 'All Tags' ? tag : `#${tag}`}
                                                     </button>
