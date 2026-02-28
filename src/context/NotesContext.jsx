@@ -70,14 +70,16 @@ export const NotesProvider = ({ children }) => {
             setDeferredPrompt(null);
         };
 
+        const handleDeferredPromptCaptured = () => {
+            setDeferredPrompt(window.__DEFERRED_PROMPT__);
+        };
+
         // Check if the global interceptor already caught it
         if (window.__DEFERRED_PROMPT__) {
             setDeferredPrompt(window.__DEFERRED_PROMPT__);
         } else {
             // Otherwise listen for the global custom event or the native event
-            window.addEventListener('deferred-prompt-captured', () => {
-                setDeferredPrompt(window.__DEFERRED_PROMPT__);
-            });
+            window.addEventListener('deferred-prompt-captured', handleDeferredPromptCaptured);
         }
 
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -86,7 +88,7 @@ export const NotesProvider = ({ children }) => {
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
             window.removeEventListener('appinstalled', handleAppInstalled);
-            window.removeEventListener('deferred-prompt-captured', () => { });
+            window.removeEventListener('deferred-prompt-captured', handleDeferredPromptCaptured);
         };
     }, []);
 

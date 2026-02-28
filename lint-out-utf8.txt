@@ -1,0 +1,160 @@
+﻿
+> redly@1.0.2 lint
+> eslint .
+
+
+C:\Users\jonat\Downloads\redly\dev-dist\sw.js
+  34:13  error  'importScripts' is not defined  no-undef
+  70:1   error  'define' is not defined         no-undef
+
+C:\Users\jonat\Downloads\redly\dev-dist\workbox-2ae722a1.js
+     1:1   error    'define' is not defined                                                         no-undef
+     5:37  error    '_' is not defined                                                              no-undef
+     6:14  error    'e' is defined but never used                                                   no-unused-vars
+     6:17  error    Empty block statement                                                           no-empty
+    52:7   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+   419:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+   435:5   warning  Unused eslint-disable directive (no problems were reported)
+   458:40  error    '_' is not defined                                                              no-undef
+   459:14  error    'e' is defined but never used                                                   no-unused-vars
+   459:17  error    Empty block statement                                                           no-empty
+   752:11  error    Definition for rule '@typescript-eslint/no-unsafe-member-access' was not found  @typescript-eslint/no-unsafe-member-access
+   754:13  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   948:11  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   964:13  error    Definition for rule '@typescript-eslint/no-unsafe-assignment' was not found     @typescript-eslint/no-unsafe-assignment
+   970:13  warning  Unused eslint-disable directive (no problems were reported)
+  1197:53  error    'registration' is not defined                                                   no-undef
+  1257:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+  1275:5   error    Definition for rule '@typescript-eslint/ban-types' was not found                @typescript-eslint/ban-types
+  1291:14  error    '_extends' is a function                                                        no-func-assign
+  1545:43  error    '_' is not defined                                                              no-undef
+  1546:14  error    'e' is defined but never used                                                   no-unused-vars
+  1546:17  error    Empty block statement                                                           no-empty
+  1967:22  error    'error' is defined but never used                                               no-unused-vars
+  2258:43  error    '_' is not defined                                                              no-undef
+  2259:14  error    'e' is defined but never used                                                   no-unused-vars
+  2259:17  error    Empty block statement                                                           no-empty
+  2337:56  error    'ExtendableEvent' is not defined                                                no-undef
+  2376:61  error    'FetchEvent' is not defined                                                     no-undef
+  2411:15  error    Unexpected constant condition                                                   no-constant-condition
+  2603:35  warning  Unused eslint-disable directive (no problems were reported)
+  2877:32  error    'FetchEvent' is not defined                                                     no-undef
+  2945:18  error    'error' is defined but never used                                               no-unused-vars
+  3132:43  error    '_' is not defined                                                              no-undef
+  3133:14  error    'e' is defined but never used                                                   no-unused-vars
+  3133:17  error    Empty block statement                                                           no-empty
+  3266:11  warning  Unused eslint-disable directive (no problems were reported)
+  3381:20  error    'error' is defined but never used                                               no-unused-vars
+  3786:9   error    Definition for rule '@typescript-eslint/no-unsafe-return' was not found         @typescript-eslint/no-unsafe-return
+  3833:9   error    Definition for rule '@typescript-eslint/no-unsafe-return' was not found         @typescript-eslint/no-unsafe-return
+
+C:\Users\jonat\Downloads\redly\src\App.jsx
+   14:10   error    'expanded' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    no-unused-vars
+   70:96   error    'notificationSettings' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+   70:118  error    'setNotificationSettings' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  125:7    error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  123 |     window.addEventListener('keydown', handleKeyDown);
+  124 |     if (activeFileId && showTasks) {
+> 125 |       setShowTasks(false);
+      |       ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  126 |     }
+  127 |     return () => window.removeEventListener('keydown', handleKeyDown);
+  128 |   }, [activeFileId, showTasks, disconnectWorkspace]);  react-hooks/set-state-in-effect
+  128:6    warning  React Hook useEffect has a missing dependency: 'setActiveFileId'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/exhaustive-deps
+
+C:\Users\jonat\Downloads\redly\src\components\Editor.jsx
+   22:10  error    'getDateColor' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                             no-unused-vars
+  169:52  error    Unnecessary escape character: \*                                                                                                no-useless-escape
+  169:54  error    Unnecessary escape character: \[                                                                                                no-useless-escape
+  233:45  error    'setBubbleMenu' is defined but never used                                                                                       no-unused-vars
+  390:12  error    'forceRender' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                     no-unused-vars
+  569:70  error    Unnecessary escape character: \/                                                                                                no-useless-escape
+  569:72  error    Unnecessary escape character: \.                                                                                                no-useless-escape
+  569:83  error    Unnecessary escape character: \/                                                                                                no-useless-escape
+  569:85  error    Unnecessary escape character: \.                                                                                                no-useless-escape
+  601:70  error    Unnecessary escape character: \/                                                                                                no-useless-escape
+  601:72  error    Unnecessary escape character: \.                                                                                                no-useless-escape
+  601:83  error    Unnecessary escape character: \/                                                                                                no-useless-escape
+  601:85  error    Unnecessary escape character: \.                                                                                                no-useless-escape
+  690:30  error    'innerErr' is defined but never used                                                                                            no-unused-vars
+  731:38  error    'e' is defined but never used                                                                                                   no-unused-vars
+  862:38  error    'e' is defined but never used                                                                                                   no-unused-vars
+  869:8   warning  React Hook useEffect has missing dependencies: 'file' and 'getFileContent'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+C:\Users\jonat\Downloads\redly\src\components\GlobalSearch.jsx
+  42:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  40 |     useEffect(() => {
+  41 |         if (query.trim().length < 2) {
+> 42 |             setResults([]);
+     |             ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  43 |             setIsOpen(false);
+  44 |             return;
+  45 |         }  react-hooks/set-state-in-effect
+
+C:\Users\jonat\Downloads\redly\src\components\InlineDateInput.jsx
+  29:18  error  'e' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               no-unused-vars
+  29:21  error  Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                       no-empty
+  36:13  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  34 |     useEffect(() => {
+  35 |         if (!isEditing) {
+> 36 |             setEditValue(display);
+     |             ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  37 |         }
+  38 |     }, [display, isEditing]);
+  39 |  react-hooks/set-state-in-effect
+
+C:\Users\jonat\Downloads\redly\src\components\Sidebar.jsx
+  10:19  error  'isInitializing' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u       no-unused-vars
+  12:23  error  'disconnectWorkspace' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  12:44  error  'isDarkMode' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u           no-unused-vars
+
+C:\Users\jonat\Downloads\redly\src\components\WelcomeScreen.jsx
+    6:47   error  'isDarkMode' is defined but never used                                                      no-unused-vars
+  156:146  error  'isDarkMode' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+C:\Users\jonat\Downloads\redly\src\context\NotesContext.jsx
+   53:12  error  'notifiedTaskIds' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                                 no-unused-vars
+  410:14  error  Fast refresh only works when a file only exports components. Use a new file to share constants or functions between components  react-refresh/only-export-components
+
+C:\Users\jonat\Downloads\redly\src\lib\db.js
+    7:43  error  'options' is assigned a value but never used  no-unused-vars
+  133:14  error  'e' is defined but never used                 no-unused-vars
+
+C:\Users\jonat\Downloads\redly\src\lib\local_driver.js
+  171:23  error  'oldPath' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  188:38  error  'type' is defined but never used                                                         no-unused-vars
+
+C:\Users\jonat\Downloads\redly\src\utils\dateHelpers.js
+  90:69  error  Unnecessary escape character: \/  no-useless-escape
+  90:71  error  Unnecessary escape character: \-  no-useless-escape
+  90:87  error  Unnecessary escape character: \/  no-useless-escape
+  90:89  error  Unnecessary escape character: \-  no-useless-escape
+
+C:\Users\jonat\Downloads\redly\src\utils\taskParser.js
+  57:30  error  'e' is defined but never used  no-unused-vars
+  57:33  error  Empty block statement          no-empty
+
+Ô£û 84 problems (78 errors, 6 warnings)
+  0 errors and 4 warnings potentially fixable with the `--fix` option.
+
