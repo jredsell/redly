@@ -8,7 +8,7 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['Redly_favicon.jpg'],
+      includeAssets: ['Redly_favicon.png'],
       manifest: {
         name: 'Redly',
         short_name: 'Redly',
@@ -20,21 +20,21 @@ export default defineConfig({
         start_url: '/redly/',
         icons: [
           {
-            src: 'Redly_favicon.jpg',
+            src: 'Redly_favicon.png',
             sizes: '192x192',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'any'
           },
           {
-            src: 'Redly_favicon.jpg',
+            src: 'Redly_favicon.png',
             sizes: '512x512',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'any'
           },
           {
-            src: 'Redly_favicon.jpg',
+            src: 'Redly_favicon.png',
             sizes: '512x512',
-            type: 'image/jpeg',
+            type: 'image/png',
             purpose: 'maskable'
           }
         ]

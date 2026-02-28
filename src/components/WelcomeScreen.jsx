@@ -63,7 +63,7 @@ const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
                             </div>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                                 <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', minWidth: '32px', textAlign: 'center' }}>2</div>
-                                <p style={{ margin: 0, fontSize: '14px' }}>Select <strong>'Install Redly'</strong> or <strong>'App &gt; Install this site'</strong>.</p>
+                                <p style={{ margin: 0, fontSize: '14px' }}>Select <strong>'Cast, save and share'</strong> &gt; <strong>'Install page as app...'</strong>.</p>
                             </div>
                         </>
                     )}
