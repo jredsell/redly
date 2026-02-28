@@ -1,0 +1,3 @@
+﻿* master
+  remotes/origin/HEAD -> origin/master
+  remotes/origin/master
