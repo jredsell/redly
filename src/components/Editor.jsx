@@ -58,7 +58,7 @@ const TagHighlighter = Extension.create({
                         const decorations = [];
                         doc.descendants((node, pos) => {
                             if (node.isText && node.text) {
-                                const regex = /(?:^|\s)(#[a-zA-Z0-9_\-]+)/g;
+                                const regex = /(?:^|\s)(#[a-zA-Z0-9_-]+)/g;
                                 let match;
                                 while ((match = regex.exec(node.text)) !== null) {
                                     const start = pos + match.index + (match[0].startsWith(' ') ? 1 : 0);
@@ -481,7 +481,7 @@ export default function Editor({ fileId }) {
         const tagSet = new Set();
         nodes.forEach(n => {
             if (n.content && typeof n.content === 'string') {
-                const regex = /(?:^|\s)#([a-zA-Z0-9_\-]+)/g;
+                const regex = /(?:^|\s)#([a-zA-Z0-9_-]+)/g;
                 let match;
                 while ((match = regex.exec(n.content)) !== null) {
                     tagSet.add(match[1]); // Ensure case preservation
@@ -929,7 +929,7 @@ export default function Editor({ fileId }) {
                         // textBetween can throw if offsets are invalid
                         const textBefore = parent.textBetween(0, Math.min($pos.parentOffset, parent.content.size), '\n');
                         const slashMatch = textBefore.match(/(?:^|\s)\/([a-zA-Z0-9]*)$/);
-                        const tagMatch = textBefore.match(/(?:^|\s)#([a-zA-Z0-9_\-]*)$/);
+                        const tagMatch = textBefore.match(/(?:^|\s)#([a-zA-Z0-9_-]*)$/);
 
                         if (slashMatch) {
                             const query = slashMatch[1];

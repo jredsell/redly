@@ -87,7 +87,7 @@ export const parseDateString = (input) => {
             dateObj.setDate(parseInt(isoMatch[3], 10));
         } else {
             // DD/MM or DD/MM/YYYY or DD/MM/YY
-            const dateMatch = dateStrWithoutTime.match(/\b(\d{1,2})[\/\-](\d{1,2})(?:[\/\-](\d{2,4}))?\b/);
+            const dateMatch = dateStrWithoutTime.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
             if (dateMatch) {
                 hasDate = true;
                 const dStr = parseInt(dateMatch[1], 10);

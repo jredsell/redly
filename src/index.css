@@ -724,60 +724,57 @@ body {
 .tag-menu button.active {
   background-color: var(--bg-hover);
 }
- 
- / *   M o d a l s   * / 
- . m o d a l - o v e r l a y   { 
-     p o s i t i o n :   f i x e d ; 
-     i n s e t :   0 ; 
-     d i s p l a y :   f l e x ; 
-     a l i g n - i t e m s :   c e n t e r ; 
-     j u s t i f y - c o n t e n t :   c e n t e r ; 
-     b a c k g r o u n d :   r g b a ( 0 ,   0 ,   0 ,   0 . 4 ) ; 
-     b a c k d r o p - f i l t e r :   b l u r ( 4 p x ) ; 
-     - w e b k i t - b a c k d r o p - f i l t e r :   b l u r ( 4 p x ) ; 
-     z - i n d e x :   1 0 0 0 0 0 ; 
-     a n i m a t i o n :   f a d e I n   0 . 1 5 s   e a s e - o u t ; 
- } 
- 
- . m o d a l - c o n t e n t   { 
-     b a c k g r o u n d :   v a r ( - - b g - p r i m a r y ) ; 
-     b o r d e r :   1 p x   s o l i d   v a r ( - - b o r d e r - c o l o r ) ; 
-     b o r d e r - r a d i u s :   1 2 p x ; 
-     p a d d i n g :   2 4 p x ; 
-     b o x - s h a d o w :   v a r ( - - s h a d o w - l g ) ; 
-     w i d t h :   9 0 % ; 
-     m a x - w i d t h :   4 2 0 p x ; 
-     a n i m a t i o n :   s l i d e U p F a d e   0 . 2 s   c u b i c - b e z i e r ( 0 . 1 6 ,   1 ,   0 . 3 ,   1 ) ; 
- } 
- 
- @ k e y f r a m e s   f a d e I n   { 
-     f r o m   {   o p a c i t y :   0 ;   } 
-     t o   {   o p a c i t y :   1 ;   } 
- } 
- 
- @ k e y f r a m e s   s l i d e U p F a d e   { 
-     f r o m   { 
-         o p a c i t y :   0 ; 
-         t r a n s f o r m :   t r a n s l a t e Y ( 1 0 p x )   s c a l e ( 0 . 9 8 ) ; 
-     } 
-     t o   { 
-         o p a c i t y :   1 ; 
-         t r a n s f o r m :   t r a n s l a t e Y ( 0 )   s c a l e ( 1 ) ; 
-     } 
- } 
-  
- 
- . m o d a l - c o n t e n t   . d a n g e r - b t n   { 
-     t r a n s i t i o n :   o p a c i t y   0 . 2 s   e a s e ; 
- } 
- . m o d a l - c o n t e n t   . d a n g e r - b t n : h o v e r   { 
-     o p a c i t y :   0 . 9 ; 
- } 
- . m o d a l - c o n t e n t   . s e c o n d a r y - b t n   { 
-     t r a n s i t i o n :   b a c k g r o u n d   0 . 2 s   e a s e ; 
- } 
- . m o d a l - c o n t e n t   . s e c o n d a r y - b t n : h o v e r   { 
-     b a c k g r o u n d :   v a r ( - - b g - h o v e r )   ! i m p o r t a n t ; 
- } 
-  
- 
+
+/* Modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 100000;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.modal-content {
+  background: var(--bg-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 24px;
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 420px;
+  animation: slideUpFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.modal-content .danger-btn {
+  transition: opacity 0.2s ease;
+}
+.modal-content .danger-btn:hover {
+  opacity: 0.9;
+}
+.modal-content .secondary-btn {
+  transition: background 0.2s ease;
+}
+.modal-content .secondary-btn:hover {
+  background: var(--bg-hover) !important;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUpFade {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}

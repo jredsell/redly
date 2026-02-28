@@ -54,12 +54,14 @@ export function parseTasksFromNodes(nodes) {
                             // Remove the date string from the text to avoid duplication in UI
                             text = text.replace(dateRegex, '').trim();
                         }
-                    } catch (e) { }
+                    } catch {
+                        /* ignore */
+                    }
                 }
 
                 // Kanban Column Extraction & Tags (Hashtags)
                 let column = isChecked ? 'done' : 'backlog'; // default columns based on state
-                const tagRegex = /(?:^|\s)#([a-zA-Z0-9_\-]+)/g;
+                const tagRegex = /(?:^|\s)#([a-zA-Z0-9_-]+)/g;
                 let tagMatch;
                 const tags = [];
                 let stateTag = null;
@@ -83,7 +85,7 @@ export function parseTasksFromNodes(nodes) {
                 }
 
                 // Remove all tags from the display text to keep UI clean
-                text = text.replace(/(?:^|\s)#([a-zA-Z0-9_\-]+)/g, '').trim();
+                text = text.replace(/(?:^|\s)#([a-zA-Z0-9_-]+)/g, '').trim();
 
                 tasks.push({
                     // Stable ID based on file path and line index

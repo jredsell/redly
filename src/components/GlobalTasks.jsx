@@ -171,7 +171,7 @@ export default function GlobalTasks() {
 
         if (taskLine) {
             // Find the last hashtag in the text to replace it
-            const tagRegex = /(?:^|\s)#([a-zA-Z0-9_\-]+)/g;
+            const tagRegex = /(?:^|\s)#([a-zA-Z0-9_-]+)/g;
             let tagMatch;
             let lastTagMatch = null;
             while ((tagMatch = tagRegex.exec(taskLine)) !== null) {
