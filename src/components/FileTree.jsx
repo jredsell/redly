@@ -121,10 +121,13 @@ export default function FileTree({ node, depth }) {
             // unless we are actively using the sidebar
             if (document.activeElement !== itemRef.current && document.activeElement?.closest('.sidebar-content')) {
                 itemRef.current.focus();
-                itemRef.current.scrollIntoView({ block: 'nearest' });
+                itemRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             } else if (!document.activeElement || document.activeElement === document.body) {
                 itemRef.current.focus();
-                itemRef.current.scrollIntoView({ block: 'nearest' });
+                itemRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+            } else {
+                // If focus is in Editor or Global Tasks, just scroll it into view so the user sees it without stealing type focus!
+                itemRef.current.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
             }
         }
     }, [isFocused]);

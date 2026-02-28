@@ -1,15 +1,17 @@
-import React, { useMemo } from 'react';
-import { CheckSquare, Square, Folder, FileText, ChevronRight } from 'lucide-react';
+import React, { useMemo, useState, useEffect } from 'react';
+import { CheckSquare, Square, Folder, FileText, ChevronRight, LayoutList, Columns } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNotes } from '../context/NotesContext';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { getDateColor } from '../utils/dateHelpers';
 import InlineDateInput from './InlineDateInput';
 
 export default function GlobalTasks() {
-    const { nodes, setActiveFileId, editNode, ensureAllContentsLoaded } = useNotes();
-    const [isLoading, setIsLoading] = React.useState(true);
+    const { nodes, openAndExpandFile, editNode, ensureAllContentsLoaded } = useNotes();
+    const [isLoading, setIsLoading] = useState(true);
+    const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
 
-    React.useEffect(() => {
+    useEffect(() => {
         const load = async () => {
             await ensureAllContentsLoaded();
             setIsLoading(false);
@@ -101,6 +103,62 @@ export default function GlobalTasks() {
 
 
 
+    const columns = useMemo(() => {
+        const allColumns = new Set(['backlog', 'todo', 'doing', 'review', 'done']);
+        sortedTasks.forEach(t => {
+            if (t.column && t.column.trim() !== '') allColumns.add(t.column.toLowerCase());
+        });
+        const colArray = Array.from(allColumns).filter(c => c !== 'done');
+        if (allColumns.has('done')) colArray.push('done');
+        return colArray;
+    }, [sortedTasks]);
+
+    const onDragEnd = async (result) => {
+        const { destination, source, draggableId } = result;
+        if (!destination) return;
+        if (destination.droppableId === source.droppableId && destination.index === source.index) return;
+
+        const task = sortedTasks.find(t => t.id === draggableId);
+        if (!task) return;
+
+        const newColumn = destination.droppableId;
+        const targetColumnTag = `#${newColumn}`;
+
+        const file = nodes.find(n => n.id === task.fileId);
+        if (!file || !file.content) return;
+
+        const lines = file.content.split('\n');
+        let taskLine = lines[task.lineIndex];
+
+        if (taskLine) {
+            // Find the last hashtag in the text to replace it
+            const tagRegex = /(?:^|\s)#([a-zA-Z0-9_\-]+)/g;
+            let tagMatch;
+            let lastTagMatch = null;
+            while ((tagMatch = tagRegex.exec(taskLine)) !== null) {
+                lastTagMatch = tagMatch;
+            }
+
+            if (lastTagMatch && lastTagMatch[1].toLowerCase() === task.column) {
+                // Task had an explicit tag, replace it
+                taskLine = taskLine.substring(0, lastTagMatch.index) + taskLine.substring(lastTagMatch.index).replace(lastTagMatch[0], ` ${targetColumnTag}`);
+            } else {
+                // Task had no explicit tag (defaulted column), append it
+                taskLine = taskLine.trimEnd() + ` ${targetColumnTag}`;
+            }
+
+            // Sync visual checkbox state with 'done' vs 'todo/doing'
+            if (newColumn === 'done' && taskLine.includes('- [ ]')) {
+                taskLine = taskLine.replace('- [ ]', '- [x]');
+            } else if (newColumn !== 'done' && taskLine.includes('- [x]')) {
+                taskLine = taskLine.replace('- [x]', '- [ ]');
+            }
+
+            lines[task.lineIndex] = taskLine;
+            await editNode(task.fileId, { content: lines.join('\n') });
+        }
+    };
+
     const TaskItem = ({ task }) => (
         <div
             className="global-task-item"
@@ -109,7 +167,7 @@ export default function GlobalTasks() {
                 borderBottom: '1px solid var(--border-color)', cursor: 'pointer',
                 transition: 'background 0.2s'
             }}
-            onClick={() => setActiveFileId(task.fileId)}
+            onClick={() => openAndExpandFile(task.fileId)}
         >
             <div
                 onClick={(e) => handleToggle(e, task)}
@@ -169,16 +227,46 @@ export default function GlobalTasks() {
     return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-primary)' }}>
             <div style={{ padding: '24px', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
-                <h1 style={{ margin: 0, fontSize: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)' }}>
-                    <CheckSquare size={28} style={{ color: 'var(--accent-color)' }} />
-                    Global Tasks Overview
-                </h1>
-                <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px' }}>
-                    Manage all your Todo items across your knowledge base. Check off tasks, edit deadlines, or click a task to jump to its note.
-                </p>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                    <div>
+                        <h1 style={{ margin: 0, fontSize: '24px', display: 'flex', alignItems: 'center', gap: '12px', color: 'var(--text-primary)' }}>
+                            <CheckSquare size={28} style={{ color: 'var(--accent-color)' }} />
+                            Tasks Overview
+                        </h1>
+                        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>
+                            Manage all your Todo items across your knowledge base.
+                        </p>
+                    </div>
+
+                    {/* View Toggle */}
+                    <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                        <button
+                            onClick={() => setViewMode('list')}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '4px', border: 'none', cursor: 'pointer',
+                                fontSize: '13px', fontWeight: 'bold', transition: 'all 0.2s',
+                                background: viewMode === 'list' ? 'var(--bg-accent)' : 'transparent',
+                                color: viewMode === 'list' ? 'var(--accent-color)' : 'var(--text-secondary)'
+                            }}
+                        >
+                            <LayoutList size={16} /> List
+                        </button>
+                        <button
+                            onClick={() => setViewMode('kanban')}
+                            style={{
+                                display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '4px', border: 'none', cursor: 'pointer',
+                                fontSize: '13px', fontWeight: 'bold', transition: 'all 0.2s',
+                                background: viewMode === 'kanban' ? 'var(--bg-accent)' : 'transparent',
+                                color: viewMode === 'kanban' ? 'var(--accent-color)' : 'var(--text-secondary)'
+                            }}
+                        >
+                            <Columns size={16} /> Board
+                        </button>
+                    </div>
+                </div>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: '0 24px 24px 24px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: viewMode === 'kanban' ? '0 24px' : '0 24px 24px 24px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '24px' }}>
 
                     {isLoading ? (
@@ -201,8 +289,8 @@ export default function GlobalTasks() {
                             <p>You don't have any tasks right now.</p>
                             <p style={{ fontSize: '13px' }}>Type `/` in any note and select "Todo List" to create one.</p>
                         </div>
-                    ) : (
-                        <>
+                    ) : viewMode === 'list' ? (
+                        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '24px' }}>
                             <div style={{ marginBottom: '32px' }}>
                                 <h3 style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--accent-color)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '0' }}>
                                     Pending Actions ({pendingTasks.length})
@@ -222,7 +310,85 @@ export default function GlobalTasks() {
                                     </div>
                                 </div>
                             )}
-                        </>
+                        </div>
+                    ) : (
+                        <DragDropContext onDragEnd={onDragEnd}>
+                            <div className="kanban-board-scroll" style={{ display: 'flex', gap: '24px', padding: '12px 4px 24px 4px', overflowX: 'auto', flex: 1, height: '100%', alignItems: 'flex-start' }}>
+                                {columns.map(col => {
+                                    const colTasks = sortedTasks.filter(t => t.column === col);
+                                    return (
+                                        <div key={col} className="kanban-column" style={{ minWidth: '275px', width: '275px', borderRadius: '12px', display: 'flex', flexDirection: 'column', maxHeight: '100%', overflow: 'hidden' }}>
+                                            <div style={{ padding: '14px 16px', borderBottom: '1px solid var(--border-color)', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-secondary)' }}>
+                                                <span style={{ textTransform: 'uppercase', fontSize: '13px', letterSpacing: '0.05em', color: 'var(--text-primary)' }}>#{col}</span>
+                                                <span style={{ fontSize: '12px', background: 'var(--bg-primary)', color: 'var(--text-secondary)', padding: '2px 10px', borderRadius: '12px', border: '1px solid var(--border-color)', fontWeight: '600' }}>{colTasks.length}</span>
+                                            </div>
+                                            <Droppable droppableId={col}>
+                                                {(provided, snapshot) => (
+                                                    <div ref={provided.innerRef} {...provided.droppableProps} style={{ padding: '12px', flex: 1, overflowY: 'auto', minHeight: '150px', display: 'flex', flexDirection: 'column', gap: '10px', background: snapshot.isDraggingOver ? 'var(--bg-hover)' : 'transparent', transition: 'background 0.2s', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px' }}>
+                                                        {colTasks.map((task, index) => (
+                                                            <Draggable key={task.id} draggableId={task.id} index={index}>
+                                                                {(provided, snapshot) => (
+                                                                    <div
+                                                                        ref={provided.innerRef}
+                                                                        {...provided.draggableProps}
+                                                                        {...provided.dragHandleProps}
+                                                                        className="kanban-card"
+                                                                        style={{
+                                                                            ...provided.draggableProps.style,
+                                                                            background: 'var(--bg-primary)',
+                                                                            border: '1px solid var(--border-color)',
+                                                                            borderRadius: '8px',
+                                                                            padding: '14px',
+                                                                            boxShadow: snapshot.isDragging ? 'var(--shadow-md)' : 'var(--shadow-sm)',
+                                                                            opacity: snapshot.isDragging ? 0.95 : 1,
+                                                                            userSelect: 'none',
+                                                                            display: 'flex',
+                                                                            flexDirection: 'column',
+                                                                            gap: '6px'
+                                                                        }}
+                                                                        onClick={(e) => {
+                                                                            if (e.target.tagName.toLowerCase() === 'input') return;
+                                                                            openAndExpandFile(task.fileId);
+                                                                        }}
+                                                                    >
+                                                                        <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px' }}>
+                                                                            <div onClick={(e) => handleToggle(e, task)} style={{ color: task.checked ? 'var(--text-tertiary)' : (task.date ? getDateColor(task.date, task.hasTime) : 'var(--accent-color)'), cursor: 'pointer', marginTop: '1px' }}>
+                                                                                {task.checked ? <CheckSquare size={18} /> : <Square size={18} />}
+                                                                            </div>
+                                                                            <div style={{ flex: 1, fontSize: '14.5px', color: task.checked ? 'var(--text-tertiary)' : 'var(--text-primary)', textDecoration: task.checked ? 'line-through' : 'none', lineHeight: '1.4', fontWeight: task.checked ? '400' : '500' }}>
+                                                                                {task.text || <em>Empty task</em>}
+                                                                            </div>
+                                                                        </div>
+                                                                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', alignItems: 'center', marginTop: '6px' }}>
+                                                                            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: '500', color: 'var(--text-tertiary)', background: 'var(--bg-secondary)', padding: '2px 8px', borderRadius: '4px', cursor: 'pointer' }}>
+                                                                                <Folder size={12} />
+                                                                                {task.path.slice(-1)[0]}
+                                                                            </div>
+                                                                            {task.date && (
+                                                                                <div>
+                                                                                    <InlineDateInput
+                                                                                        initialDate={task.date instanceof Date ? task.date.toISOString() : task.date}
+                                                                                        initialHasTime={task.hasTime === true || task.hasTime === 'true'}
+                                                                                        isChecked={task.checked}
+                                                                                        onDateChange={(newDateStr, newHasTime) => handleDateUpdate(task, newDateStr, newHasTime)}
+                                                                                        onClearDate={() => handleDateUpdate(task, null, false)}
+                                                                                    />
+                                                                                </div>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+                                                                )}
+                                                            </Draggable>
+                                                        ))}
+                                                        {provided.placeholder}
+                                                    </div>
+                                                )}
+                                            </Droppable>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </DragDropContext>
                     )}
                 </div>
             </div>

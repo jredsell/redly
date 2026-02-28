@@ -630,3 +630,36 @@ body {
   box-shadow: var(--shadow-md);
   border-color: var(--accent-color) !important;
 }
+
+/* Kanban Board Refinements */
+.kanban-board-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.kanban-board-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+.kanban-board-scroll::-webkit-scrollbar-thumb {
+  background-color: var(--border-color);
+  border-radius: 20px;
+}
+
+.kanban-column {
+  background: rgba(0, 0, 0, 0.02); /* very subtle overlay for light mode */
+  border: 1px solid var(--border-color);
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.dark .kanban-column {
+  background: rgba(0, 0, 0, 0.15); /* subtle dark overlay */
+}
+
+.kanban-card {
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  border-top: 3px solid transparent !important;
+}
+
+.kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md) !important;
+  border-top-color: var(--accent-color) !important;
+}

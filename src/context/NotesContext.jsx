@@ -270,6 +270,30 @@ export const NotesProvider = ({ children }) => {
     const expandAll = () => setExpandedFolders(new Set(nodes.filter(n => n.type === 'folder').map(n => n.id)));
     const collapseAll = () => setExpandedFolders(new Set());
 
+    const openAndExpandFile = (fileId) => {
+        const targetNode = nodes.find(n => n.id === fileId);
+        if (!targetNode) return;
+
+        setActiveFileId(fileId);
+        setLastInteractedNodeId(fileId);
+
+        let currentParentId = targetNode.parentId;
+        if (currentParentId) {
+            const parentsToExpand = [];
+            while (currentParentId) {
+                parentsToExpand.push(currentParentId);
+                const parentNode = nodes.find(n => n.id === currentParentId);
+                currentParentId = parentNode ? parentNode.parentId : null;
+            }
+
+            setExpandedFolders(prev => {
+                const next = new Set(prev);
+                parentsToExpand.forEach(id => next.add(id));
+                return next;
+            });
+        }
+    };
+
     const addNode = async (name, type, parentId = null) => {
         if (!workspaceHandle) return;
         const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim();
@@ -394,7 +418,7 @@ export const NotesProvider = ({ children }) => {
     };
 
     const value = {
-        nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll,
+        nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll, openAndExpandFile,
         addNode, editNode, removeNode, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
         installApp,
