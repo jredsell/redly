@@ -287,15 +287,15 @@ export default function FileTree({ node, depth }) {
             )}
 
             {showDeleteConfirm && (
-                <div className="modal-overlay" style={{ zIndex: 100000 }} onClick={cancelDelete}>
-                    <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                        <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px' }}>Delete "{node.name}"</h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-                            Are you sure you want to delete this {isFolder ? 'folder and all its contents' : 'note'}? This action cannot be undone.
+                <div className="modal-overlay" onClick={cancelDelete}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Delete {isFolder ? 'Folder' : 'Note'}</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14.5px', marginBottom: '28px', lineHeight: '1.5' }}>
+                            Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>"{node.name}"</strong>{isFolder ? ' and all its contents' : ''}? <br />This action cannot be undone.
                         </p>
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                            <button className="secondary-btn" onClick={cancelDelete}>Cancel</button>
-                            <button className="danger-btn" style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }} onClick={confirmDelete}>Delete</button>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button className="secondary-btn" onClick={cancelDelete} style={{ padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}>Cancel</button>
+                            <button className="danger-btn" onClick={confirmDelete} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Delete</button>
                         </div>
                     </div>
                 </div>

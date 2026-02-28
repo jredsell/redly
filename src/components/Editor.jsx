@@ -1134,15 +1134,15 @@ export default function Editor({ fileId }) {
             </div>
 
             {showDeleteConfirm && (
-                <div className="modal-overlay" style={{ zIndex: 100000 }} onClick={() => setShowDeleteConfirm(false)}>
-                    <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
-                        <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px' }}>Delete Note</h2>
-                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
-                            Are you sure you want to delete "{localTitle}"? This action cannot be undone.
+                <div className="modal-overlay" onClick={() => setShowDeleteConfirm(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
+                        <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Delete Note</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14.5px', marginBottom: '28px', lineHeight: '1.5' }}>
+                            Are you sure you want to delete <strong style={{ color: 'var(--text-primary)' }}>"{localTitle || 'Untitled Note'}"</strong>?<br />This action cannot be undone.
                         </p>
-                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-                            <button className="secondary-btn" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
-                            <button className="danger-btn" style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => { setShowDeleteConfirm(false); removeNode(fileId); }}>Delete</button>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                            <button className="secondary-btn" onClick={() => setShowDeleteConfirm(false)} style={{ padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}>Cancel</button>
+                            <button className="danger-btn" onClick={() => { setShowDeleteConfirm(false); removeNode(fileId); }} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Delete Note</button>
                         </div>
                     </div>
                 </div>
