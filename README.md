@@ -11,7 +11,7 @@ Redly is a minimalist, powerful, and aesthetically pleasing note-taking applicat
 - **Local-First Architecture**: Your data never leaves your machine unless you explicitly export it.
 - **Markdown Native**: Write using standard Markdown with a beautiful, rich-text live preview.
 - **Integrated Global Search**: A sleek, header-embedded search bar that finds notes by filename or content instantly as you type.
-- **Interactive Tasks**: Turn any note into a productivity hub with `@date` badges, interactive timelines, and a **Global Tasks Dashboard**.
+- **Interactive Tasks**: Turn any note into a productivity hub with `@date` badges, interactive timelines, and a **Global Task & Kanban Dashboard**.
 - **Keyboard-First Navigation**: Optimized for power users with comprehensive hotkeys for every major action.
 - **PWA Support**: Install Redly as a desktop app for a native experience.
 - **Dark Mode**: Beautifully curated themes for both night owls and day dreamers.
@@ -64,11 +64,16 @@ Redly supports full Markdown and provides a powerful **Slash Menu** to make form
 
 ## Features
 
-### 📅 Global Tasks View
+### 📅 Global Tasks & Kanban Dashboard
 
-Never lose track of a deadline. The **Global Tasks** view aggregates every `- [ ]` task from all your notes, categorized by status (Overdue, Today, Future).
+Never lose track of a deadline. The **Global Tasks** view aggregates every `- [ ]` task from all your notes, categorising them into an actionable dashboard. 
 
-![Global Tasks Overview](docs/assets/global_tasks.png)
+You can instantly switch between a classic list and an interactive **Kanban Board** by pressing `Alt + V`.
+- **Custom Columns**: Add inline hashtags (e.g. `- [ ] Fix bugs #doing`) to sort tasks into specific stages.
+- **Drag & Drop**: Drag a task from `#todo` to `#done`, and Redly will automatically rewrite the markdown in your raw notes.
+- **Deep Linking**: Click anywhere on a task card to instantly auto-scroll to the exact note in your file tree.
+
+![Kanban Board View](docs/assets/kanban_board.png)
 
 ## ⌨️ Power User Hotkeys
 
@@ -82,6 +87,7 @@ Never lose track of a deadline. The **Global Tasks** view aggregates every `- [ 
 | **Focus Editor** | `Alt + E` |
 | **Enter Note** | `→` (Right Arrow) |
 | Global Tasks | `Alt + T` |
+| Toggle Kanban / List | `Alt + V` |
 | Change Workspace | `Alt + W` |
 | Help & Guide | `Alt + /` |
 | Rename Selection | `F2` |

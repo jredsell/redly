@@ -168,12 +168,14 @@ export default function HelpModal({ isOpen, onClose }) {
 
                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
                         <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <CheckSquare size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Global Tasks Dashboard
+                            <CheckSquare size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> Global Tasks & Kanban Dashboard
                         </h3>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
-                            Click the <b>Global Tasks</b> button in the sidebar to view a unified dashboard of every Todo item across your entire workspace.
+                            Click the <b>Global Tasks</b> button in the sidebar (or press <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>T</kbd>) to view a unified dashboard of every Todo item across your entire workspace.
                             <br /><br />
-                            <b>Actionable:</b> Check off items directly from the dashboard, or click their interactive Date badges to change deadlines on the fly! Click the text to teleport into the parent Note.
+                            <b>Kanban Board View:</b> Toggle between the traditional list view and the interactive <b>Kanban Board</b> using the buttons at the top right, or press <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>V</kbd>. Organise your tasks into columns by simply adding a hashtag to the end of your task (e.g. <code>#doing</code>, <code>#review</code>) in your notes! You can drag and drop cards on the board, and the hashtag in your raw notes will instantly update.
+                            <br /><br />
+                            <b>Actionable:</b> Check off items directly from the dashboard, or click their interactive Date badges to change deadlines on the fly! Click anywhere on the task card to automatically open the note and scroll to the exact file in the sidebar.
                         </p>
                     </div>
 
@@ -199,6 +201,9 @@ export default function HelpModal({ isOpen, onClose }) {
 
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Global Tasks</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>T</kbd></div>
+
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Toggle List/Kanban View</span>
+                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>V</kbd></div>
 
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Change Workspace</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>W</kbd></div>

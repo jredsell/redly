@@ -17,6 +17,19 @@ export default function GlobalTasks() {
             setIsLoading(false);
         };
         load();
+
+        const handleKeyDown = (e) => {
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.ProseMirror')) {
+                return;
+            }
+            if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'v') {
+                e.preventDefault();
+                setViewMode(prev => prev === 'list' ? 'kanban' : 'list');
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
     }, [ensureAllContentsLoaded]);
 
     const sortedTasks = useMemo(() => {
