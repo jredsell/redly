@@ -76,7 +76,7 @@ export default function GlobalTasks() {
     }, [nodes]);
 
     const allAvailableTags = useMemo(() => {
-        const tagSet = new Set();
+        const tagSet = new Set(['todo', 'doing', 'done', 'bug', 'feature']);
         sortedTasks.forEach(t => {
             if (t.tags && t.tags.length > 0) {
                 t.tags.forEach(tag => tagSet.add(tag));
