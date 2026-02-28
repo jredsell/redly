@@ -61,18 +61,25 @@ export function parseTasksFromNodes(nodes) {
                 let column = isChecked ? 'done' : 'backlog'; // default columns based on state
                 const tagRegex = /(?:^|\s)#([a-zA-Z0-9_\-]+)/g;
                 let tagMatch;
-                let lastTagMatch = null;
                 const tags = [];
+                let stateTag = null;
+                const KANBAN_STATES = ['backlog', 'todo', 'doing', 'review', 'done'];
 
                 // Find all hashtags in the string
                 while ((tagMatch = tagRegex.exec(text)) !== null) {
                     const tag = tagMatch[1].toLowerCase();
                     if (!tags.includes(tag)) tags.push(tag);
-                    lastTagMatch = tagMatch;
                 }
 
-                if (lastTagMatch) {
-                    column = lastTagMatch[1].toLowerCase();
+                for (let i = tags.length - 1; i >= 0; i--) {
+                    if (KANBAN_STATES.includes(tags[i])) {
+                        stateTag = tags[i];
+                        break;
+                    }
+                }
+
+                if (stateTag) {
+                    column = stateTag;
                 }
 
                 // Remove all tags from the display text to keep UI clean

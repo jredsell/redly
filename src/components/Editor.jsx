@@ -1124,15 +1124,28 @@ export default function Editor({ fileId }) {
                 />
                 <button
                     className="icon-button"
-                    onClick={() => {
-                        if (window.confirm("Delete this note?")) removeNode(fileId);
-                    }}
+                    onClick={() => setShowDeleteConfirm(true)}
                     title="Delete Note"
                     style={{ color: 'var(--danger-color)', marginLeft: 'auto' }}
                 >
                     <Trash size={18} />
                 </button>
             </div>
+
+            {showDeleteConfirm && (
+                <div className="modal-overlay" style={{ zIndex: 100000 }} onClick={() => setShowDeleteConfirm(false)}>
+                    <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                        <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px' }}>Delete Note</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
+                            Are you sure you want to delete "{localTitle}"? This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button className="secondary-btn" onClick={() => setShowDeleteConfirm(false)}>Cancel</button>
+                            <button className="danger-btn" style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }} onClick={() => { setShowDeleteConfirm(false); removeNode(fileId); }}>Delete</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <div className="editor-body" style={{ flex: 1, overflowY: 'auto', padding: '24px', position: 'relative' }} onKeyDownCapture={handleKeyDown}>
                 <EditorContent editor={editor} className="tiptap-container" />

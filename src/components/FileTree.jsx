@@ -9,6 +9,7 @@ import {
 export default function FileTree({ node, depth }) {
     const { activeFileId, setActiveFileId, expandedFolders, toggleFolder, removeNode, editNode, addNode, globalAddingState, setGlobalAddingState, setLastInteractedNodeId, lastInteractedNodeId } = useNotes();
     const [showMenu, setShowMenu] = useState(false);
+    const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
     const [editName, setEditName] = useState(node.name);
     const [newName, setNewName] = useState('');
@@ -42,10 +43,19 @@ export default function FileTree({ node, depth }) {
 
     const handleDelete = (e) => {
         e.stopPropagation();
-        if (window.confirm(`Are you sure you want to delete "${node.name}"${isFolder ? ' and all its contents' : ''}?`)) {
-            removeNode(node.id);
-        }
+        setShowDeleteConfirm(true);
         setShowMenu(false);
+    };
+
+    const confirmDelete = (e) => {
+        e.stopPropagation();
+        removeNode(node.id);
+        setShowDeleteConfirm(false);
+    };
+
+    const cancelDelete = (e) => {
+        e.stopPropagation();
+        setShowDeleteConfirm(false);
     };
 
     const handleRename = (e) => {
@@ -273,6 +283,21 @@ export default function FileTree({ node, depth }) {
                             depth={depth + 1}
                         />
                     ))}
+                </div>
+            )}
+
+            {showDeleteConfirm && (
+                <div className="modal-overlay" style={{ zIndex: 100000 }} onClick={cancelDelete}>
+                    <div className="modal-content" style={{ maxWidth: '400px', textAlign: 'center' }} onClick={e => e.stopPropagation()}>
+                        <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px' }}>Delete "{node.name}"</h2>
+                        <p style={{ color: 'var(--text-secondary)', fontSize: '14px', marginBottom: '24px' }}>
+                            Are you sure you want to delete this {isFolder ? 'folder and all its contents' : 'note'}? This action cannot be undone.
+                        </p>
+                        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
+                            <button className="secondary-btn" onClick={cancelDelete}>Cancel</button>
+                            <button className="danger-btn" style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: 'bold' }} onClick={confirmDelete}>Delete</button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>
