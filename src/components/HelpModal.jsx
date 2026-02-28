@@ -173,9 +173,12 @@ export default function HelpModal({ isOpen, onClose }) {
                         <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
                             Click the <b>Global Tasks</b> button in the sidebar (or press <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>T</kbd>) to view a unified dashboard of every Todo item across your entire workspace.
                             <br /><br />
-                            <b>Kanban Board View:</b> Toggle between the traditional list view and the interactive <b>Kanban Board</b> using the buttons at the top right, or press <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>V</kbd>. Organise your tasks into columns by simply adding a hashtag to the end of your task (e.g. <code>#doing</code>, <code>#review</code>) in your notes! You can drag and drop cards on the board, and the hashtag in your raw notes will instantly update.
+                            <b>Kanban Board View:</b> Toggle between the traditional list view and the interactive <b>Kanban Board</b> by pressing <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>V</kbd>.
                             <br /><br />
-                            <b>Actionable:</b> Check off items directly from the dashboard, or click their interactive Date badges to change deadlines on the fly! Click anywhere on the task card to automatically open the note and scroll to the exact file in the sidebar.
+                            <b>Kanban Tags:</b> By default, tasks without a tag go into the `#backlog`. You can organise tasks into specific columns by simply picking up a card and dragging it! Redly will automatically rewrite the raw markdown in your note to append the new column's hashtag to the end of your task text (e.g. <code>- [ ] My task #doing</code>).
+                            You can even create your own unlimited custom column names—just type any `#new_tag` anywhere in your task text, and Redly will instantly generate a new column for it on the board!
+                            <br /><br />
+                            <b>Actionable:</b> Check off items directly from the dashboard, or click their interactive Date badges to change deadlines on the fly! Click anywhere on a task card to automatically open its note and scroll to the exact file in the sidebar.
                         </p>
                     </div>
 
