@@ -497,6 +497,13 @@ export default function Editor({ fileId }) {
                 uniqueTags.push(tag);
             }
         });
+        const defaultTags = ['todo', 'doing', 'done', 'bug', 'feature'];
+        defaultTags.forEach(tag => {
+            if (!seenLower.has(tag)) {
+                seenLower.add(tag);
+                uniqueTags.push(tag);
+            }
+        });
 
         setAvailableTags(uniqueTags.sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase())));
     }, [nodes]);
