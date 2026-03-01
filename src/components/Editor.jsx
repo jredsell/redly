@@ -421,11 +421,16 @@ const TableControlsMenu = ({ editor, trigger, onClose }) => {
 
     if (!editor.isActive('table') || !trigger) return null;
 
+    const menuHeight = 150;
+    const viewportHeight = window.innerHeight;
+    const wouldOverflow = trigger.top + 30 + menuHeight > viewportHeight;
+    const computedTop = wouldOverflow ? Math.max(10, trigger.top - menuHeight) : trigger.top + 30;
+
     return (
         <div
             ref={menuRef}
             className="custom-bubble-menu table-controls-enhanced"
-            style={{ position: 'fixed', top: trigger.bottom + 8, left: trigger.right, transform: 'translateX(-100%)', zIndex: 110 }}
+            style={{ position: 'fixed', top: computedTop, left: trigger.right, transform: 'translateX(-100%)', zIndex: 110 }}
             onMouseDown={(e) => e.preventDefault()}
         >
             <div className="table-controls-group">
@@ -861,18 +866,29 @@ export default function Editor({ fileId }) {
                 // Handle Table floating "trigger" button visibility
                 if (editor.isActive('table')) {
                     const view = editor.view;
-                    const { node, offset } = view.domAtPos(from);
-                    let tableElement = node;
+                    const { node } = view.domAtPos(from);
+                    let element = node;
+                    if (element && element.nodeType === 3) element = element.parentElement; // Text node -> Element
+
+                    let tableElement = element;
                     while (tableElement && tableElement.tagName !== 'TABLE' && tableElement.closest) {
                         tableElement = tableElement.closest('table');
                     }
+
+                    let trElement = element;
+                    while (trElement && trElement.tagName !== 'TR' && trElement.tagName !== 'TABLE' && trElement.closest) {
+                        trElement = trElement.closest('tr');
+                    }
+
                     if (tableElement) {
-                        const rect = tableElement.getBoundingClientRect();
-                        // Anchor to top-right of table
+                        const tableRect = tableElement.getBoundingClientRect();
+                        const rowRect = trElement ? trElement.getBoundingClientRect() : tableRect;
+
+                        // Anchor to right edge of table, but vertical position of current row
                         setTableTriggerCoords({
-                            top: rect.top,
-                            right: rect.right,
-                            bottom: rect.bottom, // Optional, useful if we want menu below
+                            top: rowRect.top,
+                            right: tableRect.right,
+                            bottom: rowRect.bottom,
                             isTableTrigger: true
                         });
                     }
@@ -1156,7 +1172,7 @@ export default function Editor({ fileId }) {
                     <>
                         <button
                             className="table-trigger-btn"
-                            style={{ position: 'fixed', top: tableTriggerCoords.top - 16, left: tableTriggerCoords.right - 28, zIndex: 105 }}
+                            style={{ position: 'fixed', top: tableTriggerCoords.top - 8, left: tableTriggerCoords.right - 28, zIndex: 105 }}
                             onClick={() => setIsTableMenuOpen(!isTableMenuOpen)}
                             title="Table Options"
                         >
