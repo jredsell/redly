@@ -52,6 +52,26 @@ Visualize your progress with a high-performance **Kanban Board (**`Alt + V`**)**
 
 ---
 
+## Screenshots
+
+### Fluid Editor Formatting
+Create tables, headers, and task lists instantly using the Slash (`/`) menu, and format text elegantly with the popup bubble menu.
+![Editor Formatting Demo](docs/assets/redly_editor_formatting.webp)
+
+### Drag & Drop File Management
+Organize your workspace naturally by dragging files into nested folders.
+![File Management Demo](docs/assets/redly_file_management.webp)
+
+### Smart Tasks & Tag Autocomplete
+Create interactive `- [ ]` tasks and instantly categorize them with the intelligent `#` tag autocomplete menu.
+![Tasks and Tags Demo](docs/assets/redly_tasks_tags.webp)
+
+### Global Kanban Dashboard
+View all your tasks in one unified board, filter by tags, and seamlessly drag cards between stages.
+![Global Kanban Demo](docs/assets/redly_global_tasks_kanban.webp)
+
+---
+
 ## Getting Started
 
 Redly is designed to be **redly available** the moment you open it. Because it is a Progressive Web App (PWA), you can use it instantly in your browser or install it for a full desktop experience.
