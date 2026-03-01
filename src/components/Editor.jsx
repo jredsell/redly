@@ -918,13 +918,25 @@ export default function Editor({ fileId }) {
                             return;
                         }
 
-                        // Use coordsAtPos for the end of the selection to place the menu nicely
-                        const coords = editor.view.coordsAtPos(to);
-                        if (coords && typeof coords.top === 'number' && typeof coords.left === 'number') {
+                        // Use native DOM selection for accurate bounding box
+                        const domSelection = window.getSelection();
+                        if (domSelection.rangeCount > 0) {
+                            const range = domSelection.getRangeAt(0);
+                            const rect = range.getBoundingClientRect();
+
+                            // Estimate menu width to center it (approx 280px wide)
+                            const estimatedMenuWidth = 280;
+                            // Calculate ideal left center
+                            let computedLeft = rect.left + (rect.width / 2) - (estimatedMenuWidth / 2);
+
+                            // Clamp to screen edges
+                            const maxLeft = window.innerWidth - estimatedMenuWidth - 20;
+                            computedLeft = Math.max(20, Math.min(computedLeft, maxLeft));
+
                             setBubbleMenu({
                                 isOpen: true,
-                                top: coords.top - 50,
-                                left: coords.left
+                                top: Math.max(10, rect.top - 50),
+                                left: computedLeft
                             });
                             setSlashMenu(prev => ({ ...prev, isOpen: false }));
                         } else {
