@@ -1,7 +1,5 @@
 # Redly
 
-![Redly Hero](docs/assets/hero.png)
-
 ### Your private, offline-first Markdown knowledge base.
 
 Redly is a minimalist, powerful, and aesthetically pleasing note-taking application designed for people who value privacy, speed, and standard formats. It turns your local folders or browser storage into a sleek, searchable knowledge base.
