@@ -1,129 +1,125 @@
 # Redly
 
-### Your private, offline-first Markdown knowledge base.
+## Your notes and tasks, redly available.
 
-Redly is a minimalist, powerful, and aesthetically pleasing note-taking application designed for people who value privacy, speed, and standard formats. It turns your local folders or browser storage into a sleek, searchable knowledge base.
+Redly is a minimalist, powerful, and aesthetically pleasing knowledge base designed for people who value privacy, speed, and standard formats. It turns your local folders or browser storage into a sleek, searchable productivity hub that lives wherever you choose to keep it.
 
-## 🚀 Key Features
+## Data Ownership
 
-- **Local-First Architecture**: Your data never leaves your machine unless you explicitly export it.
-- **Markdown Native**: Write using standard Markdown with a beautiful, rich-text live preview.
-- **Integrated Global Search**: A sleek, header-embedded search bar that finds notes by filename or content instantly as you type.
-- **Interactive Tasks & Reminders**: Turn any note into a productivity hub with `@date` and `@time` badges that trigger native push notifications, plus a **Global Task & Kanban Dashboard**.
-- **Advanced Editor**: Seamlessly build persistent tables, format code blocks, and utilize a powerful Slash command menu.
-- **Keyboard-First Navigation**: Optimized for power users with comprehensive hotkeys for every major action, including full arrow-key and Enter support in complex dropdowns.
-- **Keyboard-First Navigation**: Optimized for power users with comprehensive hotkeys for every major action.
-- **PWA Support**: Install Redly as a desktop app for a native experience.
-- **Dark Mode**: Beautifully curated themes for both night owls and day dreamers.
-- **Backup & Restore**: Easily export and import your browser storage as JSON.
+Redly is built on the principle of **user-led storage**. Whether you prefer the speed of a browser-based sandbox or the transparency of your own local folders, Redly provides the interface while you maintain full custody of your information.
 
-## 📦 Getting Started
+-   **Offline-First**: Your knowledge base is built to be fast and functional without needing an internet connection.
+    
+-   **Transparent Formats**: Your notes and tasks are stored as standard Markdown or JSON, ensuring your data is always portable and accessible.
+    
 
-### 1. Choose Your Storage
+## Key Features: Your Workflow, Redly Available
 
-Redly offers two distinct storage "tiers" to balance privacy, convenience, and control:
+What makes Redly unique is how it turns static text into a dynamic productivity hub. By keeping your hands on the keyboard, you can manage complex projects without ever leaving your note.
 
-- **Local Storage (Native File System)**: 
-  - **Technical**: Uses the [File System Access API](https://developer.mozilla.org/en-US/docs/Web/API/File_System_Access_API) to map Redly directly to a folder on your computer.
-  - **Experience**: Your notes are stored as plain `.md` files. This is the "ultimate control" mode—your files are yours, and you can edit them with any other editor simultaneously.
-  - **Compatibility**: Required Chromium-based browsers (Chrome, Edge, Opera) on Desktop.
+### Command-Driven Creation
 
-- **Browser Storage (Sandboxed)**:
-  - **Technical**: Uses the [Origin Private File System (OPFS)](https://developer.mozilla.org/en-US/docs/Web/API/File_System_API/Origin_private_file_system).
-  - **Experience**: Store notes in a secure, hidden browser sandbox. It is incredibly fast and zero-config. Perfect for a quick start or private browsing.
-    -   **Compatibility**: High compatibility across all modern browsers (Chrome, Edge, Safari, Firefox) on both Desktop and Mobile.
+Everything is at your fingertips. Use the **Slash Menu (**`/`**)** to instantly generate headers, persistent tables, and todo lists as you type. No toolbars, no distractions—just pure flow.
 
-### 2. Browser Compatibility Matrix
+### Smart Tasks & Notifications
 
-| Feature | Chrome / Edge | Safari | Firefox | Mobile (iOS/Android) |
-|---|---|---|---|---|
-| **PWA Installation** | ✅ (One-click) | ✅ (Manual) | ⚠️ (Limited) | ✅ (Add to Home) |
-| **Browser Storage** | ✅ (OPFS) | ✅ (OPFS) | ✅ (OPFS) | ✅ (OPFS) |
-| **Local Storage** | ✅ (Native API) | ❌ | ❌ | ❌ |
-| **Dark Mode** | ✅ | ✅ | ✅ | ✅ |
+Redly breathes life into your todo lists using the `@` **symbol**.
 
-![Redly Welcome Screen](docs/assets/welcome_screen.png)
+-   **Natural Language Dates**: Assign deadlines using the way you actually think—type `@next monday at 4pm` or `@tomorrow` to instantly schedule a task.
+    
+-   **Precise Timing**: You can also use specific stamps like `@2026-03-05` or `@14:30`.
+    
+-   **Native Alerts**: These “Smart Tasks” trigger native browser push notifications, ensuring your deadlines are always front-of-mind.
+    
 
-## Quick Start
+### Tag-Based Project Management
 
-1.  **Open Redly**: Launch the app in your browser or from your home screen.
-2.  **Choose Storage**: Select **Browser Storage** for a quick start or **Local Storage** to save files directly to your machine.
-3.  **Start Writing**: Click the **New Note** button or press `Alt + N`.
+Organize your world using the `#` **symbol**.
 
-### Formatting Made Simple
+-   **Instant Grouping**: Tag tasks to categorize them by project or status (e.g., `#ideas` or `#urgent`).
+    
+-   **Intelligent Autocomplete**: As soon as you type `#`, Redly suggests tags you’ve used elsewhere, keeping your workspace consistent and searchable.
+    
 
-![Slash Menu Demo](docs/assets/slash_menu_demo.webp)
+### Bi-Directional Kanban Dashboard
 
-Redly supports full Markdown and provides a powerful **Slash Menu** to make formatting effortless:
+Visualize your progress with a high-performance **Kanban Board (**`Alt + V`**)** that stays in perfect sync with your notes.
 
-*   **Slash Command**: Type `/` anywhere in a note to bring up a menu of formatting options (Headers, Lists, Todo items, Horizontal Rules, and more).
-*   **Markdown Shortcuts**: Use standard syntax like `#` for headers, `**` for bold, and `---` for dividers.
-*   **Rich Tables**: Create perfectly formatted markdown tables using the Slash Menu that persist flawlessly across reloads.
-*   **Tagging & Autocomplete**: Type `#` in the editor to create tags (e.g., `#ideas`). Redly will instantly display a floating autocomplete menu populated with every tag you've used across your entire workspace! Tags are also color-coded in the editor to easily distinguish them from regular text.
-*   **Smart Tasks & Notifications**: Create interactive tasks with `- [ ]`. You can even add dates like `@today` or exact times like `@14:30` to see them in your Global Tasks view and receive **native browser push notifications** right when they are due.
+-   **Automatic Status Updates**: When you drag a task card between columns, Redly **automatically rewrites the tags** in your raw Markdown files.
+    
+-   **Global Visibility**: The dashboard aggregates every task from across your entire library, categorizing them into an actionable project view.
+    
 
-![Mastering Redly Hero Note](docs/assets/hero_note.png)
+## Getting Started
 
-## Features
+Redly is designed to be **redly available** the moment you open it. Because it is a Progressive Web App (PWA), you can use it instantly in your browser or install it for a full desktop experience.
 
-### 📅 Global Tasks & Kanban Dashboard
+### 1\. Choose Your Workflow
 
-Never lose track of a deadline. The **Global Tasks** view aggregates every `- [ ]` task from all your notes, categorising them into an actionable dashboard. 
+Redly offers two ways to manage your data, giving you full control over where your knowledge lives:
 
-You can instantly switch between a classic list and an interactive **Kanban Board** by pressing `Alt + V`.
-- **Project Views**: Press `Alt + G` to jump to the tag filter dropdown. Use the **Up/Down arrow keys** to navigate and **Enter** to instantly create dedicated project views based on your tags.
-- **Custom Columns**: Add inline hashtags (e.g. `- [ ] Fix bugs #doing`) to sort tasks into specific stages. If you have multiple tags, the **last tag** will always determine the Kanban board column status.
-- **Drag & Drop**: Drag a task from `#backlog` to `#done`, and Redly will automatically rewrite the markdown in your raw notes.
-- **Deep Linking**: Click anywhere on a task card to instantly auto-scroll to the exact note in your file tree.
+-   **The “I just want to type” way (Browser Storage)**:
+    
+    -   **Experience**: Uses a secure, high-performance sandbox (OPFS) within your browser.
+        
+    -   **Best For**: Quick notes, mobile use, and zero-configuration privacy.
+        
+    -   **Compatibility**: Works across all modern browsers (Chrome, Edge, Safari, Firefox).
+        
+-   **The “I own my data” way (Local Storage)**:
+    
+    -   **Experience**: Points Redly at a specific folder on your hard drive.
+        
+    -   **Best For**: Power users who want their notes stored as standard `.md` files accessible by other apps.
+        
+    -   **Compatibility**: Optimized for Chromium-based browsers (Chrome, Edge) on Desktop.
+        
 
-![Global Tasks List View](docs/assets/global_tasks.png)
+&nbsp;
 
-![Kanban Board View](docs/assets/kanban_board.png)
+\[!TIP\] **Switch Workspaces**: You don't have to pick just one. Use `Alt + W` to switch between different local folders or browser sandboxes instantly.
 
-## ⌨️ Power User Hotkeys
+### 2\. Install for the Best Experience
 
-| Action | Shortcut |
-|---|---|
-| **Global Search** | `Alt + K` |
-| New Note | `Alt + N` |
-| New Folder | `Alt + F` |
-| Go Home | `Alt + H` |
-| Focus Sidebar | `Alt + S` |
-| **Focus Editor** | `Alt + E` |
-| **Enter Note** | `→` (Right Arrow) |
-| Global Tasks | `Alt + T` |
-| Toggle Kanban / List | `Alt + V` |
-| Filter Tags (Tasks View) | `Alt + G` |
-| Change Workspace | `Alt + W` |
-| Help & Guide | `Alt + /` |
-| Rename Selection | `F2` |
-| Delete Selection | `Delete` |
-| **Close Modals/Dropdowns** | `Escape` |
+For a distraction-free environment, install Redly as a **PWA**:
 
-## 🛡️ Privacy & Security
+-   **Desktop**: Click the “Install Redly” button on the Welcome screen.
+    
+-   **Mobile**: Tap “Add to Home Screen” in your browser menu.
+    
 
-Redly is built on a "No Data Collection" philosophy. 
-- **Offline First**: No cloud syncing, no logins, no tracking.
-- **Standard Formats**: Your notes are yours. Even if you stop using Redly, your files are standard Markdown or JSON.
-- **Transparent**: No hidden background processes or external telemetry.
+### 3\. Browser Compatibility Matrix
 
-For more details, see our full [Privacy Policy](PRIVACY.md).
+&nbsp;
 
-## 📲 Installation (PWA)
+<table style="min-width: 125px;"><colgroup><col style="min-width: 25px;"><col style="min-width: 25px;"><col style="min-width: 25px;"><col style="min-width: 25px;"><col style="min-width: 25px;"></colgroup><tbody><tr><th colspan="1" rowspan="1"><p>Feature</p></th><th colspan="1" rowspan="1"><p>Chrome / Edge</p></th><th colspan="1" rowspan="1"><p>Safari</p></th><th colspan="1" rowspan="1"><p>Firefox</p></th><th colspan="1" rowspan="1"><p>Mobile (iOS/Android)</p></th></tr><tr><td colspan="1" rowspan="1"><p><strong>PWA Installation</strong></p></td><td colspan="1" rowspan="1"><p>✅ (One-click)</p></td><td colspan="1" rowspan="1"><p>✅ (Manual)</p></td><td colspan="1" rowspan="1"><p>⚠️ (Limited)</p></td><td colspan="1" rowspan="1"><p>✅ (Add to Home)</p></td></tr><tr><td colspan="1" rowspan="1"><p><strong>Browser Storage</strong></p></td><td colspan="1" rowspan="1"><p>✅ (OPFS)</p></td><td colspan="1" rowspan="1"><p>✅ (OPFS)</p></td><td colspan="1" rowspan="1"><p>✅ (OPFS)</p></td><td colspan="1" rowspan="1"><p>✅ (OPFS)</p></td></tr><tr><td colspan="1" rowspan="1"><p><strong>Local Storage</strong></p></td><td colspan="1" rowspan="1"><p>✅ (Native API)</p></td><td colspan="1" rowspan="1"><p>❌</p></td><td colspan="1" rowspan="1"><p>❌</p></td><td colspan="1" rowspan="1"><p>❌</p></td></tr><tr><td colspan="1" rowspan="1"><p><strong>Dark Mode</strong></p></td><td colspan="1" rowspan="1"><p>✅</p></td><td colspan="1" rowspan="1"><p>✅</p></td><td colspan="1" rowspan="1"><p>✅</p></td><td colspan="1" rowspan="1"><p>✅</p></td></tr></tbody></table>
 
-Redly is a Progressive Web App (PWA), meaning it can be installed as a standalone app on your device for an offline-first, distraction-free experience.
+&nbsp;
 
-- **One-Click Install**: On compatible browsers (Chrome/Edge), look for the **"Install Redly"** button prominently displayed on the Welcome and Home screens.
-- **Manual Install (Safari/Firefox)**: 
-  - On Safari (iOS): Tap the **Share** button and select **"Add to Home Screen"**.
-  - On Other Browsers: Click the menu icon and look for **"Install App"** or **"App > Install this site"**.
-- **Integrated Guide**: If a direct one-click install isn't possible (e.g., the browser intercepts the prompt), Redly provides a beautiful, custom-designed fallback modal with step-by-step instructions tailored to your experience.
+### 4\. Your First 60 Seconds
 
-## 🔨 Developer Setup
+1.  **Launch**: Open the app and select your preferred storage.
+    
+2.  **Create**: Press `Alt + N` or click “New Note”.
+    
+3.  **Organize**: Type `/` for the formatting menu, `#` to tag a project, and `@tomorrow at 10am` to set your first smart reminder.
+    
+
+---
+
+## Power User Hotkeys
+
+&nbsp;
+
+<table style="min-width: 50px;"><colgroup><col style="min-width: 25px;"><col style="min-width: 25px;"></colgroup><tbody><tr><th colspan="1" rowspan="1"><p>Action</p></th><th colspan="1" rowspan="1"><p>Shortcut</p></th></tr><tr><td colspan="1" rowspan="1"><p>Global Search</p></td><td colspan="1" rowspan="1"><p><code>Alt + K</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>New Note</p></td><td colspan="1" rowspan="1"><p><code>Alt + N</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>New Folder</p></td><td colspan="1" rowspan="1"><p><code>Alt + F</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Go Home</p></td><td colspan="1" rowspan="1"><p><code>Alt + H</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Focus Sidebar</p></td><td colspan="1" rowspan="1"><p><code>Alt + S</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Focus Editor</p></td><td colspan="1" rowspan="1"><p><code>Alt + E</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Enter Note</p></td><td colspan="1" rowspan="1"><p><code>→</code> (Right Arrow)</p></td></tr><tr><td colspan="1" rowspan="1"><p>Global Tasks</p></td><td colspan="1" rowspan="1"><p><code>Alt + T</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Toggle Kanban / List</p></td><td colspan="1" rowspan="1"><p><code>Alt + V</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Filter Tags (Tasks View)</p></td><td colspan="1" rowspan="1"><p><code>Alt + G</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Change Workspace</p></td><td colspan="1" rowspan="1"><p><code>Alt + W</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Help &amp; Guide</p></td><td colspan="1" rowspan="1"><p><code>Alt + /</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Rename Selection (Folder/File)</p></td><td colspan="1" rowspan="1"><p><code>F2</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Delete Selection</p></td><td colspan="1" rowspan="1"><p><code>Delete</code></p></td></tr></tbody></table>
+
+&nbsp;
+
+## Developer Setup
 
 These commands are only required if you want to modify the source code or build the project from scratch.
 
-```bash
+```
 # 1. Install dependencies
 npm install
 
@@ -134,7 +130,6 @@ npm run dev
 npm run build
 ```
 
-## 📄 License
+## License
 
-Copyright (c) 2026 Jonathan Redsell. **All Rights Reserved.**
-Unauthorized use, copying, or distribution is strictly prohibited.
+Copyright © 2026 Jonathan Redsell. **All Rights Reserved.** Unauthorized use, copying, or distribution is strictly prohibited.
