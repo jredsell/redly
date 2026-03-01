@@ -5,6 +5,7 @@
   --bg-primary: #ffffff;
   --bg-secondary: #f3f4f6;
   --bg-accent: #e5e7eb;
+  --bg-hover: var(--bg-accent);
   --text-primary: #111827;
   /* 15.6:1 */
   --text-secondary: #374151;
@@ -50,6 +51,7 @@
   --bg-primary: #0f172a;
   --bg-secondary: #1e293b;
   --bg-accent: #334155;
+  --bg-hover: var(--bg-accent);
   --text-primary: #f8fafc;
   /* 12.5:1 */
   --text-secondary: #cbd5e1;
