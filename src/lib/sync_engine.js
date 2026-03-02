@@ -105,30 +105,37 @@ export const connectToPeer = (remoteId) => {
 
     return new Promise((resolve, reject) => {
         addTrustedDevice(remoteId); // Optimistically trust them since WE initiated it
-        const conn = peer.connect(remoteId, { reliable: true });
 
-        if (!conn) {
+        try {
+            const conn = peer.connect(remoteId, { reliable: true });
+
+            if (!conn) {
+                removeTrustedDevice(remoteId);
+                return reject(new Error("Networking error: Could not establish peer connection. Are you connected to the internet?"));
+            }
+
+            const timeout = setTimeout(() => {
+                removeTrustedDevice(remoteId);
+                reject(new Error("Connection timed out. Ensure the other device is online, has Redly open, and accepted the prompt."));
+            }, 15000);
+
+            conn.on('open', () => {
+                clearTimeout(timeout);
+                setupConnection(conn);
+                resolve(true);
+            });
+
+            conn.on('error', (err) => {
+                clearTimeout(timeout);
+                console.error('Connection error:', err);
+                removeTrustedDevice(remoteId);
+                reject(err);
+            });
+        } catch (e) {
+            console.error('Peer connection exception:', e);
             removeTrustedDevice(remoteId);
-            return reject(new Error("Networking error: Could not establish peer connection. Are you connected to the internet?"));
+            reject(new Error("Internal signaling error: " + (e.message || "Unknown error")));
         }
-
-        const timeout = setTimeout(() => {
-            removeTrustedDevice(remoteId);
-            reject(new Error("Connection timed out. Ensure the other device is online, has Redly open, and accepted the prompt."));
-        }, 15000);
-
-        conn.on('open', () => {
-            clearTimeout(timeout);
-            setupConnection(conn);
-            resolve(true);
-        });
-
-        conn.on('error', (err) => {
-            clearTimeout(timeout);
-            console.error('Connection error:', err);
-            removeTrustedDevice(remoteId);
-            reject(err);
-        });
     });
 };
 
