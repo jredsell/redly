@@ -49,10 +49,24 @@ export const initSyncEngine = (callbacks) => {
             tempPeer.on('open', (id) => {
                 myId = id;
                 peer = tempPeer;
-                if (!isRetry) {
+                if (retryCount === 0) {
                     localStorage.setItem('redly_peer_id', id);
                 }
                 tempPeer.on('connection', handleIncomingConnection);
+
+                // Auto-connect to all previously trusted peers so refreshes seamlessly re-establish links
+                // We delay it slightly so the Peer WebSockets have a moment to finish spinning up
+                setTimeout(() => {
+                    const trustedDevices = getTrustedDevices();
+                    trustedDevices.forEach(peerId => {
+                        if (peerId !== id && !connections.has(peerId)) {
+                            connectToPeer(peerId).catch(() => {
+                                // Suppress errors for offline devices during auto-connect
+                            });
+                        }
+                    });
+                }, 1000);
+
                 resolve(id);
             });
 
@@ -163,12 +177,12 @@ export const connectToPeer = (remoteId) => {
             const conn = peer.connect(remoteId, { reliable: true });
 
             if (!conn) {
-                removeTrustedDevice(remoteId);
+                // removeTrustedDevice(remoteId); // REMOVED: Don't untrust if they are just offline!
                 return reject(new Error("Networking error: Could not establish peer connection. Are you connected to the internet?"));
             }
 
             const timeout = setTimeout(() => {
-                removeTrustedDevice(remoteId);
+                // removeTrustedDevice(remoteId); // REMOVED: Don't untrust if they are just offline!
                 reject(new Error("Connection timed out (30s). Ensure the other device is online, has Redly open, and accepted the prompt."));
             }, 30000);
 
@@ -187,12 +201,12 @@ export const connectToPeer = (remoteId) => {
             conn.on('error', (err) => {
                 clearTimeout(timeout);
                 console.error('Connection error:', err);
-                removeTrustedDevice(remoteId);
+                // removeTrustedDevice(remoteId); // REMOVED: Don't untrust if they are just offline!
                 reject(err);
             });
         } catch (e) {
             console.error('Peer connection exception:', e);
-            removeTrustedDevice(remoteId);
+            // removeTrustedDevice(remoteId); // REMOVED: Don't untrust!
             reject(new Error("Internal signaling error: " + (e.message || "Unknown error")));
         }
     });
