@@ -465,6 +465,8 @@ export default function Editor({ fileId }) {
     const [file, setFile] = useState(null);
     const saveTimeoutRef = useRef(null);
     const lastSavedContentRef = useRef(''); // Track the last saved state to prevent echo updates
+    const isTypingRef = useRef(false);
+    const typingTimeoutRef = useRef(null);
     const [localTitle, setLocalTitle] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
     const pendingUpdatesRef = useRef({}); // Merge updates (name, content) to prevent race conditions during renames
@@ -515,6 +517,8 @@ export default function Editor({ fileId }) {
     }, [nodes]);
 
     const debouncedSave = useCallback((updates) => {
+        isTypingRef.current = true;
+
         // Merge new updates into the pending buffer
         pendingUpdatesRef.current = { ...pendingUpdatesRef.current, ...updates };
 
@@ -529,6 +533,11 @@ export default function Editor({ fileId }) {
             }
             editNode(fileId, currentUpdates);
         }, 1000);
+
+        if (typingTimeoutRef.current) clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+            isTypingRef.current = false;
+        }, 2000);
     }, [fileId, editNode]);
 
     const extensions = useMemo(() => [
@@ -1085,7 +1094,8 @@ export default function Editor({ fileId }) {
             const isInitialLoad = !file || file.id !== fileId;
             // Also force update if a sync occurred, OR if the file content explicitly diverged
             // from our locally typed buffered content.
-            const isExternalUpdate = !isInitialLoad && (
+            // ONLY DO THIS IF THE USER IS NOT ACTIVELY TYPING to prevent cursor jumps and deleted characters!
+            const isExternalUpdate = !isInitialLoad && !isTypingRef.current && (
                 syncPulse > 0 ||
                 (f.content !== undefined &&
                     f.content !== (file?.content || '') &&
