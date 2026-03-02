@@ -186,8 +186,14 @@ const setupConnection = (conn) => {
         connections.delete(conn.peer);
     });
 
-    // Immediately initiate a sync handshake
-    initiateSyncHandshake(conn);
+    // Ensure connection is fully open before sending handshake
+    if (conn.open) {
+        initiateSyncHandshake(conn);
+    } else {
+        conn.on('open', () => {
+            initiateSyncHandshake(conn);
+        });
+    }
 };
 
 // --- Sync Protocol Logic ---
