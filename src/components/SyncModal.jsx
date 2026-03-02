@@ -159,6 +159,8 @@ export default function SyncModal({ onClose }) {
 
                     <form onSubmit={handleConnect} style={{ display: 'flex', gap: '8px' }}>
                         <input
+                            id="remote-peer-id"
+                            name="remote-peer-id"
                             type="text"
                             value={remoteId}
                             onChange={(e) => setRemoteId(e.target.value)}

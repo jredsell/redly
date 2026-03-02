@@ -17,13 +17,17 @@ let onConflictDetected = null;
 // releases the ID, preventing "unavailable-id" collisions when the user hits refresh.
 const cleanupSync = () => {
     if (peer && !peer.destroyed) {
+        connections.forEach(conn => {
+            if (conn.open) {
+                try { conn.send({ type: 'SYNC_DISCONNECTING', peerId: myId }); } catch (e) { }
+            }
+        });
         try { peer.disconnect(); } catch (e) { }
         try { peer.destroy(); } catch (e) { }
     }
 };
 window.addEventListener('pagehide', cleanupSync);
 window.addEventListener('beforeunload', cleanupSync);
-window.addEventListener('unload', cleanupSync);
 
 // The active open connections
 const connections = new Map();
@@ -41,7 +45,7 @@ export const initSyncEngine = (callbacks) => {
     const initPeer = (idToTry, retryCount = 0) => {
         return new Promise((resolve, reject) => {
             const tempPeer = new Peer(idToTry, {
-                debug: 2,
+                debug: 0,
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
@@ -53,7 +57,8 @@ export const initSyncEngine = (callbacks) => {
             tempPeer.on('open', (id) => {
                 myId = id;
                 peer = tempPeer;
-                if (retryCount === 0) {
+                // Only store perm ID if it is not a temporary recovery ID
+                if (!id.includes('-rcv-')) {
                     localStorage.setItem('redly_peer_id', id);
                 }
                 tempPeer.on('connection', handleIncomingConnection);
@@ -78,16 +83,18 @@ export const initSyncEngine = (callbacks) => {
                 console.error('PeerJS Error:', err);
                 if (err.type === 'unavailable-id') {
                     tempPeer.destroy();
-                    if (retryCount < 10) {
+                    if (retryCount < 8) {
                         const waitTime = Math.min(1000 * (retryCount + 1), 3000);
-                        console.log(`[Sync] ID ${idToTry} taken (ghost connection?). Reclaiming in ${waitTime}ms... (Attempt ${retryCount + 1})`);
+                        // Silently retry in the background to avoid console spam
                         setTimeout(() => {
                             resolve(initPeer(idToTry, retryCount + 1));
                         }, waitTime);
                         return;
-                    } else if (retryCount >= 10) {
-                        console.warn('[Sync] Cannot reclaim ID. You may have Redly open in another tab. Falling back to a temp ID...');
-                        resolve(initPeer(undefined, retryCount + 1));
+                    } else if (retryCount >= 8) {
+                        console.warn(`[Sync] Cannot reclaim ID ${idToTry}. Generating an active recovery ID to re-establish the mesh...`);
+                        const baseId = idToTry || 'peer';
+                        const recoveryId = `${baseId}-rcv-${Math.random().toString(36).substring(2, 6)}`;
+                        resolve(initPeer(recoveryId, retryCount + 1));
                         return;
                     }
                 }
@@ -132,30 +139,43 @@ export const removeTrustedDevice = (id) => {
 const handleIncomingConnection = (conn) => {
     console.log('[Sync] Incoming connection from', conn.peer);
     const trusted = getTrustedDevices();
+    let promptTimeout;
 
     // Buffer any messages that arrive while the user is looking at the Accept/Reject prompt
     const earlyMessages = [];
-    const bufferListener = (data) => earlyMessages.push(data);
+    const bufferListener = (data) => {
+        // Intercept Handshakes from Recovery IDs
+        if (data && data.type === 'SYNC_HANDSHAKE' && data.originalId && trusted.includes(data.originalId)) {
+            console.log(`[Sync] Peer ${data.originalId} is recovering via ${conn.peer}. Approving silently.`);
+            clearTimeout(promptTimeout);
+            addTrustedDevice(conn.peer);
+            conn.off('data', bufferListener);
+            setupConnection(conn);
+            handleIncomingData(conn.peer, data);
+            earlyMessages.forEach(msg => handleIncomingData(conn.peer, msg));
+            return;
+        }
+        earlyMessages.push(data);
+    };
     conn.on('data', bufferListener);
 
     if (trusted.includes(conn.peer)) {
         conn.off('data', bufferListener);
         setupConnection(conn);
     } else {
-        if (onPeerRequest) {
-            onPeerRequest(conn.peer, () => {
-                // Accepted
-                addTrustedDevice(conn.peer);
-                conn.off('data', bufferListener);
-                setupConnection(conn);
-                // Replay buffered messages
-                earlyMessages.forEach(msg => handleIncomingData(conn.peer, msg));
-            }, () => {
-                conn.close();
-            });
-        } else {
-            conn.close();
-        }
+        // Wait 600ms for a handshake payload before showing the Accept/Reject prompt
+        promptTimeout = setTimeout(() => {
+            if (onPeerRequest && !getTrustedDevices().includes(conn.peer)) {
+                onPeerRequest(conn.peer, () => {
+                    // Accepted
+                    addTrustedDevice(conn.peer);
+                    conn.off('data', bufferListener);
+                    setupConnection(conn);
+                    // Replay buffered messages
+                    earlyMessages.forEach(msg => handleIncomingData(conn.peer, msg));
+                });
+            }
+        }, 600);
     }
 };
 
@@ -266,10 +286,12 @@ const initiateSyncHandshake = async (conn, isAutoSync = false) => {
     if (onSyncProgress) onSyncProgress(conn.peer, 'Compiling local journal...');
     try {
         const journal = await localDriver.getSyncJournal();
+        const originalId = localStorage.getItem('redly_peer_id') || myId;
         safeSend(conn, {
             type: 'SYNC_HANDSHAKE',
             journal: journal,
-            isAutoSync
+            isAutoSync,
+            originalId
         });
     } catch (e) {
         console.error('Failed to prepare sync handshake:', e);
@@ -288,6 +310,15 @@ export const broadcastSync = () => {
 
 const handleIncomingData = async (peerId, payload) => {
     const { type } = payload;
+
+    if (type === 'SYNC_DISCONNECTING') {
+        console.log(`[Sync] Peer ${peerId} represents a dying window. Severing socket to dodge lock...`);
+        const connection = connections.get(peerId);
+        if (connection) connection.close();
+        connections.delete(peerId);
+        return;
+    }
+
     console.log(`[Sync] Received ${type} from ${peerId}`);
     const conn = connections.get(peerId);
     if (!conn) return;
@@ -387,7 +418,7 @@ const handleIncomingData = async (peerId, payload) => {
                 const parentId = nodeId.substring(0, nodeId.lastIndexOf('/')) || null;
                 fileBatch.push({ nodeId, name, parentId, content });
             } catch (e) {
-                console.warn(`Could not read file for sync: ${nodeId}`);
+                // Ignore gracefully. The file was likely deleted locally before sync started or was part of a deleted folder.
             }
         }
         safeSend(conn, { type: 'SYNC_FILE_BATCH', files: fileBatch, isAutoSync: payload.isAutoSync });
