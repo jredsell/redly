@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { X, Copy, Check, Link, Trash2, Smartphone, ShieldCheck, Activity } from 'lucide-react';
+import { X, Copy, Check, Link, Trash2, Smartphone, ShieldCheck, Activity, QrCode, Camera } from 'lucide-react';
+import { QRCodeCanvas } from 'qrcode.react';
+import { Html5QrcodeScanner } from 'html5-qrcode';
 import * as syncEngine from '../lib/sync_engine';
 
 export default function SyncModal({ onClose }) {
@@ -7,11 +9,39 @@ export default function SyncModal({ onClose }) {
     const [remoteId, setRemoteId] = useState('');
     const [status, setStatus] = useState('');
     const [trustedDevices, setTrustedDevices] = useState([]);
+    const [showQr, setShowQr] = useState(false);
+    const [showScanner, setShowScanner] = useState(false);
     const myId = syncEngine.getMyId();
 
     useEffect(() => {
         refreshTrustedDevices();
     }, []);
+
+    useEffect(() => {
+        if (!showScanner) return;
+
+        const scanner = new Html5QrcodeScanner(
+            "sync-qr-reader",
+            { fps: 10, qrbox: { width: 250, height: 250 } },
+            false
+        );
+
+        scanner.render(
+            (decodedText) => {
+                setRemoteId(decodedText);
+                setShowScanner(false);
+                setStatus('Scanned QR code. Ready to connect.');
+                setTimeout(() => scanner.clear().catch(console.error), 100);
+            },
+            (error) => {
+                // Warning/error during read, can safely be ignored in continuous scan mode
+            }
+        );
+
+        return () => {
+            scanner.clear().catch(e => console.error('Failed to clear scanner:', e));
+        };
+    }, [showScanner]);
 
     const refreshTrustedDevices = () => {
         setTrustedDevices(syncEngine.getTrustedDevices());
@@ -40,7 +70,7 @@ export default function SyncModal({ onClose }) {
             refreshTrustedDevices();
             setTimeout(() => setStatus(''), 3000);
         } catch (err) {
-            setStatus('Connection failed. Is the other device online?');
+            setStatus(err.message || 'Connection failed. Is the other device online?');
             console.error("Connection failed", err);
         }
     };
@@ -63,9 +93,23 @@ export default function SyncModal({ onClose }) {
                 </div>
 
                 <div style={{ marginBottom: '24px' }}>
-                    <label style={{ display: 'block', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
-                        Your Device ID
-                    </label>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <label style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                            Your Device ID
+                        </label>
+                        <button className="icon-button" onClick={() => setShowQr(!showQr)} title="Show QR Code" style={{ fontSize: '12px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <QrCode size={14} /> {showQr ? "Hide" : "Show"} QR
+                        </button>
+                    </div>
+
+                    {showQr && myId && (
+                        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', padding: '16px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ background: '#ffffff', padding: '12px', borderRadius: '8px' }}>
+                                <QRCodeCanvas value={myId} size={160} />
+                            </div>
+                        </div>
+                    )}
+
                     <div style={{ display: 'flex', background: 'var(--bg-secondary)', borderRadius: '6px', border: '1px solid var(--border-color)', padding: '12px 14px', alignItems: 'center', gap: '12px' }}>
                         <code style={{ flex: 1, fontFamily: 'monospace', fontSize: '15px', color: 'var(--text-primary)', wordBreak: 'break-all' }}>
                             {myId || 'Initializing...'}
@@ -84,9 +128,19 @@ export default function SyncModal({ onClose }) {
 
                 <div style={{ marginBottom: '24px', position: 'relative' }}>
                     <div style={{ position: 'absolute', top: '-12px', left: 0, right: 0, textAlign: 'center', zIndex: 1 }}>
-                        <span style={{ background: 'var(--bg-primary)', padding: '0 8px', fontSize: '12px', color: 'var(--text-tertiary)' }}>PAIR DEVICE</span>
+                        <span style={{ background: 'var(--bg-primary)', padding: '0 8px', fontSize: '11px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>PAIR DEVICE (ONLY NEEDED ON ONE SIDE)</span>
                     </div>
                     <div style={{ borderTop: '1px solid var(--border-color)', margin: '0 0 20px 0' }} />
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '8px' }}>
+                        <button className="icon-button" onClick={() => setShowScanner(!showScanner)} style={{ fontSize: '12px', padding: '4px 8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                            <Camera size={14} /> {showScanner ? "Close Scanner" : "Scan QR"}
+                        </button>
+                    </div>
+
+                    {showScanner && (
+                        <div id="sync-qr-reader" style={{ width: '100%', marginBottom: '16px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-color)', background: '#fff' }}></div>
+                    )}
 
                     <form onSubmit={handleConnect} style={{ display: 'flex', gap: '8px' }}>
                         <input
@@ -95,7 +149,7 @@ export default function SyncModal({ onClose }) {
                             onChange={(e) => setRemoteId(e.target.value)}
                             placeholder="Enter a peer's Device ID..."
                             className="search-input"
-                            style={{ flex: 1, padding: '10px 14px', height: 'auto', background: 'var(--bg-secondary)' }}
+                            style={{ flex: 1, padding: '10px 14px', height: 'auto', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
                         />
                         <button type="submit" className="primary-btn" disabled={!remoteId.trim()} style={{ height: 'auto', padding: '0 16px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             <Link size={16} /> Connect
