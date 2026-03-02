@@ -15,7 +15,7 @@ let onConflictDetected = null;
 
 // Clean up WebSocket formally on unload so the PeerJS signaling server immediately 
 // releases the ID, preventing "unavailable-id" collisions when the user hits refresh.
-window.addEventListener('beforeunload', () => {
+window.addEventListener('pagehide', () => {
     if (peer) {
         peer.destroy();
     }
@@ -34,7 +34,7 @@ export const initSyncEngine = (callbacks) => {
     // We try to use a deterministic previously-generated ID from local storage if available
     const savedId = localStorage.getItem('redly_peer_id');
 
-    const initPeer = (idToTry, isRetry = false) => {
+    const initPeer = (idToTry, retryCount = 0) => {
         return new Promise((resolve, reject) => {
             const tempPeer = new Peer(idToTry, {
                 debug: 2,
@@ -58,13 +58,20 @@ export const initSyncEngine = (callbacks) => {
 
             tempPeer.on('error', (err) => {
                 console.error('PeerJS Error:', err);
-                if (err.type === 'unavailable-id' && !isRetry) {
-                    console.log('[Sync] ID already taken. Requesting a new unique ID for this session...');
+                if (err.type === 'unavailable-id') {
                     tempPeer.destroy();
-                    // Retry once without an ID. Note: we no longer wipe localStorage here 
-                    // so next time they refresh, they reclaim their proper saved ID.
-                    resolve(initPeer(undefined, true));
-                    return;
+                    if (retryCount < 4) {
+                        const waitTime = Math.min(1000 * (retryCount + 1), 3000);
+                        console.log(`[Sync] ID ${idToTry} taken (ghost connection?). Reclaiming in ${waitTime}ms... (Attempt ${retryCount + 1})`);
+                        setTimeout(() => {
+                            resolve(initPeer(idToTry, retryCount + 1));
+                        }, waitTime);
+                        return;
+                    } else if (retryCount === 4) {
+                        console.warn('[Sync] Cannot reclaim ID. You may have Redly open in another tab. Falling back to a temp ID...');
+                        resolve(initPeer(undefined, retryCount + 1));
+                        return;
+                    }
                 }
 
                 if (onSyncError) onSyncError(err);
@@ -311,11 +318,9 @@ const handleIncomingData = async (peerId, payload) => {
             }
         }
 
-        if (actionsToSend.length > 0) {
-            safeSend(conn, { type: 'SYNC_ACTIONS', actions: actionsToSend, conflicts: [], isAutoSync: payload.isAutoSync });
-        } else {
-            safeSend(conn, { type: 'SYNC_UP_TO_DATE', isAutoSync: payload.isAutoSync });
-        }
+        // If we get here, send the actions back to the initiator.
+        // Even if actionsToSend is empty, we must send SYNC_ACTIONS so the other peer's state machine progresses.
+        safeSend(conn, { type: 'SYNC_ACTIONS', actions: actionsToSend, conflicts: [], isAutoSync: payload.isAutoSync });
     }
     else if (type === 'SYNC_ACTIONS') {
         const { actions, conflicts } = payload;
@@ -403,6 +408,12 @@ const handleIncomingData = async (peerId, payload) => {
 export const sendConflictResolution = (peerId, nodeId, winningContent) => {
     const conn = connections.get(peerId);
     if (!conn) return;
+
+    if (winningContent === null) {
+        safeSend(conn, { type: 'SYNC_FILE_REQUEST', neededFiles: [nodeId], isAutoSync: false });
+        return;
+    }
+
     const name = nodeId.split('/').pop().replace('.md', '');
     const parentId = nodeId.substring(0, nodeId.lastIndexOf('/')) || null;
 

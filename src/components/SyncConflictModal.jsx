@@ -77,19 +77,10 @@ export default function SyncConflictModal({ peerId, conflicts, onResolvedAll }) 
                             className="secondary-btn"
                             style={{ width: '100%', marginTop: '12px', padding: '10px', background: 'var(--bg-primary)' }}
                             onClick={() => {
-                                // To choose remote, we don't send *our* content back. 
-                                // Actually, if we choose Remote, we just tell the Sync Engine "I surrender, ask them for the file!"
-                                // For simplicity, we can just trigger a manual file fetch.
-                                // But since sendConflictResolution pushes a string, we kinda need the remote string.
-                                // For this MVP, if they keep remote, we just trigger a force overwrite.
-                                syncEngine.sendConflictResolution(peerId, currentConflict.nodeId, null /* triggers remote overwrite hook */);
-                                if (currentIndex < conflicts.length - 1) setCurrentIndex(prev => prev + 1);
-                                else onResolvedAll();
+                                handleResolve(null); // passing null flags the engine to pull Remote!
                             }}
-                            disabled={true}
-                            title="Previewing remote content is not supported yet. Please keep local."
                         >
-                            Keep Remote Version (Disabled API)
+                            Keep Remote Version
                         </button>
                     </div>
                 </div>

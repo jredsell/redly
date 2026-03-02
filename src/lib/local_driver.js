@@ -128,9 +128,24 @@ export const getFileContent = async (id) => {
         const fileName = parts.pop();
         const parentPath = parts.join('/');
         const parentHandle = await getDirHandleFromPath(parentPath);
-        const fileHandle = await parentHandle.getFileHandle(fileName);
-        const file = await fileHandle.getFile();
-        return await file.text();
+
+        try {
+            const fileHandle = await parentHandle.getFileHandle(fileName);
+            const file = await fileHandle.getFile();
+            return await file.text();
+        } catch (e) {
+            if (fileName.endsWith('.md')) {
+                const legacyName = fileName.replace('.md', '');
+                try {
+                    const fallbackHandle = await parentHandle.getFileHandle(legacyName);
+                    const file = await fallbackHandle.getFile();
+                    return await file.text();
+                } catch (err2) {
+                    throw e; // throw original
+                }
+            }
+            throw e;
+        }
     }));
 };
 
