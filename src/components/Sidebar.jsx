@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { Plus, FolderPlus, X, FileText, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { Plus, FolderPlus, X, FileText, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp, Trash2 } from 'lucide-react';
 import FileTree from './FileTree';
 import RedlyLogo from './RedlyLogo';
 
-export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onGoHome }) {
+export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, setShowTasks, onGoHome }) {
     const {
         tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll,
         editNode, isInitializing, globalAddingState, setGlobalAddingState,
@@ -49,8 +49,8 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
 
     useEffect(() => {
         const handleKeyDown = (e) => {
-            // Ignore if typing in an input/textarea
-            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.closest('.ProseMirror')) {
+            // Ignore if typing in an input/textarea, or if focused on a button (to allow Enter to click buttons)
+            if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'BUTTON' || e.target.closest('.ProseMirror')) {
                 return;
             }
 
@@ -237,13 +237,26 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, setShowTasks, onG
                     onClick={onOpenHelp}
                     aria-label="Open Keyboard Shortcuts and Help"
                     style={{
-                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px',
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
                         background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '14px'
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
                     }}
                     title="Shortcuts & Help"
                 >
-                    <HelpCircle size={16} aria-hidden="true" /> Redly Guide
+                    <HelpCircle size={16} aria-hidden="true" /> Guide
+                </button>
+
+                <button
+                    onClick={onOpenTrash}
+                    aria-label="Open Recycle Bin"
+                    style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                        background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
+                    }}
+                    title="Recycle Bin"
+                >
+                    <Trash2 size={16} aria-hidden="true" /> Trash
                 </button>
             </div>
         </aside>

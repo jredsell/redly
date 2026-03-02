@@ -79,6 +79,18 @@ export const deleteNode = async (id, type) => {
   return localDriver.deleteNode(id, type);
 };
 
+export const getTrashNodes = async () => {
+  return localDriver.getTrashNodes();
+};
+
+export const restoreNode = async (trashId) => {
+  return localDriver.restoreNode(trashId);
+};
+
+export const emptyTrash = async () => {
+  return localDriver.emptyTrash();
+};
+
 export const buildTree = (nodes) => {
   const map = new Map();
   const roots = [];

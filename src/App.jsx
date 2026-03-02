@@ -3,6 +3,7 @@ import { useNotes } from './context/NotesContext';
 import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import HelpModal from './components/HelpModal';
+import TrashModal from './components/TrashModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
@@ -72,6 +73,7 @@ function App() {
   const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
+  const [trashOpen, setTrashOpen] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
 
   useEffect(() => {
@@ -166,10 +168,12 @@ function App() {
         isOpen={sidebarOpen}
         onClose={() => setSidebarOpen(false)}
         onOpenHelp={() => setHelpOpen(true)}
+        onOpenTrash={() => setTrashOpen(true)}
         setShowTasks={() => { setShowTasks(true); setActiveFileId(null); setSidebarOpen(false); }}
         onGoHome={() => { setActiveFileId(null); setShowTasks(false); setSidebarOpen(false); }}
       />
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+      <TrashModal isOpen={trashOpen} onClose={() => setTrashOpen(false)} />
 
       <main className="main-area">
         <div className="app-toolbar" style={{ display: 'flex', gap: '16px', borderBottom: activeFileId ? '1px solid var(--border-color)' : 'none', justifyContent: 'space-between', alignItems: 'center' }}>

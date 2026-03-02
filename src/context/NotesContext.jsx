@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent } from '../lib/db';
+import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getTrashNodes, restoreNode, emptyTrash } from '../lib/db';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
 
@@ -7,6 +7,7 @@ const NotesContext = createContext(undefined);
 
 export const NotesProvider = ({ children }) => {
     const [nodes, setNodes] = useState([]);
+    const [trashNodes, setTrashNodes] = useState([]);
     const [workspaceHandle, setWorkspaceHandle] = useState(null); // 'active' flag
     const [storageMode, setStorageMode] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
@@ -127,6 +128,7 @@ export const NotesProvider = ({ children }) => {
 
                     setStorageMode(mode || 'sandbox');
                     setNodes(await getNodes());
+                    setTrashNodes(await getTrashNodes());
                 } else if (status === 'requires_permission') {
                     setNeedsPermission(true);
                 }
@@ -156,6 +158,16 @@ export const NotesProvider = ({ children }) => {
         }
     }, [workspaceHandle]);
 
+    const loadTrashNodes = useCallback(async () => {
+        if (!workspaceHandle) return;
+        try {
+            const freshTrash = await getTrashNodes();
+            setTrashNodes(freshTrash);
+        } catch (e) {
+            console.error('Failed to load trash nodes:', e);
+        }
+    }, [workspaceHandle]);
+
 
     // Function to request permission on boot if returning to a local folder
     const grantLocalPermission = async () => {
@@ -163,6 +175,7 @@ export const NotesProvider = ({ children }) => {
             setNeedsPermission(false);
             setWorkspaceHandle(true);
             setNodes(await getNodes());
+            setTrashNodes(await getTrashNodes());
         }
     };
 
@@ -174,6 +187,7 @@ export const NotesProvider = ({ children }) => {
             setStorageMode(mode);
             setWorkspaceHandle(true);
             setNodes(await getNodes());
+            setTrashNodes(await getTrashNodes());
         } catch (e) {
             console.error("Workspace selection error", e);
             throw e; // Re-throw so callers (Sidebar, WelcomeScreen) can handle auth errors
@@ -193,6 +207,7 @@ export const NotesProvider = ({ children }) => {
         setStorageMode(null);
         setNeedsPermission(false);
         setNodes([]);
+        setTrashNodes([]);
         setActiveFileId(null);
         setExpandedFolders(new Set());
 
@@ -387,10 +402,32 @@ export const NotesProvider = ({ children }) => {
         try {
             await deleteNode(id, node.type);
             await loadNodes();
+            await loadTrashNodes();
         } catch (e) {
             console.error("Failed to remove node:", e);
             setNodes(previousNodes);
             alert("Error: Could not delete item. Reverting changes.");
+        }
+    };
+
+    const restoreNodeList = async (trashId) => {
+        if (!workspaceHandle) return;
+        try {
+            await restoreNode(trashId);
+            await loadNodes();
+            await loadTrashNodes();
+        } catch (e) {
+            console.error("Failed to restore node:", e);
+        }
+    };
+
+    const emptyTrashList = async () => {
+        if (!workspaceHandle) return;
+        try {
+            await emptyTrash();
+            await loadTrashNodes();
+        } catch (e) {
+            console.error("Failed to empty trash:", e);
         }
     };
 
@@ -418,8 +455,8 @@ export const NotesProvider = ({ children }) => {
     };
 
     const value = {
-        nodes, tree, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll, openAndExpandFile,
-        addNode, editNode, removeNode, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
+        nodes, tree, trashNodes, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll, openAndExpandFile,
+        addNode, editNode, removeNode, restoreNodeList, emptyTrashList, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
         installApp,
         isInstallable: !isPwaInstalled && !window.matchMedia('(display-mode: standalone)').matches && (!window.navigator.standalone),

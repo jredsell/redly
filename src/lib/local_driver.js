@@ -190,8 +190,152 @@ export const deleteNode = async (id, type) => {
         const name = id.split('/').pop();
         const parentId = id.substring(0, id.lastIndexOf('/')) || null;
         const parentHandle = await getDirHandleFromPath(parentId);
-        // name already includes .md for files because id is nodePath which is entry.name
-        await parentHandle.removeEntry(name, { recursive: true });
+
+        const trashHandle = await getDirHandleFromPath('.trash', true);
+        const timestamp = Date.now();
+        const trashId = `${timestamp}-${name}`;
+
+        const currentHandle = type === 'file'
+            ? await parentHandle.getFileHandle(name)
+            : await parentHandle.getDirectoryHandle(name);
+
+        let moveSuccessful = false;
+        if (currentHandle.move) {
+            try {
+                await currentHandle.move(trashHandle, trashId);
+                moveSuccessful = true;
+            } catch (err) {
+                console.warn('Native move to trash failed, falling back to copy/delete:', err);
+            }
+        }
+
+        if (!moveSuccessful) {
+            if (type === 'file') {
+                const file = await currentHandle.getFile();
+                const newFileHandle = await trashHandle.getFileHandle(trashId, { create: true });
+                const writable = await newFileHandle.createWritable();
+                await writable.write(await file.arrayBuffer());
+                await writable.close();
+            } else {
+                const newFolderHandle = await trashHandle.getDirectoryHandle(trashId, { create: true });
+                await copyFolderContents(currentHandle, newFolderHandle);
+            }
+            await parentHandle.removeEntry(name, { recursive: true });
+        }
+
+        // Update manifest
+        let manifest = [];
+        try {
+            const manifestHandle = await trashHandle.getFileHandle('manifest.json');
+            const file = await manifestHandle.getFile();
+            const text = await file.text();
+            if (text) manifest = JSON.parse(text);
+        } catch (e) {
+            // manifest doesn't exist yet, we'll create it below
+        }
+
+        manifest.push({
+            trashId,
+            originalId: id,
+            originalName: name.replace('.md', ''),
+            originalParentId: parentId,
+            type,
+            deletedAt: timestamp
+        });
+
+        const newManifestHandle = await trashHandle.getFileHandle('manifest.json', { create: true });
+        const writable = await newManifestHandle.createWritable();
+        await writable.write(JSON.stringify(manifest));
+        await writable.close();
+    }));
+};
+
+export const getTrashNodes = async () => {
+    try {
+        const trashHandle = await getDirHandleFromPath('.trash');
+        let text = '';
+        try {
+            const manifestHandle = await trashHandle.getFileHandle('manifest.json');
+            const file = await manifestHandle.getFile();
+            text = await file.text();
+        } catch (e) {
+            // File might not exist
+            return [];
+        }
+        return text ? JSON.parse(text) : [];
+    } catch (e) {
+        return [];
+    }
+};
+
+export const restoreNode = async (trashId) => {
+    return withLock(() => withRetry(async () => {
+        let trashHandle;
+        try {
+            trashHandle = await getDirHandleFromPath('.trash');
+        } catch (e) { return; }
+
+        let manifest = [];
+        try {
+            const manifestHandle = await trashHandle.getFileHandle('manifest.json');
+            const file = await manifestHandle.getFile();
+            manifest = JSON.parse(await file.text());
+        } catch (e) { return; }
+
+        const itemIndex = manifest.findIndex(item => item.trashId === trashId);
+        if (itemIndex === -1) return;
+        const item = manifest[itemIndex];
+
+        let parentHandle;
+        try {
+            parentHandle = await getDirHandleFromPath(item.originalParentId);
+        } catch (e) {
+            parentHandle = await getDirHandleFromPath(''); // root fallback
+            item.originalParentId = null;
+        }
+
+        const restoreName = item.type === 'file' ? `${item.originalName}.md` : item.originalName;
+
+        const currentHandle = item.type === 'file'
+            ? await trashHandle.getFileHandle(trashId)
+            : await trashHandle.getDirectoryHandle(trashId);
+
+        let moveSuccessful = false;
+        if (currentHandle.move) {
+            try {
+                await currentHandle.move(parentHandle, restoreName);
+                moveSuccessful = true;
+            } catch (err) { }
+        }
+
+        if (!moveSuccessful) {
+            if (item.type === 'file') {
+                const file = await currentHandle.getFile();
+                const newFileHandle = await parentHandle.getFileHandle(restoreName, { create: true });
+                const writable = await newFileHandle.createWritable();
+                await writable.write(await file.arrayBuffer());
+                await writable.close();
+            } else {
+                const newFolderHandle = await parentHandle.getDirectoryHandle(restoreName, { create: true });
+                await copyFolderContents(currentHandle, newFolderHandle);
+            }
+            await trashHandle.removeEntry(trashId, { recursive: true });
+        }
+
+        manifest.splice(itemIndex, 1);
+        const newManifestHandle = await trashHandle.getFileHandle('manifest.json', { create: true });
+        const writable = await newManifestHandle.createWritable();
+        await writable.write(JSON.stringify(manifest));
+        await writable.close();
+    }));
+};
+
+export const emptyTrash = async () => {
+    return withLock(() => withRetry(async () => {
+        try {
+            const rootHandle = await getDirHandleFromPath('');
+            await rootHandle.removeEntry('.trash', { recursive: true });
+        } catch (e) { }
     }));
 };
 
