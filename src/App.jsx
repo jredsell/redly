@@ -73,7 +73,7 @@ function NotificationToggle() {
 }
 
 function App() {
-  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode, loadNodes } = useNotes();
+  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode, loadNodes, triggerSyncPulse } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -89,12 +89,15 @@ function App() {
         setPairingRequest({ id: peerId, accept, reject });
       },
       onProgress: (peerId, msg) => console.log(`[Sync ${peerId}] ${msg}`),
-      onComplete: (peerId) => {
-        console.log(`[Sync ${peerId}] Complete`);
+      onComplete: (peerId, isAutoSync) => {
+        console.log(`[Sync ${peerId}] Complete. AutoSync: ${!!isAutoSync}`);
         loadNodes();
-        const id = Date.now() + Math.random();
-        setSyncToasts(prev => [...prev, { id, msg: `Synced with ${peerId.substring(0, 6)}...` }]);
-        setTimeout(() => setSyncToasts(prev => prev.filter(t => t.id !== id)), 4000);
+        triggerSyncPulse();
+        if (!isAutoSync) {
+          const id = Date.now() + Math.random();
+          setSyncToasts(prev => [...prev, { id, msg: `Synced with ${peerId.substring(0, 6)}...` }]);
+          setTimeout(() => setSyncToasts(prev => prev.filter(t => t.id !== id)), 4000);
+        }
       },
       onError: (err) => console.error("Sync Engine Error:", err),
       onConflict: (peerId, conflictsData) => {

@@ -461,7 +461,7 @@ const TableControlsMenu = ({ editor, trigger, onClose }) => {
 };
 
 export default function Editor({ fileId }) {
-    const { nodes, editNode, removeNode, getFileContent, ensureAllContentsLoaded } = useNotes();
+    const { nodes, editNode, removeNode, getFileContent, ensureAllContentsLoaded, syncPulse } = useNotes();
     const [file, setFile] = useState(null);
     const saveTimeoutRef = useRef(null);
     const lastSavedContentRef = useRef(''); // Track the last saved state to prevent echo updates
@@ -1083,13 +1083,15 @@ export default function Editor({ fileId }) {
         const f = nodes.find(n => n.id === fileId);
         if (f) {
             const isInitialLoad = !file || file.id !== fileId;
-            // Only update if it's NOT the content we just saved (prevent echo)
-            // AND ensure f.content is actually defined (it might be undefined if not yet loaded on-demand)
-            const isExternalUpdate = !isInitialLoad &&
-                f.content !== undefined &&
-                f.content !== (file?.content || '') &&
-                f.content !== lastSavedContentRef.current &&
-                f.updatedAt > (file?.updatedAt || 0);
+            // Also force update if a sync occurred, OR if the file content explicitly diverged
+            // from our locally typed buffered content.
+            const isExternalUpdate = !isInitialLoad && (
+                syncPulse > 0 ||
+                (f.content !== undefined &&
+                    f.content !== (file?.content || '') &&
+                    f.content !== lastSavedContentRef.current &&
+                    f.updatedAt > (file?.updatedAt || 0))
+            );
 
             // Keep file state up to date without necessarily re-loading editor
             setFile(f);
@@ -1103,8 +1105,8 @@ export default function Editor({ fileId }) {
                 if (editor) {
                     const loadContent = async () => {
                         let content = f.content;
-                        // On-demand loading: if content is missing from node state, fetch it
-                        if (content === undefined) {
+                        // On-demand loading OR force reload if external update
+                        if (content === undefined || isExternalUpdate) {
                             try {
                                 content = await getFileContent(fileId);
                                 // Update local state so we don't fetch again
@@ -1154,7 +1156,7 @@ export default function Editor({ fileId }) {
                 }
             }
         }
-    }, [fileId, nodes, editor, file?.id]);
+    }, [fileId, nodes, editor, file?.id, syncPulse, getFileContent]);
 
 
     if (!file) return null;

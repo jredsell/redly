@@ -13,6 +13,14 @@ let onSyncComplete = null;
 let onSyncError = null;
 let onConflictDetected = null;
 
+// Clean up WebSocket formally on unload so the PeerJS signaling server immediately 
+// releases the ID, preventing "unavailable-id" collisions when the user hits refresh.
+window.addEventListener('beforeunload', () => {
+    if (peer) {
+        peer.destroy();
+    }
+});
+
 // The active open connections
 const connections = new Map();
 
@@ -229,13 +237,14 @@ const safeSend = (conn, data, callback = null) => {
 
 // --- Sync Protocol Logic ---
 // We will build this fully out in the next phase!
-const initiateSyncHandshake = async (conn) => {
+const initiateSyncHandshake = async (conn, isAutoSync = false) => {
     if (onSyncProgress) onSyncProgress(conn.peer, 'Compiling local journal...');
     try {
         const journal = await localDriver.getSyncJournal();
         safeSend(conn, {
             type: 'SYNC_HANDSHAKE',
-            journal: journal
+            journal: journal,
+            isAutoSync
         });
     } catch (e) {
         console.error('Failed to prepare sync handshake:', e);
@@ -246,9 +255,9 @@ const initiateSyncHandshake = async (conn) => {
 export const Math_broadcastSync_trigger = true; // Placeholder for below
 export const broadcastSync = () => {
     if (connections.size === 0) return;
-    console.log('[Sync] Broadcasting auto-sync to ${connections.size} peers...');
+    console.log(`[Sync] Broadcasting auto-sync to ${connections.size} peers...`);
     connections.forEach(conn => {
-        if (conn.open) initiateSyncHandshake(conn);
+        if (conn.open) initiateSyncHandshake(conn, true);
     });
 };
 
@@ -296,16 +305,16 @@ const handleIncomingData = async (peerId, payload) => {
                 }));
 
                 // For now, we will just halt sync for these specific conflict files, but continue the rest
-                safeSend(conn, { type: 'SYNC_ACTIONS', actions: actionsToSend, conflicts: conflictNodes });
+                safeSend(conn, { type: 'SYNC_ACTIONS', actions: actionsToSend, conflicts: conflictNodes, isAutoSync: payload.isAutoSync });
                 onConflictDetected(peerId, conflictsData);
                 return;
             }
         }
 
         if (actionsToSend.length > 0) {
-            safeSend(conn, { type: 'SYNC_ACTIONS', actions: actionsToSend, conflicts: [] });
+            safeSend(conn, { type: 'SYNC_ACTIONS', actions: actionsToSend, conflicts: [], isAutoSync: payload.isAutoSync });
         } else {
-            safeSend(conn, { type: 'SYNC_UP_TO_DATE' });
+            safeSend(conn, { type: 'SYNC_UP_TO_DATE', isAutoSync: payload.isAutoSync });
         }
     }
     else if (type === 'SYNC_ACTIONS') {
@@ -339,10 +348,10 @@ const handleIncomingData = async (peerId, payload) => {
 
         if (filesToRequest.length > 0) {
             if (onSyncProgress) onSyncProgress(peerId, `Requesting ${filesToRequest.length} files...`);
-            safeSend(conn, { type: 'SYNC_FILE_REQUEST', neededFiles: filesToRequest });
+            safeSend(conn, { type: 'SYNC_FILE_REQUEST', neededFiles: filesToRequest, isAutoSync: payload.isAutoSync });
         } else {
-            safeSend(conn, { type: 'SYNC_UP_TO_DATE' });
-            if (onSyncComplete) onSyncComplete(peerId);
+            safeSend(conn, { type: 'SYNC_UP_TO_DATE', isAutoSync: payload.isAutoSync });
+            if (onSyncComplete) onSyncComplete(peerId, payload.isAutoSync);
         }
     }
     else if (type === 'SYNC_FILE_REQUEST') {
@@ -358,7 +367,7 @@ const handleIncomingData = async (peerId, payload) => {
                 console.warn(`Could not read file for sync: ${nodeId}`);
             }
         }
-        safeSend(conn, { type: 'SYNC_FILE_BATCH', files: fileBatch });
+        safeSend(conn, { type: 'SYNC_FILE_BATCH', files: fileBatch, isAutoSync: payload.isAutoSync });
     }
     else if (type === 'SYNC_FILE_BATCH') {
         const { files } = payload;
@@ -371,13 +380,13 @@ const handleIncomingData = async (peerId, payload) => {
                 await db.createNode({ name, parentId, type: 'file', content });
             }
         }
-        safeSend(conn, { type: 'SYNC_UP_TO_DATE' });
+        safeSend(conn, { type: 'SYNC_UP_TO_DATE', isAutoSync: payload.isAutoSync });
         localStorage.setItem('sync_time_' + peerId, Date.now());
-        if (onSyncComplete) onSyncComplete(peerId);
+        if (onSyncComplete) onSyncComplete(peerId, payload.isAutoSync);
     }
     else if (type === 'SYNC_UP_TO_DATE') {
         localStorage.setItem('sync_time_' + peerId, Date.now());
-        if (onSyncComplete) onSyncComplete(peerId);
+        if (onSyncComplete) onSyncComplete(peerId, payload.isAutoSync);
     }
     else if (type === 'SYNC_RESOLVE_CONFLICT') {
         // The other peer resolved the conflict and sent us the winner content

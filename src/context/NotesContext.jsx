@@ -34,6 +34,9 @@ export const NotesProvider = ({ children }) => {
         return true; // Default to dark mode
     });
 
+    const [syncPulse, setSyncPulse] = useState(0);
+    const triggerSyncPulse = useCallback(() => setSyncPulse(p => p + 1), []);
+
     useEffect(() => {
         if (isDarkMode) {
             document.documentElement.classList.add('dark');
@@ -469,7 +472,8 @@ export const NotesProvider = ({ children }) => {
         isInstallable: !isPwaInstalled && !window.matchMedia('(display-mode: standalone)').matches && (!window.navigator.standalone),
         showInstallModal, setShowInstallModal,
         notificationSettings, setNotificationSettings,
-        isDarkMode, setIsDarkMode
+        isDarkMode, setIsDarkMode,
+        syncPulse, triggerSyncPulse
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;
