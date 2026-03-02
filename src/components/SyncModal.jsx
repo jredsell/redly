@@ -72,15 +72,16 @@ export default function SyncModal({ onClose }) {
         }
     };
 
-    const handleConnect = async (e) => {
-        e.preventDefault();
-        if (!remoteId.trim()) return;
+    const handleConnect = async (e, directId = null) => {
+        if (e) e.preventDefault();
+        const targetId = directId || remoteId.trim();
+        if (!targetId) return;
 
         setStatus('Connecting...');
         try {
-            await syncEngine.connectToPeer(remoteId.trim());
+            await syncEngine.connectToPeer(targetId);
             setStatus('Connected & Synced!');
-            setRemoteId('');
+            if (!directId) setRemoteId('');
             refreshTrustedDevices();
             setTimeout(() => setStatus(''), 3000);
         } catch (err) {
@@ -99,7 +100,7 @@ export default function SyncModal({ onClose }) {
             <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '440px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
                     <h2 style={{ margin: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <Activity size={20} className="icon-color" /> WebRTC Sync
+                        <Activity size={20} className="icon-color" /> Sync
                     </h2>
                     <button className="icon-button" onClick={onClose} aria-label="Close Sync Modal">
                         <X size={20} />
@@ -192,9 +193,14 @@ export default function SyncModal({ onClose }) {
                                             {id.substring(0, 16)}...
                                         </code>
                                     </div>
-                                    <button className="icon-button" onClick={() => handleRemoveDevice(id)} title="Revoke Access" style={{ color: 'var(--danger-color)' }}>
-                                        <Trash2 size={16} />
-                                    </button>
+                                    <div style={{ display: 'flex', gap: '4px' }}>
+                                        <button className="icon-button" onClick={() => handleConnect(null, id)} title="Sync Now" style={{ color: 'var(--accent-color)' }}>
+                                            <Activity size={16} />
+                                        </button>
+                                        <button className="icon-button" onClick={() => handleRemoveDevice(id)} title="Revoke Access" style={{ color: 'var(--danger-color)' }}>
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

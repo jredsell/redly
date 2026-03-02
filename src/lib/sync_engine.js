@@ -107,6 +107,11 @@ export const connectToPeer = (remoteId) => {
         addTrustedDevice(remoteId); // Optimistically trust them since WE initiated it
         const conn = peer.connect(remoteId, { reliable: true });
 
+        if (!conn) {
+            removeTrustedDevice(remoteId);
+            return reject(new Error("Networking error: Could not establish peer connection. Are you connected to the internet?"));
+        }
+
         const timeout = setTimeout(() => {
             removeTrustedDevice(remoteId);
             reject(new Error("Connection timed out. Ensure the other device is online, has Redly open, and accepted the prompt."));
