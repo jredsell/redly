@@ -17,29 +17,43 @@ export default function SyncModal({ onClose }) {
         refreshTrustedDevices();
     }, []);
 
+    const scannerRef = React.useRef(null);
+
     useEffect(() => {
         if (!showScanner) return;
 
-        const scanner = new Html5QrcodeScanner(
+        scannerRef.current = new Html5QrcodeScanner(
             "sync-qr-reader",
             { fps: 10, qrbox: { width: 250, height: 250 } },
             false
         );
 
-        scanner.render(
+        let isScanning = true;
+
+        scannerRef.current.render(
             (decodedText) => {
+                if (!isScanning) return;
+                isScanning = false;
+
                 setRemoteId(decodedText);
-                setShowScanner(false);
                 setStatus('Scanned QR code. Ready to connect.');
-                setTimeout(() => scanner.clear().catch(console.error), 100);
+                setShowScanner(false);
+
+                // Allow state update to unmount the scanner component
             },
             (error) => {
-                // Warning/error during read, can safely be ignored in continuous scan mode
+                // Warning/error during read, can safely be ignored
             }
         );
 
         return () => {
-            scanner.clear().catch(e => console.error('Failed to clear scanner:', e));
+            isScanning = false;
+            // Html5QrcodeScanner can throw if it hasn't fully started
+            try {
+                if (document.getElementById("sync-qr-reader")?.innerHTML !== "") {
+                    scannerRef.current?.clear().catch(() => { });
+                }
+            } catch (e) { }
         };
     }, [showScanner]);
 
