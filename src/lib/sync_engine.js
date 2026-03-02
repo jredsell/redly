@@ -155,11 +155,17 @@ export const connectToPeer = (remoteId) => {
                 reject(new Error("Connection timed out (30s). Ensure the other device is online, has Redly open, and accepted the prompt."));
             }, 30000);
 
-            conn.on('open', () => {
+            const handleOpen = () => {
                 clearTimeout(timeout);
                 setupConnection(conn);
                 resolve(true);
-            });
+            };
+
+            if (conn.open) {
+                handleOpen();
+            } else {
+                conn.on('open', handleOpen);
+            }
 
             conn.on('error', (err) => {
                 clearTimeout(timeout);
