@@ -15,11 +15,15 @@ let onConflictDetected = null;
 
 // Clean up WebSocket formally on unload so the PeerJS signaling server immediately 
 // releases the ID, preventing "unavailable-id" collisions when the user hits refresh.
-window.addEventListener('pagehide', () => {
-    if (peer) {
-        peer.destroy();
+const cleanupSync = () => {
+    if (peer && !peer.destroyed) {
+        try { peer.disconnect(); } catch (e) { }
+        try { peer.destroy(); } catch (e) { }
     }
-});
+};
+window.addEventListener('pagehide', cleanupSync);
+window.addEventListener('beforeunload', cleanupSync);
+window.addEventListener('unload', cleanupSync);
 
 // The active open connections
 const connections = new Map();
@@ -74,14 +78,14 @@ export const initSyncEngine = (callbacks) => {
                 console.error('PeerJS Error:', err);
                 if (err.type === 'unavailable-id') {
                     tempPeer.destroy();
-                    if (retryCount < 4) {
+                    if (retryCount < 10) {
                         const waitTime = Math.min(1000 * (retryCount + 1), 3000);
                         console.log(`[Sync] ID ${idToTry} taken (ghost connection?). Reclaiming in ${waitTime}ms... (Attempt ${retryCount + 1})`);
                         setTimeout(() => {
                             resolve(initPeer(idToTry, retryCount + 1));
                         }, waitTime);
                         return;
-                    } else if (retryCount === 4) {
+                    } else if (retryCount >= 10) {
                         console.warn('[Sync] Cannot reclaim ID. You may have Redly open in another tab. Falling back to a temp ID...');
                         resolve(initPeer(undefined, retryCount + 1));
                         return;
