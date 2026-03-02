@@ -249,6 +249,13 @@ export const updateNode = async (id, updates, oldNode) => {
             }
         }
 
+        // 2. Handle Content Updates (if not already handled by copy fallback)
+        if (updates.content !== undefined && oldNode.type === 'file') {
+            const writable = await currentHandle.createWritable();
+            await writable.write(updates.content);
+            await writable.close();
+        }
+
         // Update ID & Log actions
         if ((updates.name && updates.name !== oldNode.name) || (updates.parentId !== undefined && updates.parentId !== oldNode.parentId)) {
             // It was renamed or moved. Log old as deleted, new as created/updated.
