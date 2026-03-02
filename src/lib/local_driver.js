@@ -61,7 +61,22 @@ export const getSyncJournal = async () => {
         const fileHandle = await syncHandle.getFileHandle('journal.json');
         const file = await fileHandle.getFile();
         const text = await file.text();
-        return text ? JSON.parse(text) : {};
+        if (!text) return {};
+
+        const journal = JSON.parse(text);
+        const correctedJournal = {};
+
+        for (const [key, value] of Object.entries(journal)) {
+            let newKey = key;
+            // Silent backward-compatibility migration for old OPFS journal entries
+            if (value.type === 'file' && !key.endsWith('.md')) {
+                newKey = `${key}.md`;
+            }
+            if (!correctedJournal[newKey] || value.timestamp > correctedJournal[newKey].timestamp) {
+                correctedJournal[newKey] = value;
+            }
+        }
+        return correctedJournal;
     } catch (e) {
         return {};
     }
@@ -124,13 +139,15 @@ export const createNode = async (node) => {
         const parentHandle = await getDirHandleFromPath(node.parentId, true);
         if (node.type === 'folder') {
             await parentHandle.getDirectoryHandle(node.name, { create: true });
+            node.id = node.parentId ? `${node.parentId}/${node.name}` : node.name;
         } else {
             const fileHandle = await parentHandle.getFileHandle(`${node.name}.md`, { create: true });
             const writable = await fileHandle.createWritable();
             await writable.write(node.content || '');
             await writable.close();
+            node.id = node.parentId ? `${node.parentId}/${node.name}.md` : `${node.name}.md`;
         }
-        await _logSyncAction('create', node.parentId ? `${node.parentId}/${node.name}` : node.name, node.type);
+        await _logSyncAction('create', node.id, node.type);
         return node;
     }));
 };
