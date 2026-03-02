@@ -25,6 +25,48 @@ async function withRetry(fn, retries = 3, delay = 50) {
     }
 }
 
+// Global Sync Journal logging (Run inside withLock!)
+async function _logSyncAction(action, nodeId, type) {
+    try {
+        if (!currentRootHandle) return;
+        const syncHandle = await currentRootHandle.getDirectoryHandle('.sync', { create: true });
+
+        let journal = {};
+        try {
+            const fileHandle = await syncHandle.getFileHandle('journal.json');
+            const file = await fileHandle.getFile();
+            const text = await file.text();
+            if (text) journal = JSON.parse(text);
+        } catch (e) { }
+
+        journal[nodeId] = {
+            action,
+            type,
+            timestamp: Date.now()
+        };
+
+        const newHandle = await syncHandle.getFileHandle('journal.json', { create: true });
+        const writable = await newHandle.createWritable();
+        await writable.write(JSON.stringify(journal));
+        await writable.close();
+    } catch (err) {
+        console.error("Failed to write to sync journal", err);
+    }
+}
+
+export const getSyncJournal = async () => {
+    try {
+        if (!currentRootHandle) return {};
+        const syncHandle = await currentRootHandle.getDirectoryHandle('.sync');
+        const fileHandle = await syncHandle.getFileHandle('journal.json');
+        const file = await fileHandle.getFile();
+        const text = await file.text();
+        return text ? JSON.parse(text) : {};
+    } catch (e) {
+        return {};
+    }
+};
+
 export const setRootHandle = (handle) => { currentRootHandle = handle; };
 
 export const getDirHandleFromPath = async (path, create = false) => {
@@ -88,6 +130,7 @@ export const createNode = async (node) => {
             await writable.write(node.content || '');
             await writable.close();
         }
+        await _logSyncAction('create', node.parentId ? `${node.parentId}/${node.name}` : node.name, node.type);
         return node;
     }));
 };
@@ -174,11 +217,14 @@ export const updateNode = async (id, updates, oldNode) => {
             }
         }
 
-        // 2. Handle Content Updates (File only)
-        if (oldNode.type === 'file' && updates.content !== undefined) {
-            const writable = await currentHandle.createWritable();
-            await writable.write(updates.content);
-            await writable.close();
+        // Update ID & Log actions
+        if ((updates.name && updates.name !== oldNode.name) || (updates.parentId !== undefined && updates.parentId !== oldNode.parentId)) {
+            // It was renamed or moved. Log old as deleted, new as created/updated.
+            await _logSyncAction('delete', oldNode.id, oldNode.type);
+            await _logSyncAction('update', finalNode.id, finalNode.type);
+        } else if (updates.content !== undefined) {
+            // Just content updated
+            await _logSyncAction('update', finalNode.id, finalNode.type);
         }
 
         return finalNode;
@@ -247,6 +293,8 @@ export const deleteNode = async (id, type) => {
         const writable = await newManifestHandle.createWritable();
         await writable.write(JSON.stringify(manifest));
         await writable.close();
+
+        await _logSyncAction('delete', id, type);
     }));
 };
 

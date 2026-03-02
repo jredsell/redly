@@ -458,6 +458,7 @@ export const NotesProvider = ({ children }) => {
         nodes, tree, trashNodes, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll, openAndExpandFile,
         addNode, editNode, removeNode, restoreNodeList, emptyTrashList, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
+        loadNodes,
         installApp,
         isInstallable: !isPwaInstalled && !window.matchMedia('(display-mode: standalone)').matches && (!window.navigator.standalone),
         showInstallModal, setShowInstallModal,

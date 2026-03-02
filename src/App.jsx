@@ -4,11 +4,14 @@ import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import HelpModal from './components/HelpModal';
 import TrashModal from './components/TrashModal';
+import SyncModal from './components/SyncModal';
+import SyncConflictModal from './components/SyncConflictModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
 import { Menu, Sun, Moon, Bell } from 'lucide-react';
 import { requestNotificationPermission } from './utils/notificationManager';
+import * as syncEngine from './lib/sync_engine';
 
 function NotificationToggle() {
   const { notificationSettings, setNotificationSettings } = useNotes();
@@ -70,11 +73,31 @@ function NotificationToggle() {
 }
 
 function App() {
-  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode } = useNotes();
+  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode, loadNodes } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const [pairingRequest, setPairingRequest] = useState(null);
+  const [syncConflicts, setSyncConflicts] = useState(null);
   const [showTasks, setShowTasks] = useState(false);
+
+  useEffect(() => {
+    syncEngine.initSyncEngine({
+      onRequest: (peerId, accept, reject) => {
+        setPairingRequest({ id: peerId, accept, reject });
+      },
+      onProgress: (peerId, msg) => console.log(`[Sync ${peerId}] ${msg}`),
+      onComplete: (peerId) => {
+        console.log(`[Sync ${peerId}] Complete`);
+        loadNodes();
+      },
+      onError: (err) => console.error("Sync Engine Error:", err),
+      onConflict: (peerId, conflictsData) => {
+        setSyncConflicts({ peerId, conflicts: conflictsData });
+      }
+    }).catch(e => console.error("Failed to init sync engine", e));
+  }, [loadNodes]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -169,11 +192,36 @@ function App() {
         onClose={() => setSidebarOpen(false)}
         onOpenHelp={() => setHelpOpen(true)}
         onOpenTrash={() => setTrashOpen(true)}
+        onOpenSync={() => setSyncOpen(true)}
         setShowTasks={() => { setShowTasks(true); setActiveFileId(null); setSidebarOpen(false); }}
         onGoHome={() => { setActiveFileId(null); setShowTasks(false); setSidebarOpen(false); }}
       />
       <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
       <TrashModal isOpen={trashOpen} onClose={() => setTrashOpen(false)} />
+      {syncOpen && <SyncModal onClose={() => setSyncOpen(false)} />}
+
+      {syncConflicts && (
+        <SyncConflictModal
+          peerId={syncConflicts.peerId}
+          conflicts={syncConflicts.conflicts}
+          onResolvedAll={() => setSyncConflicts(null)}
+        />
+      )}
+
+      {pairingRequest && (
+        <div className="modal-overlay" style={{ zIndex: 10000 }}>
+          <div className="modal-content" style={{ maxWidth: '400px' }}>
+            <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Device Pairing Request</h2>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '14.5px', marginBottom: '28px', lineHeight: '1.5' }}>
+              Device <strong style={{ color: 'var(--text-primary)' }}>{pairingRequest.id.substring(0, 16)}...</strong> wants to sync notes. Do you trust this device?
+            </p>
+            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+              <button className="secondary-btn" onClick={() => { pairingRequest.reject(); setPairingRequest(null); }} style={{ padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}>Deny Request</button>
+              <button className="primary-btn" onClick={() => { pairingRequest.accept(); setPairingRequest(null); }} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--accent-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Accept & Sync</button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <main className="main-area">
         <div className="app-toolbar" style={{ display: 'flex', gap: '16px', borderBottom: activeFileId ? '1px solid var(--border-color)' : 'none', justifyContent: 'space-between', alignItems: 'center' }}>

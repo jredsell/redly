@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { Plus, FolderPlus, X, FileText, HelpCircle, CheckSquare, ChevronsDown, ChevronsUp, Trash2 } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, Plus, Trash2, FolderPlus, MoreVertical, Edit2, Play, Settings, Menu, Settings2, Moon, Sun, HelpCircle, Activity, X, CheckSquare, ChevronsDown, ChevronsUp } from 'lucide-react';
 import FileTree from './FileTree';
 import RedlyLogo from './RedlyLogo';
 
-export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, setShowTasks, onGoHome }) {
+export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOpenSync, setShowTasks, onGoHome }) {
     const {
         tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll,
         editNode, isInitializing, globalAddingState, setGlobalAddingState,
@@ -123,7 +123,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, setS
     }, [handleNewItem, getVisibleNodes, lastInteractedNodeId, expandedFolders, toggleFolder, setActiveFileId, setLastInteractedNodeId]);
 
     return (
-        <aside className={`sidebar ${isOpen ? 'open' : ''}`} role="navigation" aria-label="Main Navigation">
+        <aside className={`sidebar ${isOpen ? 'open' : ''} `} role="navigation" aria-label="Main Navigation">
             <div className="sidebar-header" style={{ padding: '16px', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
@@ -233,6 +233,19 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, setS
                 justifyContent: 'center',
                 flexShrink: 0
             }}>
+                <button
+                    onClick={onOpenSync}
+                    aria-label="Open Sync Center"
+                    style={{
+                        flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
+                        background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
+                    }}
+                    title="WebRTC Sync"
+                >
+                    <Activity size={16} aria-hidden="true" className="icon-color" /> Sync
+                </button>
+
                 <button
                     onClick={onOpenHelp}
                     aria-label="Open Keyboard Shortcuts and Help"

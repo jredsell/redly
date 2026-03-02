@@ -29,6 +29,7 @@
     "lucide-react": "^0.575.0",
     "markdown-it": "^14.1.1",
     "markdown-it-task-lists": "^2.1.1",
+    "peerjs": "^1.5.5",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^10.1.0",
