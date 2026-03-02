@@ -26,26 +26,36 @@ export const initSyncEngine = (callbacks) => {
     // We try to use a deterministic previously-generated ID from local storage if available
     const savedId = localStorage.getItem('redly_peer_id');
 
-    // Create a new Peer instance connecting to the free public PeerJS cloud
-    peer = new Peer(savedId || undefined, {
-        debug: 2
-    });
+    const initPeer = (idToTry, isRetry = false) => {
+        return new Promise((resolve, reject) => {
+            const tempPeer = new Peer(idToTry, { debug: 2 });
 
-    return new Promise((resolve, reject) => {
-        peer.on('open', (id) => {
-            myId = id;
-            localStorage.setItem('redly_peer_id', id);
-            resolve(id);
+            tempPeer.on('open', (id) => {
+                myId = id;
+                peer = tempPeer;
+                localStorage.setItem('redly_peer_id', id);
+                tempPeer.on('connection', handleIncomingConnection);
+                resolve(id);
+            });
+
+            tempPeer.on('error', (err) => {
+                console.error('PeerJS Error:', err);
+                if (err.type === 'unavailable-id' && !isRetry) {
+                    console.log('[Sync] ID already taken. Requesting a new unique ID...');
+                    localStorage.removeItem('redly_peer_id');
+                    tempPeer.destroy();
+                    // Retry once without an ID
+                    resolve(initPeer(undefined, true));
+                    return;
+                }
+
+                if (onSyncError) onSyncError(err);
+                reject(err);
+            });
         });
+    };
 
-        peer.on('error', (err) => {
-            console.error('PeerJS Error:', err);
-            if (onSyncError) onSyncError(err);
-            reject(err);
-        });
-
-        peer.on('connection', handleIncomingConnection);
-    });
+    return initPeer(savedId || undefined);
 };
 
 export const getMyId = () => myId;
