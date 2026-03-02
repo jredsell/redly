@@ -41,7 +41,9 @@ export const initSyncEngine = (callbacks) => {
             tempPeer.on('open', (id) => {
                 myId = id;
                 peer = tempPeer;
-                localStorage.setItem('redly_peer_id', id);
+                if (!isRetry) {
+                    localStorage.setItem('redly_peer_id', id);
+                }
                 tempPeer.on('connection', handleIncomingConnection);
                 resolve(id);
             });
@@ -49,10 +51,10 @@ export const initSyncEngine = (callbacks) => {
             tempPeer.on('error', (err) => {
                 console.error('PeerJS Error:', err);
                 if (err.type === 'unavailable-id' && !isRetry) {
-                    console.log('[Sync] ID already taken. Requesting a new unique ID...');
-                    localStorage.removeItem('redly_peer_id');
+                    console.log('[Sync] ID already taken. Requesting a new unique ID for this session...');
                     tempPeer.destroy();
-                    // Retry once without an ID
+                    // Retry once without an ID. Note: we no longer wipe localStorage here 
+                    // so next time they refresh, they reclaim their proper saved ID.
                     resolve(initPeer(undefined, true));
                     return;
                 }
@@ -239,6 +241,15 @@ const initiateSyncHandshake = async (conn) => {
         console.error('Failed to prepare sync handshake:', e);
         if (onSyncError) onSyncError(e);
     }
+};
+
+export const Math_broadcastSync_trigger = true; // Placeholder for below
+export const broadcastSync = () => {
+    if (connections.size === 0) return;
+    console.log('[Sync] Broadcasting auto-sync to ${connections.size} peers...');
+    connections.forEach(conn => {
+        if (conn.open) initiateSyncHandshake(conn);
+    });
 };
 
 const handleIncomingData = async (peerId, payload) => {

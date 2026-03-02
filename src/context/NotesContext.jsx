@@ -2,6 +2,7 @@ import React, { createContext, useContext, useEffect, useState, useCallback, use
 import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getTrashNodes, restoreNode, emptyTrash } from '../lib/db';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
+import * as syncEngine from '../lib/sync_engine';
 
 const NotesContext = createContext(undefined);
 
@@ -347,6 +348,7 @@ export const NotesProvider = ({ children }) => {
             // in the local driver's internal state/cache. 
             // But for safety and to get formal IDs:
             await loadNodes();
+            syncEngine.broadcastSync();
         } catch (e) {
             console.error("Failed to add node:", e);
             setNodes(previousNodes);
@@ -380,6 +382,7 @@ export const NotesProvider = ({ children }) => {
                 if (lastInteractedNodeId === id) setLastInteractedNodeId(updatedNode.id);
             }
             await loadNodes();
+            syncEngine.broadcastSync();
         } catch (e) {
             console.error("Failed to edit node:", e);
             setNodes(previousNodes);
@@ -403,6 +406,7 @@ export const NotesProvider = ({ children }) => {
             await deleteNode(id, node.type);
             await loadNodes();
             await loadTrashNodes();
+            syncEngine.broadcastSync();
         } catch (e) {
             console.error("Failed to remove node:", e);
             setNodes(previousNodes);
@@ -416,6 +420,7 @@ export const NotesProvider = ({ children }) => {
             await restoreNode(trashId);
             await loadNodes();
             await loadTrashNodes();
+            syncEngine.broadcastSync();
         } catch (e) {
             console.error("Failed to restore node:", e);
         }
@@ -426,6 +431,7 @@ export const NotesProvider = ({ children }) => {
         try {
             await emptyTrash();
             await loadTrashNodes();
+            syncEngine.broadcastSync();
         } catch (e) {
             console.error("Failed to empty trash:", e);
         }

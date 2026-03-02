@@ -80,6 +80,7 @@ function App() {
   const [syncOpen, setSyncOpen] = useState(false);
   const [pairingRequest, setPairingRequest] = useState(null);
   const [syncConflicts, setSyncConflicts] = useState(null);
+  const [syncToasts, setSyncToasts] = useState([]);
   const [showTasks, setShowTasks] = useState(false);
 
   useEffect(() => {
@@ -91,6 +92,9 @@ function App() {
       onComplete: (peerId) => {
         console.log(`[Sync ${peerId}] Complete`);
         loadNodes();
+        const id = Date.now() + Math.random();
+        setSyncToasts(prev => [...prev, { id, msg: `Synced with ${peerId.substring(0, 6)}...` }]);
+        setTimeout(() => setSyncToasts(prev => prev.filter(t => t.id !== id)), 4000);
       },
       onError: (err) => console.error("Sync Engine Error:", err),
       onConflict: (peerId, conflictsData) => {
@@ -206,6 +210,21 @@ function App() {
           conflicts={syncConflicts.conflicts}
           onResolvedAll={() => setSyncConflicts(null)}
         />
+      )}
+
+      {syncToasts.length > 0 && (
+        <div style={{ position: 'fixed', bottom: '24px', right: '24px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 9999, pointerEvents: 'none' }}>
+          {syncToasts.map(toast => (
+            <div key={toast.id} style={{
+              background: 'var(--success-color)', color: 'white', padding: '10px 16px', borderRadius: '8px',
+              fontSize: '13.5px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+              display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.3s ease'
+            }}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              {toast.msg}
+            </div>
+          ))}
+        </div>
       )}
 
       {pairingRequest && (
