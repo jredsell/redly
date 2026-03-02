@@ -28,7 +28,15 @@ export const initSyncEngine = (callbacks) => {
 
     const initPeer = (idToTry, isRetry = false) => {
         return new Promise((resolve, reject) => {
-            const tempPeer = new Peer(idToTry, { debug: 2 });
+            const tempPeer = new Peer(idToTry, {
+                debug: 2,
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
+            });
 
             tempPeer.on('open', (id) => {
                 myId = id;
@@ -87,24 +95,30 @@ export const removeTrustedDevice = (id) => {
 
 // --- Connection Handling ---
 const handleIncomingConnection = (conn) => {
+    console.log('[Sync] Incoming connection from', conn.peer);
     const trusted = getTrustedDevices();
 
+    // Buffer any messages that arrive while the user is looking at the Accept/Reject prompt
+    const earlyMessages = [];
+    const bufferListener = (data) => earlyMessages.push(data);
+    conn.on('data', bufferListener);
+
     if (trusted.includes(conn.peer)) {
-        // Auto-accept trusted devices
+        conn.off('data', bufferListener);
         setupConnection(conn);
     } else {
-        // Unknown device! Ask the UI for permission
         if (onPeerRequest) {
             onPeerRequest(conn.peer, () => {
                 // Accepted
                 addTrustedDevice(conn.peer);
+                conn.off('data', bufferListener);
                 setupConnection(conn);
+                // Replay buffered messages
+                earlyMessages.forEach(msg => handleIncomingData(conn.peer, msg));
             }, () => {
-                // Rejected
                 conn.close();
             });
         } else {
-            // No UI handler registered, automatically reject for security
             conn.close();
         }
     }
@@ -138,8 +152,8 @@ export const connectToPeer = (remoteId) => {
 
             const timeout = setTimeout(() => {
                 removeTrustedDevice(remoteId);
-                reject(new Error("Connection timed out. Ensure the other device is online, has Redly open, and accepted the prompt."));
-            }, 15000);
+                reject(new Error("Connection timed out (30s). Ensure the other device is online, has Redly open, and accepted the prompt."));
+            }, 30000);
 
             conn.on('open', () => {
                 clearTimeout(timeout);
