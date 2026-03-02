@@ -190,14 +190,32 @@ const setupConnection = (conn) => {
 };
 
 const safeSend = (conn, data, callback = null) => {
-    if (conn.open) {
-        if (data) conn.send(data);
-        if (callback) callback();
-    } else {
-        conn.once('open', () => {
+    const execute = () => {
+        try {
             if (data) conn.send(data);
             if (callback) callback();
-        });
+        } catch (e) {
+            console.warn('[Sync] safeSend failed, retrying in 100ms:', e.message);
+            setTimeout(() => {
+                try {
+                    if (data) conn.send(data);
+                    if (callback) callback();
+                } catch (err) { console.error('[Sync] safeSend retry dropped', err); }
+            }, 100);
+        }
+    };
+
+    const isTrulyOpen = conn.open && (!conn.dataChannel || conn.dataChannel.readyState === 'open');
+
+    if (isTrulyOpen) {
+        execute();
+    } else {
+        const onOpen = () => {
+            conn.off('open', onOpen);
+            // Wait 50ms for WebRTC internal plumbing to finalize before pushing bytes
+            setTimeout(execute, 50);
+        };
+        conn.on('open', onOpen);
     }
 };
 
