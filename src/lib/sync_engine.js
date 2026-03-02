@@ -103,10 +103,22 @@ const handleIncomingConnection = (conn) => {
 export const connectToPeer = (remoteId) => {
     if (!peer) throw new Error('Sync engine not initialized');
 
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         addTrustedDevice(remoteId); // Optimistically trust them since WE initiated it
 
         try {
+            // Auto-reconnect to signaling server if the tab went to sleep
+            if (peer.disconnected) {
+                console.log("[Sync] Reconnecting to signaling server...");
+                peer.reconnect();
+                await new Promise((res, rej) => {
+                    const onOpen = () => { peer.off('error', onError); res(); };
+                    const onError = (e) => { peer.off('open', onOpen); rej(e); };
+                    peer.once('open', onOpen);
+                    peer.once('error', onError);
+                });
+            }
+
             const conn = peer.connect(remoteId, { reliable: true });
 
             if (!conn) {
