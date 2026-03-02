@@ -32,12 +32,20 @@ window.addEventListener('beforeunload', cleanupSync);
 // The active open connections
 const connections = new Map();
 
+let isInitializing = false;
+let initPromise = null;
+
 export const initSyncEngine = (callbacks) => {
     if (callbacks.onRequest) onPeerRequest = callbacks.onRequest;
     if (callbacks.onProgress) onSyncProgress = callbacks.onProgress;
     if (callbacks.onComplete) onSyncComplete = callbacks.onComplete;
     if (callbacks.onError) onSyncError = callbacks.onError;
     if (callbacks.onConflict) onConflictDetected = callbacks.onConflict;
+
+    if (peer && !peer.destroyed) return Promise.resolve(myId);
+    if (isInitializing) return initPromise;
+
+    isInitializing = true;
 
     // We try to use a deterministic previously-generated ID from local storage if available
     const savedId = localStorage.getItem('redly_peer_id');
@@ -105,7 +113,10 @@ export const initSyncEngine = (callbacks) => {
         });
     };
 
-    return initPeer(savedId || undefined);
+    initPromise = initPeer(savedId || undefined).finally(() => {
+        isInitializing = false;
+    });
+    return initPromise;
 };
 
 export const getMyId = () => myId;
