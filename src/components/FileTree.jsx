@@ -295,7 +295,7 @@ export default function FileTree({ node, depth }) {
                         </p>
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                             <button className="secondary-btn" onClick={cancelDelete} style={{ padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}>Cancel</button>
-                            <button className="danger-btn" onClick={confirmDelete} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Delete</button>
+                            <button className="danger-btn" autoFocus onClick={confirmDelete} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Delete</button>
                         </div>
                     </div>
                 </div>

@@ -856,6 +856,25 @@ export default function Editor({ fileId }) {
                         return true;
                     }
                 }
+
+                if (event.key === 'Tab') {
+                    if (editor.isActive('listItem') || editor.isActive('taskItem')) {
+                        event.preventDefault();
+                        if (event.shiftKey) {
+                            editor.commands.liftListItem(editor.isActive('taskItem') ? 'taskItem' : 'listItem');
+                        } else {
+                            editor.commands.sinkListItem(editor.isActive('taskItem') ? 'taskItem' : 'listItem');
+                        }
+                        return true;
+                    }
+
+                    if (!event.shiftKey) {
+                        event.preventDefault();
+                        editor.chain().focus().insertContent('    ').run();
+                        return true;
+                    }
+                }
+
                 return false;
             }
         },
@@ -1170,7 +1189,7 @@ export default function Editor({ fileId }) {
                         </p>
                         <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
                             <button className="secondary-btn" onClick={() => setShowDeleteConfirm(false)} style={{ padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}>Cancel</button>
-                            <button className="danger-btn" onClick={() => { setShowDeleteConfirm(false); removeNode(fileId); }} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Delete Note</button>
+                            <button className="danger-btn" autoFocus onClick={() => { setShowDeleteConfirm(false); removeNode(fileId); }} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--danger-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Delete Note</button>
                         </div>
                     </div>
                 </div>
