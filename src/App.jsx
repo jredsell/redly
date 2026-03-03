@@ -11,6 +11,7 @@ import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
 import { Menu, Sun, Moon, Bell, CheckCircle } from 'lucide-react';
 import RedlyLogo from './components/RedlyLogo';
+import PullToRefresh from './components/PullToRefresh';
 import { requestNotificationPermission } from './utils/notificationManager';
 import * as syncEngine from './lib/sync_engine';
 
@@ -189,124 +190,126 @@ function App() {
   }
 
   return (
-    <div className="app-container">
-      <div
-        className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
-        onClick={() => setSidebarOpen(false)}
-      ></div>
+    <PullToRefresh>
+      <div className="app-container">
+        <div
+          className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
+          onClick={() => setSidebarOpen(false)}
+        ></div>
 
-      <Sidebar
-        isOpen={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
-        onOpenHelp={() => setHelpOpen(true)}
-        onOpenTrash={() => setTrashOpen(true)}
-        onOpenSync={() => setSyncOpen(true)}
-        setShowTasks={() => { setShowTasks(true); setActiveFileId(null); setSidebarOpen(false); }}
-        onGoHome={() => { setActiveFileId(null); setShowTasks(false); setSidebarOpen(false); }}
-      />
-      <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
-      <TrashModal isOpen={trashOpen} onClose={() => setTrashOpen(false)} />
-      {syncOpen && <SyncModal onClose={() => setSyncOpen(false)} />}
-
-      {syncConflicts && (
-        <SyncConflictModal
-          peerId={syncConflicts.peerId}
-          conflicts={syncConflicts.conflicts}
-          onResolvedAll={() => setSyncConflicts(null)}
+        <Sidebar
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+          onOpenHelp={() => setHelpOpen(true)}
+          onOpenTrash={() => setTrashOpen(true)}
+          onOpenSync={() => setSyncOpen(true)}
+          setShowTasks={() => { setShowTasks(true); setActiveFileId(null); setSidebarOpen(false); }}
+          onGoHome={() => { setActiveFileId(null); setShowTasks(false); setSidebarOpen(false); }}
         />
-      )}
+        <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
+        <TrashModal isOpen={trashOpen} onClose={() => setTrashOpen(false)} />
+        {syncOpen && <SyncModal onClose={() => setSyncOpen(false)} />}
 
-      {syncToasts.length > 0 && (
-        <div style={{ position: 'fixed', bottom: '24px', right: '24px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 9999, pointerEvents: 'none' }}>
-          {syncToasts.map(toast => (
-            <div key={toast.id} style={{
-              background: 'var(--success-color)', color: 'white', padding: '10px 16px', borderRadius: '8px',
-              fontSize: '13.5px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-              display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.3s ease'
-            }}>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
-              {toast.msg}
-            </div>
-          ))}
-        </div>
-      )}
+        {syncConflicts && (
+          <SyncConflictModal
+            peerId={syncConflicts.peerId}
+            conflicts={syncConflicts.conflicts}
+            onResolvedAll={() => setSyncConflicts(null)}
+          />
+        )}
 
-      {syncSuccessModal && (
-        <div className="modal-overlay" onClick={() => setSyncSuccessModal(false)} style={{ zIndex: 9999 }}>
-          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '32px' }}>
-            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', color: 'var(--success-color)' }}>
-              <CheckCircle size={48} />
-            </div>
-            <h2 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600' }}>Sync Successful</h2>
-            <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>
-              Your devices are connected and fully synced. We will automatically keep your files up to date in the background.
-            </p>
-            <button className="primary-btn" onClick={() => setSyncSuccessModal(false)} style={{ padding: '10px 32px', display: 'inline-flex' }}>
-              Okay
-            </button>
+        {syncToasts.length > 0 && (
+          <div style={{ position: 'fixed', bottom: '24px', right: '24px', display: 'flex', flexDirection: 'column', gap: '8px', zIndex: 9999, pointerEvents: 'none' }}>
+            {syncToasts.map(toast => (
+              <div key={toast.id} style={{
+                background: 'var(--success-color)', color: 'white', padding: '10px 16px', borderRadius: '8px',
+                fontSize: '13.5px', fontWeight: '500', boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+                display: 'flex', alignItems: 'center', gap: '8px', transition: 'all 0.3s ease'
+              }}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                {toast.msg}
+              </div>
+            ))}
           </div>
-        </div>
-      )}
+        )}
 
-      {pairingRequest && (
-        <div className="modal-overlay" style={{ zIndex: 10000 }}>
-          <div className="modal-content" style={{ maxWidth: '400px' }}>
-            <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Device Pairing Request</h2>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '14.5px', marginBottom: '28px', lineHeight: '1.5' }}>
-              Device <strong style={{ color: 'var(--text-primary)' }}>{pairingRequest.id.substring(0, 16)}...</strong> wants to sync notes. Do you trust this device?
-            </p>
-            <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
-              <button className="secondary-btn" onClick={() => { pairingRequest.reject(); setPairingRequest(null); }} style={{ padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}>Deny Request</button>
-              <button className="primary-btn" onClick={() => { pairingRequest.accept(); setPairingRequest(null); }} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--accent-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Accept & Sync</button>
+        {syncSuccessModal && (
+          <div className="modal-overlay" onClick={() => setSyncSuccessModal(false)} style={{ zIndex: 9999 }}>
+            <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '32px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', color: 'var(--success-color)' }}>
+                <CheckCircle size={48} />
+              </div>
+              <h2 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600' }}>Sync Successful</h2>
+              <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>
+                Your devices are connected and fully synced. We will automatically keep your files up to date in the background.
+              </p>
+              <button className="primary-btn" onClick={() => setSyncSuccessModal(false)} style={{ padding: '10px 32px', display: 'inline-flex' }}>
+                Okay
+              </button>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      <main className="main-area">
-        <div className="app-toolbar" style={{ display: 'flex', gap: '16px', borderBottom: activeFileId ? '1px solid var(--border-color)' : 'none', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
-            <button
-              className="icon-button mobile-menu-btn"
-              onClick={() => setSidebarOpen(true)}
-              style={{ display: 'none' }}
-            >
-              <Menu size={20} />
-            </button>
-            <div
-              className="mobile-logo"
-              style={{ display: 'none', cursor: 'pointer' }}
-              onClick={() => { setActiveFileId(null); setShowTasks(false); }}
-            >
-              <RedlyLogo size={24} showText={true} />
+        {pairingRequest && (
+          <div className="modal-overlay" style={{ zIndex: 10000 }}>
+            <div className="modal-content" style={{ maxWidth: '400px' }}>
+              <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', marginBottom: '8px' }}>Device Pairing Request</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14.5px', marginBottom: '28px', lineHeight: '1.5' }}>
+                Device <strong style={{ color: 'var(--text-primary)' }}>{pairingRequest.id.substring(0, 16)}...</strong> wants to sync notes. Do you trust this device?
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '24px' }}>
+                <button className="secondary-btn" onClick={() => { pairingRequest.reject(); setPairingRequest(null); }} style={{ padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)' }}>Deny Request</button>
+                <button className="primary-btn" onClick={() => { pairingRequest.accept(); setPairingRequest(null); }} style={{ padding: '8px 16px', borderRadius: '6px', background: 'var(--accent-color)', color: 'white', border: 'none', cursor: 'pointer', fontWeight: '500' }}>Accept & Sync</button>
+              </div>
             </div>
-            <style>{`
+          </div>
+        )}
+
+        <main className="main-area">
+          <div className="app-toolbar" style={{ display: 'flex', gap: '16px', borderBottom: activeFileId ? '1px solid var(--border-color)' : 'none', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '16px', alignItems: 'center' }}>
+              <button
+                className="icon-button mobile-menu-btn"
+                onClick={() => setSidebarOpen(true)}
+                style={{ display: 'none' }}
+              >
+                <Menu size={20} />
+              </button>
+              <div
+                className="mobile-logo"
+                style={{ display: 'none', cursor: 'pointer' }}
+                onClick={() => { setActiveFileId(null); setShowTasks(false); }}
+              >
+                <RedlyLogo size={24} showText={true} />
+              </div>
+              <style>{`
               @media (max-width: 768px) {
                 .mobile-menu-btn { display: flex !important; }
                 .mobile-logo { display: block !important; }
               }
             `}</style>
+            </div>
+
+            <GlobalSearch />
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
+              <button
+                className="icon-button"
+                onClick={() => setIsDarkMode(!isDarkMode)}
+                title="Toggle Theme"
+              >
+                {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
+              </button>
+              <NotificationToggle />
+            </div>
           </div>
 
-          <GlobalSearch />
-
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginRight: '16px' }}>
-            <button
-              className="icon-button"
-              onClick={() => setIsDarkMode(!isDarkMode)}
-              title="Toggle Theme"
-            >
-              {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
-            </button>
-            <NotificationToggle />
-          </div>
-        </div>
-
-        {showTasks && <GlobalTasks />}
-        {!showTasks && activeFileId && <Editor key={activeFileId} fileId={activeFileId} />}
-        {!showTasks && !activeFileId && <WelcomeScreen openHelp={() => setHelpOpen(true)} />}
-      </main>
-    </div>
+          {showTasks && <GlobalTasks />}
+          {!showTasks && activeFileId && <Editor key={activeFileId} fileId={activeFileId} />}
+          {!showTasks && !activeFileId && <WelcomeScreen openHelp={() => setHelpOpen(true)} />}
+        </main>
+      </div>
+    </PullToRefresh>
   );
 }
 
