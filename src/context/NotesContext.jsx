@@ -131,7 +131,9 @@ export const NotesProvider = ({ children }) => {
                     if (!mode) mode = localStorage.getItem('redly_last_storage_mode');
 
                     setStorageMode(mode || 'sandbox');
-                    setNodes(await getNodes());
+                    const nodes = await getNodes();
+                    setNodes(nodes);
+                    await localDriver.auditSyncJournal(nodes);
                     setTrashNodes(await getTrashNodes());
                     syncEngine.broadcastSync();
                 } else if (status === 'requires_permission') {
@@ -179,7 +181,9 @@ export const NotesProvider = ({ children }) => {
         if (await requestLocalPermission()) {
             setNeedsPermission(false);
             setWorkspaceHandle(true);
-            setNodes(await getNodes());
+            const nodes = await getNodes();
+            setNodes(nodes);
+            await localDriver.auditSyncJournal(nodes);
             setTrashNodes(await getTrashNodes());
             syncEngine.broadcastSync();
         }
@@ -192,7 +196,9 @@ export const NotesProvider = ({ children }) => {
             localStorage.setItem('redly_last_storage_mode', mode); // Fallback for UI sync
             setStorageMode(mode);
             setWorkspaceHandle(true);
-            setNodes(await getNodes());
+            const nodes = await getNodes();
+            setNodes(nodes);
+            await localDriver.auditSyncJournal(nodes);
             setTrashNodes(await getTrashNodes());
             syncEngine.broadcastSync();
         } catch (e) {

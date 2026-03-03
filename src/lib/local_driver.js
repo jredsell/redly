@@ -82,6 +82,38 @@ export const getSyncJournal = async () => {
     }
 };
 
+export const auditSyncJournal = async (nodes) => {
+    try {
+        if (!currentRootHandle) return;
+
+        const journal = await getSyncJournal();
+        let changed = false;
+
+        for (const node of nodes) {
+            if (!journal[node.id]) {
+                journal[node.id] = {
+                    action: 'update',
+                    timestamp: node.updatedAt || Date.now(),
+                    type: node.type
+                };
+                changed = true;
+            }
+        }
+
+        if (changed) {
+            const syncHandle = await currentRootHandle.getDirectoryHandle('.sync', { create: true });
+            const fileHandle = await syncHandle.getFileHandle('journal.json', { create: true });
+            // Use withLock-like manual lock if available, or just straight write since this only runs on mount
+            const writable = await fileHandle.createWritable();
+            await writable.write(JSON.stringify(journal));
+            await writable.close();
+            console.log("[Sync] Audited and backfilled missing native files into local journal.");
+        }
+    } catch (err) {
+        console.error("Failed to audit sync journal", err);
+    }
+};
+
 export const setRootHandle = (handle) => { currentRootHandle = handle; };
 
 export const getDirHandleFromPath = async (path, create = false) => {
