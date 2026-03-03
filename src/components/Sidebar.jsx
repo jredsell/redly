@@ -9,7 +9,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
         tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll,
         editNode, isInitializing, globalAddingState, setGlobalAddingState,
         lastInteractedNodeId, setLastInteractedNodeId, expandedFolders,
-        toggleFolder, disconnectWorkspace, isDarkMode
+        toggleFolder, disconnectWorkspace, isDarkMode, syncStatus
     } = useNotes();
 
     const [newName, setNewName] = useState('');
@@ -241,9 +241,12 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                         background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
                         color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
                     }}
-                    title="WebRTC Sync"
                 >
-                    <Activity size={16} aria-hidden="true" className="icon-color" /> Sync
+                    <Activity
+                        size={16}
+                        aria-hidden="true"
+                        style={{ color: syncStatus === 'error' ? 'var(--danger-color)' : (syncStatus === 'connected' ? 'var(--success-color)' : 'var(--text-tertiary)') }}
+                    /> Sync
                 </button>
 
                 <button

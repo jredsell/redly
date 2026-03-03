@@ -12,6 +12,7 @@ export const NotesProvider = ({ children }) => {
     const [workspaceHandle, setWorkspaceHandle] = useState(null); // 'active' flag
     const [storageMode, setStorageMode] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
+    const [syncStatus, setSyncStatus] = useState(syncEngine.getSyncStatus());
     const [needsPermission, setNeedsPermission] = useState(false);
 
     const [activeFileId, setActiveFileId] = useState(() => localStorage.getItem('redly_activeFileId') || null);
@@ -56,6 +57,12 @@ export const NotesProvider = ({ children }) => {
         return saved ? JSON.parse(saved) : { enabled: false, leadTime: 10 };
     });
     const [notifiedTaskIds, setNotifiedTaskIds] = useState(new Set());
+
+    useEffect(() => {
+        const updateStatus = (status) => setSyncStatus(status);
+        syncEngine.onSyncStatusChanged(updateStatus);
+        return () => syncEngine.removeSyncStatusChanged(updateStatus);
+    }, []);
 
     useEffect(() => {
         // If the PWA is opened in standalone mode, auto-detect it's installed
@@ -230,6 +237,17 @@ export const NotesProvider = ({ children }) => {
         if (activeFileId) localStorage.setItem('redly_activeFileId', activeFileId);
         else localStorage.removeItem('redly_activeFileId');
     }, [activeFileId]);
+
+    useEffect(() => {
+        // If the active file gets deleted natively or remotely via Sync, gracefully exit the editor
+        if (activeFileId && workspaceHandle && !isInitializing) {
+            const fileStillExists = nodes.some(n => n.id === activeFileId);
+            if (!fileStillExists) {
+                console.log(`[NotesContext] Active file ${activeFileId} was removed from the file system. Evicting editor.`);
+                setActiveFileId(null);
+            }
+        }
+    }, [nodes, activeFileId, workspaceHandle, isInitializing]);
 
     useEffect(() => {
         localStorage.setItem('redly_expandedFolders', JSON.stringify(Array.from(expandedFolders)));

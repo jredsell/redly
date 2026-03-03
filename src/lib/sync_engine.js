@@ -13,6 +13,19 @@ let onSyncComplete = null;
 let onSyncError = null;
 let onConflictDetected = null;
 
+let currentSyncStatus = 'offline';
+const statusListeners = new Set();
+export const onSyncStatusChanged = (fn) => statusListeners.add(fn);
+export const removeSyncStatusChanged = (fn) => statusListeners.delete(fn);
+export const getSyncStatus = () => currentSyncStatus;
+
+const setStatus = (status) => {
+    if (currentSyncStatus !== status) {
+        currentSyncStatus = status;
+        statusListeners.forEach(fn => fn(status));
+    }
+};
+
 // Clean up WebSocket formally on unload so the PeerJS signaling server immediately 
 // releases the ID, preventing "unavailable-id" collisions when the user hits refresh.
 const cleanupSync = () => {
@@ -77,7 +90,7 @@ export const initSyncEngine = (callbacks) => {
                     const trustedDevices = getTrustedDevices();
                     trustedDevices.forEach(peerId => {
                         if (peerId !== id && !connections.has(peerId)) {
-                            connectToPeer(peerId).catch(() => {
+                            connectToPeer(peerId, true).catch(() => {
                                 // Suppress errors for offline devices during auto-connect
                             });
                         }
@@ -161,7 +174,7 @@ const handleIncomingConnection = (conn) => {
             clearTimeout(promptTimeout);
             addTrustedDevice(conn.peer);
             conn.off('data', bufferListener);
-            setupConnection(conn);
+            setupConnection(conn, true);
             handleIncomingData(conn.peer, data);
             earlyMessages.forEach(msg => handleIncomingData(conn.peer, msg));
             return;
@@ -172,7 +185,7 @@ const handleIncomingConnection = (conn) => {
 
     if (trusted.includes(conn.peer)) {
         conn.off('data', bufferListener);
-        setupConnection(conn);
+        setupConnection(conn, true);
     } else {
         // Wait 600ms for a handshake payload before showing the Accept/Reject prompt
         promptTimeout = setTimeout(() => {
@@ -181,7 +194,7 @@ const handleIncomingConnection = (conn) => {
                     // Accepted
                     addTrustedDevice(conn.peer);
                     conn.off('data', bufferListener);
-                    setupConnection(conn);
+                    setupConnection(conn, false);
                     // Replay buffered messages
                     earlyMessages.forEach(msg => handleIncomingData(conn.peer, msg));
                 });
@@ -190,7 +203,7 @@ const handleIncomingConnection = (conn) => {
     }
 };
 
-export const connectToPeer = (remoteId) => {
+export const connectToPeer = (remoteId, isAutoConnect = false) => {
     if (!peer) throw new Error('Sync engine not initialized');
 
     return new Promise(async (resolve, reject) => {
@@ -223,7 +236,7 @@ export const connectToPeer = (remoteId) => {
 
             const handleOpen = () => {
                 clearTimeout(timeout);
-                setupConnection(conn);
+                setupConnection(conn, isAutoConnect);
                 resolve(true);
             };
 
@@ -236,6 +249,7 @@ export const connectToPeer = (remoteId) => {
             conn.on('error', (err) => {
                 clearTimeout(timeout);
                 console.error('Connection error:', err);
+                setStatus('error');
                 // removeTrustedDevice(remoteId); // REMOVED: Don't untrust if they are just offline!
                 reject(err);
             });
@@ -247,8 +261,9 @@ export const connectToPeer = (remoteId) => {
     });
 };
 
-const setupConnection = (conn) => {
+const setupConnection = (conn, isAutoConnect = false) => {
     connections.set(conn.peer, conn);
+    if (currentSyncStatus !== 'error') setStatus('connected');
 
     conn.on('data', (data) => {
         handleIncomingData(conn.peer, data);
@@ -256,9 +271,10 @@ const setupConnection = (conn) => {
 
     conn.on('close', () => {
         connections.delete(conn.peer);
+        if (connections.size === 0) setStatus('offline');
     });
 
-    safeSend(conn, null, () => initiateSyncHandshake(conn));
+    safeSend(conn, null, () => initiateSyncHandshake(conn, isAutoConnect));
 };
 
 const safeSend = (conn, data, callback = null) => {
@@ -342,7 +358,9 @@ const handleIncomingData = async (peerId, payload) => {
 
         const actionsToSend = [];
         const conflictNodes = [];
+        const filesToRequestFromRemote = [];
 
+        // 1. What does Local have that Remote needs?
         for (const [nodeId, localEntry] of Object.entries(localJournal)) {
             const remoteEntry = remoteJournal[nodeId];
 
@@ -361,6 +379,21 @@ const handleIncomingData = async (peerId, payload) => {
             }
         }
 
+        // 2. What does Remote have that Local needs?
+        for (const [nodeId, remoteEntry] of Object.entries(remoteJournal)) {
+            const localEntry = localJournal[nodeId];
+            if (!localEntry || remoteEntry.timestamp > localEntry.timestamp) {
+                // Ignore conflicts, those are handled in the localJournal loop checking
+                if (localEntry && localEntry.action === 'update' && remoteEntry.action === 'update') continue;
+
+                if (remoteEntry.action === 'create' || remoteEntry.action === 'update') {
+                    filesToRequestFromRemote.push(nodeId);
+                } else if (remoteEntry.action === 'delete') {
+                    try { await db.deleteNode(nodeId, remoteEntry.type); } catch (e) { }
+                }
+            }
+        }
+
         // If there are conflicts, alert the UI immediately to stop and ask the user
         if (conflictNodes.length > 0) {
             if (onConflictDetected) {
@@ -373,6 +406,9 @@ const handleIncomingData = async (peerId, payload) => {
 
                 // For now, we will just halt sync for these specific conflict files, but continue the rest
                 safeSend(conn, { type: 'SYNC_ACTIONS', actions: actionsToSend, conflicts: conflictNodes, isAutoSync: payload.isAutoSync });
+                if (filesToRequestFromRemote.length > 0) {
+                    safeSend(conn, { type: 'SYNC_FILE_REQUEST', neededFiles: filesToRequestFromRemote, isAutoSync: payload.isAutoSync });
+                }
                 onConflictDetected(peerId, conflictsData);
                 return;
             }
@@ -381,6 +417,12 @@ const handleIncomingData = async (peerId, payload) => {
         // If we get here, send the actions back to the initiator.
         // Even if actionsToSend is empty, we must send SYNC_ACTIONS so the other peer's state machine progresses.
         safeSend(conn, { type: 'SYNC_ACTIONS', actions: actionsToSend, conflicts: [], isAutoSync: payload.isAutoSync });
+
+        // Furthermore, explicitly pull the files we decided we need locally
+        if (filesToRequestFromRemote.length > 0) {
+            if (onSyncProgress) onSyncProgress(peerId, `Requesting ${filesToRequestFromRemote.length} files from peer...`);
+            safeSend(conn, { type: 'SYNC_FILE_REQUEST', neededFiles: filesToRequestFromRemote, isAutoSync: payload.isAutoSync });
+        }
     }
     else if (type === 'SYNC_ACTIONS') {
         const { actions, conflicts } = payload;
