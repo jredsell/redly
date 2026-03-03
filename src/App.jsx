@@ -10,6 +10,7 @@ import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
 import { Menu, Sun, Moon, Bell, CheckCircle } from 'lucide-react';
+import RedlyLogo from './components/RedlyLogo';
 import { requestNotificationPermission } from './utils/notificationManager';
 import * as syncEngine from './lib/sync_engine';
 
@@ -272,9 +273,17 @@ function App() {
             >
               <Menu size={20} />
             </button>
+            <div
+              className="mobile-logo"
+              style={{ display: 'none', cursor: 'pointer' }}
+              onClick={() => { setActiveFileId(null); setShowTasks(false); }}
+            >
+              <RedlyLogo size={24} showText={true} />
+            </div>
             <style>{`
               @media (max-width: 768px) {
                 .mobile-menu-btn { display: flex !important; }
+                .mobile-logo { display: block !important; }
               }
             `}</style>
           </div>

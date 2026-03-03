@@ -98,7 +98,8 @@ h6 {
 
 body {
   width: 100vw;
-  height: 100vh;
+  min-height: 100vh;
+  height: 100dvh;
   overflow: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -107,6 +108,8 @@ body {
 #root {
   width: 100%;
   height: 100%;
+  min-height: 100vh;
+  min-height: 100dvh;
 }
 
 /* Base utility classes */
@@ -114,6 +117,7 @@ body {
   display: flex;
   width: 100%;
   height: 100%;
+  min-height: 100dvh;
   background-color: var(--bg-primary);
 }
 
@@ -165,7 +169,7 @@ body {
 .tree-item {
   display: flex;
   align-items: center;
-  padding: 6px 8px;
+  padding: 10px 8px;
   border-radius: 6px;
   cursor: pointer;
   color: var(--text-secondary);
@@ -757,19 +761,27 @@ body {
 .modal-content .danger-btn {
   transition: opacity 0.2s ease;
 }
+
 .modal-content .danger-btn:hover {
   opacity: 0.9;
 }
+
 .modal-content .secondary-btn {
   transition: background 0.2s ease;
 }
+
 .modal-content .secondary-btn:hover {
   background: var(--bg-hover) !important;
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUpFade {
@@ -777,6 +789,7 @@ body {
     opacity: 0;
     transform: translateY(10px) scale(0.98);
   }
+
   to {
     opacity: 1;
     transform: translateY(0) scale(1);

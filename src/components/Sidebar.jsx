@@ -155,9 +155,16 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                             <FolderPlus size={16} aria-hidden="true" />
                         </button>
                         {isOpen && (
-                            <button className="icon-button" onClick={onClose} style={{ display: 'none' }} aria-label="Close Sidebar">
-                                <X size={18} aria-hidden="true" />
-                            </button>
+                            <React.Fragment>
+                                <button className="icon-button mobile-close-btn" onClick={onClose} style={{ display: 'none' }} aria-label="Close Sidebar">
+                                    <X size={18} aria-hidden="true" />
+                                </button>
+                                <style>{`
+                                    @media (max-width: 768px) {
+                                        .mobile-close-btn { display: flex !important; margin-left: 4px; }
+                                    }
+                                `}</style>
+                            </React.Fragment>
                         )}
                     </div>
                 </div>
