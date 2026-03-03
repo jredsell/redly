@@ -238,11 +238,19 @@ export const connectToPeer = (remoteId, isAutoConnect = false) => {
             }
 
             const timeout = setTimeout(() => {
-                // removeTrustedDevice(remoteId); // REMOVED: Don't untrust if they are just offline!
+                clearInterval(statePoller);
                 reject(new Error("Connection timed out (30s). Ensure the other device is online, has Redly open, and accepted the prompt."));
             }, 30000);
 
+            // Granular ICE Telemetry for Mobile Debugging
+            const statePoller = setInterval(() => {
+                if (conn && conn.peerConnection) {
+                    console.log(`[Sync ${remoteId}] ICE: ${conn.peerConnection.iceConnectionState} | Peer: ${conn.peerConnection.connectionState}`);
+                }
+            }, 2000);
+
             const handleOpen = () => {
+                clearInterval(statePoller);
                 clearTimeout(timeout);
                 setupConnection(conn, isAutoConnect);
                 resolve(true);
@@ -395,7 +403,21 @@ const handleIncomingData = async (peerId, payload) => {
                 if (localEntry && localEntry.action === 'update' && remoteEntry.action === 'update') continue;
 
                 if (remoteEntry.action === 'create' || remoteEntry.action === 'update') {
-                    filesToRequestFromRemote.push(nodeId);
+                    if (remoteEntry.type === 'folder') {
+                        try {
+                            const parts = nodeId.split('/');
+                            let currentParent = null;
+                            for (let i = 0; i < parts.length; i++) {
+                                const folderName = parts[i];
+                                try {
+                                    await db.createNode({ name: folderName, parentId: currentParent, type: 'folder' });
+                                } catch (e) { }
+                                currentParent = currentParent ? `${currentParent}/${folderName}` : folderName;
+                            }
+                        } catch (e) { }
+                    } else {
+                        filesToRequestFromRemote.push(nodeId);
+                    }
                 } else if (remoteEntry.action === 'delete') {
                     try { await db.deleteNode(nodeId, remoteEntry.type); } catch (e) { }
                 }
@@ -450,7 +472,7 @@ const handleIncomingData = async (peerId, payload) => {
             const { action, nodeId, type: nodeType } = actionObj;
             if (action === 'delete') {
                 try { await db.deleteNode(nodeId, nodeType); } catch (e) { }
-            } else if (action === 'create' && nodeType === 'folder') {
+            } else if ((action === 'create' || action === 'update') && nodeType === 'folder') {
                 try {
                     const parts = nodeId.split('/');
                     let currentParent = null;
@@ -462,7 +484,7 @@ const handleIncomingData = async (peerId, payload) => {
                         currentParent = currentParent ? `${currentParent}/${folderName}` : folderName;
                     }
                 } catch (e) { }
-            } else if (action === 'create' || action === 'update') {
+            } else if ((action === 'create' || action === 'update') && nodeType !== 'folder') {
                 filesToRequest.push(nodeId);
             }
         }
