@@ -75,7 +75,7 @@ export default function SyncConflictModal({ peerId, conflicts, onResolvedAll }) 
                         </div>
                         <button
                             className="secondary-btn"
-                            style={{ width: '100%', marginTop: '12px', padding: '10px', background: 'var(--bg-primary)' }}
+                            style={{ width: '100%', marginTop: '12px', padding: '10px', background: 'var(--bg-primary)', color: 'var(--text-primary)' }}
                             onClick={() => {
                                 handleResolve(null); // passing null flags the engine to pull Remote!
                             }}

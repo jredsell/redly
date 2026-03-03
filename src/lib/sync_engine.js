@@ -202,7 +202,7 @@ const handleIncomingConnection = (conn) => {
 
     if (trusted.includes(conn.peer)) {
         conn.off('data', bufferListener);
-        setupConnection(conn, true);
+        setupConnection(conn, true, false);
     } else {
         // Wait 600ms for a handshake payload before showing the Accept/Reject prompt
         promptTimeout = setTimeout(() => {
@@ -211,7 +211,7 @@ const handleIncomingConnection = (conn) => {
                     // Accepted
                     addTrustedDevice(conn.peer);
                     conn.off('data', bufferListener);
-                    setupConnection(conn, false);
+                    setupConnection(conn, false, false);
                     // Replay buffered messages
                     earlyMessages.forEach(msg => handleIncomingData(conn.peer, msg));
                 });
@@ -261,7 +261,7 @@ export const connectToPeer = (remoteId, isAutoConnect = false) => {
             const handleOpen = () => {
                 clearInterval(statePoller);
                 clearTimeout(timeout);
-                setupConnection(conn, isAutoConnect);
+                setupConnection(conn, isAutoConnect, true);
                 resolve(true);
             };
 
@@ -286,7 +286,8 @@ export const connectToPeer = (remoteId, isAutoConnect = false) => {
     });
 };
 
-const setupConnection = (conn, isAutoConnect = false) => {
+const setupConnection = (conn, isAutoConnect = false, isInitiator = false) => {
+    conn.isInitiator = isInitiator;
     connections.set(conn.peer, conn);
     if (currentSyncStatus !== 'error') setStatus('connected');
 
@@ -343,6 +344,7 @@ const initiateSyncHandshake = async (conn, isAutoSync = false) => {
             type: 'SYNC_HANDSHAKE',
             journal: journal,
             isAutoSync,
+            isInitiator: !!conn.isInitiator,
             originalId,
             trustedPeers: getTrustedDevices()
         });
@@ -407,7 +409,16 @@ const handleIncomingData = async (peerId, payload) => {
                 // Check for divergence: both modified since last sync
                 if (localEntry.timestamp > lastSyncTime && remoteEntry.timestamp > lastSyncTime && localEntry.timestamp !== remoteEntry.timestamp) {
                     if (localEntry.action === 'update' && remoteEntry.action === 'update') {
-                        conflictNodes.push(nodeId);
+                        let isMaster = false;
+                        if (conn.isInitiator && !payload.isInitiator) isMaster = true;
+                        else if (!conn.isInitiator && payload.isInitiator) isMaster = false;
+                        else isMaster = myId > peerId;
+
+                        if (isMaster) {
+                            conflictNodes.push(nodeId);
+                        } else {
+                            console.log(`[Sync] Conflict detected on ${nodeId}, deferring UI resolution to Master Peer ${peerId}`);
+                        }
                         continue; // Skip automatic resolution
                     }
                 }
