@@ -17,6 +17,7 @@
   /* 6.7:1 */
   --accent-hover: #1d4ed8;
   --danger-color: #dc2626;
+  --success-color: #10b981;
   /* Accessible Red */
   --border-color: #d1d5db;
 
@@ -63,6 +64,7 @@
   /* 4.5:1 */
   --accent-hover: #60a5fa;
   --danger-color: #fca5a5;
+  --success-color: #34d399;
   --border-color: #334155;
 
   /* Date Badges - High contrast status colors */

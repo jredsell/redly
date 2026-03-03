@@ -100,6 +100,11 @@ export const initSyncEngine = (callbacks) => {
                 resolve(id);
             });
 
+            tempPeer.on('disconnected', () => {
+                // If Chrome Memory Saver or OS Battery Saver kills the STUN websocket, reconnect it silently
+                if (!tempPeer.destroyed) tempPeer.reconnect();
+            });
+
             tempPeer.on('error', (err) => {
                 console.error('PeerJS Error:', err);
                 if (err.type === 'unavailable-id') {
