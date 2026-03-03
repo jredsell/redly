@@ -15,6 +15,10 @@ export default function SyncModal({ onClose }) {
 
     useEffect(() => {
         refreshTrustedDevices();
+
+        const onPeersUpdate = () => refreshTrustedDevices();
+        window.addEventListener('syncPeersUpdated', onPeersUpdate);
+        return () => window.removeEventListener('syncPeersUpdated', onPeersUpdate);
     }, []);
 
     const scannerRef = React.useRef(null);

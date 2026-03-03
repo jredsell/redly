@@ -153,6 +153,7 @@ export const addTrustedDevice = (id) => {
     if (!devices.includes(id)) {
         devices.push(id);
         localStorage.setItem(TRUSTED_DEVICES_KEY, JSON.stringify(devices));
+        window.dispatchEvent(new CustomEvent('syncPeersUpdated'));
     }
 };
 
@@ -160,6 +161,7 @@ export const removeTrustedDevice = (id) => {
     let devices = getTrustedDevices();
     devices = devices.filter(d => d !== id);
     localStorage.setItem(TRUSTED_DEVICES_KEY, JSON.stringify(devices));
+    window.dispatchEvent(new CustomEvent('syncPeersUpdated'));
     // Close connection if active
     if (connections.has(id)) {
         connections.get(id).close();
