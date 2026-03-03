@@ -9,7 +9,7 @@ import SyncConflictModal from './components/SyncConflictModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
-import { Menu, Sun, Moon, Bell } from 'lucide-react';
+import { Menu, Sun, Moon, Bell, CheckCircle } from 'lucide-react';
 import { requestNotificationPermission } from './utils/notificationManager';
 import * as syncEngine from './lib/sync_engine';
 
@@ -81,6 +81,7 @@ function App() {
   const [pairingRequest, setPairingRequest] = useState(null);
   const [syncConflicts, setSyncConflicts] = useState(null);
   const [syncToasts, setSyncToasts] = useState([]);
+  const [syncSuccessModal, setSyncSuccessModal] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
 
   useEffect(() => {
@@ -94,9 +95,8 @@ function App() {
         loadNodes();
         triggerSyncPulse();
         if (!isAutoSync) {
-          const id = Date.now() + Math.random();
-          setSyncToasts(prev => [...prev, { id, msg: `Synced with ${peerId.substring(0, 6)}...` }]);
-          setTimeout(() => setSyncToasts(prev => prev.filter(t => t.id !== id)), 4000);
+          setSyncOpen(false);
+          setSyncSuccessModal(true);
         }
       },
       onError: (err) => console.error("Sync Engine Error:", err),
@@ -227,6 +227,23 @@ function App() {
               {toast.msg}
             </div>
           ))}
+        </div>
+      )}
+
+      {syncSuccessModal && (
+        <div className="modal-overlay" onClick={() => setSyncSuccessModal(false)} style={{ zIndex: 9999 }}>
+          <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '400px', textAlign: 'center', padding: '32px' }}>
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px', color: 'var(--success-color)' }}>
+              <CheckCircle size={48} />
+            </div>
+            <h2 style={{ margin: '0 0 12px 0', color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600' }}>Sync Successful</h2>
+            <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', fontSize: '14px', lineHeight: '1.5' }}>
+              Your devices are connected and fully synced. We will automatically keep your files up to date in the background.
+            </p>
+            <button className="primary-btn" onClick={() => setSyncSuccessModal(false)} style={{ padding: '10px 32px', display: 'inline-flex' }}>
+              Okay
+            </button>
+          </div>
         </div>
       )}
 
