@@ -173,6 +173,13 @@ const handleIncomingConnection = (conn) => {
     const trusted = getTrustedDevices();
     let promptTimeout;
 
+    const statePoller = setInterval(() => {
+        if (conn && conn.peerConnection) {
+            console.log(`[Sync Incoming ${conn.peer}] ICE: ${conn.peerConnection.iceConnectionState} | Peer: ${conn.peerConnection.connectionState}`);
+        }
+    }, 2000);
+    conn.on('close', () => clearInterval(statePoller));
+
     // Buffer any messages that arrive while the user is looking at the Accept/Reject prompt
     const earlyMessages = [];
     const bufferListener = (data) => {
