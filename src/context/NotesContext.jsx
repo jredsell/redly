@@ -408,6 +408,8 @@ export const NotesProvider = ({ children }) => {
         try {
             const updatedNode = await updateNode(id, updates, oldNode);
             if (updatedNode && updatedNode.id !== id) {
+                // Synchronously inject the new ID into state so the eviction observer doesn't trip
+                setNodes(prev => prev.map(n => n.id === id ? updatedNode : n));
                 if (activeFileId === id) setActiveFileId(updatedNode.id);
                 if (lastInteractedNodeId === id) setLastInteractedNodeId(updatedNode.id);
             }

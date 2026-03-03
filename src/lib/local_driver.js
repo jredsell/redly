@@ -133,17 +133,17 @@ export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') 
         for await (const entry of dirHandle.values()) {
             const nodePath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
 
-            if (entry.kind === 'file' && entry.name.endsWith('.md')) {
+            if (entry.kind === 'file' && (!entry.name.includes('.') || entry.name.endsWith('.md'))) {
                 const file = await entry.getFile();
                 nodes.push({
                     id: nodePath,
-                    name: entry.name.replace('.md', ''),
+                    name: entry.name.endsWith('.md') ? entry.name.slice(0, -3) : entry.name,
                     type: 'file',
                     parentId: currentPath || null,
                     updatedAt: file.lastModified
                 });
             } else if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
-                nodes.push({ id: nodePath, name: entry.name, type: 'folder', parentId: currentPath || null });
+                nodes.push({ id: nodePath, name: entry.name, type: 'folder', parentId: currentPath || null, updatedAt: Date.now() });
                 const children = await getNodes(entry, nodePath);
                 nodes.push(...children);
             }

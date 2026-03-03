@@ -444,9 +444,15 @@ const handleIncomingData = async (peerId, payload) => {
                 try { await db.deleteNode(nodeId, nodeType); } catch (e) { }
             } else if (action === 'create' && nodeType === 'folder') {
                 try {
-                    const name = nodeId.split('/').pop();
-                    const parentId = nodeId.substring(0, nodeId.lastIndexOf('/')) || null;
-                    await db.createNode({ name, parentId, type: 'folder' });
+                    const parts = nodeId.split('/');
+                    let currentParent = null;
+                    for (let i = 0; i < parts.length; i++) {
+                        const folderName = parts[i];
+                        try {
+                            await db.createNode({ name: folderName, parentId: currentParent, type: 'folder' });
+                        } catch (e) { } // Ignore if already exists
+                        currentParent = currentParent ? `${currentParent}/${folderName}` : folderName;
+                    }
                 } catch (e) { }
             } else if (action === 'create' || action === 'update') {
                 filesToRequest.push(nodeId);
