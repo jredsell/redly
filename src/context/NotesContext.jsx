@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getTrashNodes, restoreNode, emptyTrash } from '../lib/db';
+import * as localDriver from '../lib/local_driver';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
 import * as syncEngine from '../lib/sync_engine';
