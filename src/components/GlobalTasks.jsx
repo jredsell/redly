@@ -355,7 +355,7 @@ export default function GlobalTasks() {
                     </div>
 
                     {/* View Toggle and Filter */}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                         {allAvailableTags.length > 0 && (
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', position: 'relative' }}>
                                 <Tag size={16} style={{ color: 'var(--text-tertiary)' }} />
