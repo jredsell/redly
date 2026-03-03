@@ -243,8 +243,18 @@ export const NotesProvider = ({ children }) => {
         if (activeFileId && workspaceHandle && !isInitializing) {
             const fileStillExists = nodes.some(n => n.id === activeFileId);
             if (!fileStillExists) {
-                console.log(`[NotesContext] Active file ${activeFileId} was removed from the file system. Evicting editor.`);
-                setActiveFileId(null);
+                // React states can overlap during background loadNodes() async delays.
+                // Verify against hard metal disk to prevent false editor evictions after Alt+N.
+                const verifyAndEvict = async () => {
+                    try {
+                        await localDriver.getFileContent(activeFileId);
+                        // File exists, it was a stale React render gap. Ignore.
+                    } catch (e) {
+                        console.log(`[NotesContext] Active file ${activeFileId} was confirmed deleted natively. Evicting editor.`);
+                        setActiveFileId(null);
+                    }
+                };
+                verifyAndEvict();
             }
         }
     }, [nodes, activeFileId, workspaceHandle, isInitializing]);
