@@ -340,7 +340,8 @@ const initiateSyncHandshake = async (conn, isAutoSync = false) => {
             type: 'SYNC_HANDSHAKE',
             journal: journal,
             isAutoSync,
-            originalId
+            originalId,
+            trustedPeers: getTrustedDevices()
         });
     } catch (e) {
         console.error('Failed to prepare sync handshake:', e);
@@ -374,6 +375,19 @@ const handleIncomingData = async (peerId, payload) => {
 
     if (type === 'SYNC_HANDSHAKE') {
         if (onSyncProgress) onSyncProgress(peerId, 'Comparing files...');
+
+        if (payload.trustedPeers && Array.isArray(payload.trustedPeers)) {
+            payload.trustedPeers.forEach(id => {
+                if (id !== myId && !getTrustedDevices().includes(id)) {
+                    console.log(`[Sync Gossip] Handshake revealed new trusted peer: ${id}. Expanding mesh...`);
+                    addTrustedDevice(id);
+                    if (!connections.has(id)) {
+                        connectToPeer(id, true).catch(() => { });
+                    }
+                }
+            });
+        }
+
         const remoteJournal = payload.journal || {};
         const localJournal = await localDriver.getSyncJournal();
         const lastSyncTime = parseInt(localStorage.getItem('sync_time_' + peerId) || '0', 10);
