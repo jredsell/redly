@@ -70,10 +70,10 @@ export const initSyncEngine = (callbacks) => {
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' },
-                        { urls: 'stun:stun2.l.google.com:19302' },
-                        { urls: 'stun:stun.l.google.com:19305' },
-                        { urls: 'stun:stun.services.mozilla.com' }
+                        { urls: 'stun:global.stun.twilio.com:3478' },
+                        { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+                        { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
+                        { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
                     ]
                 }
             });
@@ -237,7 +237,7 @@ export const connectToPeer = (remoteId, isAutoConnect = false) => {
                 });
             }
 
-            const conn = peer.connect(remoteId, { reliable: true, metadata: { isAutoConnect } });
+            const conn = peer.connect(remoteId, { metadata: { isAutoConnect } });
 
             if (!conn) {
                 // removeTrustedDevice(remoteId); // REMOVED: Don't untrust if they are just offline!
