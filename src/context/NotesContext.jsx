@@ -512,7 +512,7 @@ export const NotesProvider = ({ children }) => {
         showInstallModal, setShowInstallModal,
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode,
-        syncPulse, triggerSyncPulse
+        syncPulse, triggerSyncPulse, syncStatus
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

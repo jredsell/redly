@@ -70,7 +70,10 @@ export const initSyncEngine = (callbacks) => {
                 config: {
                     iceServers: [
                         { urls: 'stun:stun.l.google.com:19302' },
-                        { urls: 'stun:stun1.l.google.com:19302' }
+                        { urls: 'stun:stun1.l.google.com:19302' },
+                        { urls: 'stun:stun2.l.google.com:19302' },
+                        { urls: 'stun:stun.l.google.com:19305' },
+                        { urls: 'stun:stun.services.mozilla.com' }
                     ]
                 }
             });
@@ -227,7 +230,7 @@ export const connectToPeer = (remoteId, isAutoConnect = false) => {
                 });
             }
 
-            const conn = peer.connect(remoteId, { reliable: true });
+            const conn = peer.connect(remoteId, { reliable: true, metadata: { isAutoConnect } });
 
             if (!conn) {
                 // removeTrustedDevice(remoteId); // REMOVED: Don't untrust if they are just offline!
