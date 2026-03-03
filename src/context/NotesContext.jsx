@@ -133,6 +133,7 @@ export const NotesProvider = ({ children }) => {
                     setStorageMode(mode || 'sandbox');
                     setNodes(await getNodes());
                     setTrashNodes(await getTrashNodes());
+                    syncEngine.broadcastSync();
                 } else if (status === 'requires_permission') {
                     setNeedsPermission(true);
                 }
@@ -180,6 +181,7 @@ export const NotesProvider = ({ children }) => {
             setWorkspaceHandle(true);
             setNodes(await getNodes());
             setTrashNodes(await getTrashNodes());
+            syncEngine.broadcastSync();
         }
     };
 
@@ -192,6 +194,7 @@ export const NotesProvider = ({ children }) => {
             setWorkspaceHandle(true);
             setNodes(await getNodes());
             setTrashNodes(await getTrashNodes());
+            syncEngine.broadcastSync();
         } catch (e) {
             console.error("Workspace selection error", e);
             throw e; // Re-throw so callers (Sidebar, WelcomeScreen) can handle auth errors
