@@ -183,7 +183,19 @@ export default function WelcomeScreen({ openHelp }) {
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
         .slice(0, 4);
 
+    // Detect if the user is on a mobile device
+    const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+    
+    // Detect if the File System Access API is supported
+    const isFileSystemSupported = 'showDirectoryPicker' in window;
 
+    const handleLocalStorageClick = () => {
+        if (!isFileSystemSupported) {
+            alert("Local storage is not supported in this browser.\n\nTo use local storage, please use a browser that supports the File System Access API, such as Chrome, Edge, or Opera.");
+            return;
+        }
+        selectWorkspace('local');
+    };
     if (needsPermission) {
         return (
             <div className="welcome-container">
@@ -240,11 +252,18 @@ export default function WelcomeScreen({ openHelp }) {
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Store notes in a hidden, secure browser sandbox. Fast and zero-config.</p>
                     </button>
 
-                    <button onClick={() => selectWorkspace('local')} className="storage-option-btn" aria-label="Select Local Storage: Visible markdown files on your computer">
-                        <HardDrive size={24} style={{ color: 'var(--accent-color)', marginBottom: '12px' }} aria-hidden="true" />
-                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Local Storage</h3>
-                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
-                    </button>
+                    {!isMobile && (
+                        <button onClick={handleLocalStorageClick} className="storage-option-btn" aria-label="Select Local Storage: Visible markdown files on your computer" style={!isFileSystemSupported ? { opacity: 0.7 } : {}}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', width: '100%', alignItems: 'flex-start' }}>
+                                <HardDrive size={24} style={{ color: 'var(--accent-color)', marginBottom: '12px' }} aria-hidden="true" />
+                                {!isFileSystemSupported && (
+                                    <span style={{ fontSize: '10px', background: 'var(--bg-tertiary)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-tertiary)', fontWeight: 'bold' }}>Unsupported Browser</span>
+                                )}
+                            </div>
+                            <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Local Storage</h3>
+                            <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Save notes as visible <code>.md</code> files on your computer. Your data, your control.</p>
+                        </button>
+                    )}
                 </div>
                 <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
             </div>
