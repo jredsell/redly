@@ -8,7 +8,12 @@ const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
 
     const browser = (() => {
         const ua = navigator.userAgent.toLowerCase();
-        if (ua.includes('chrome')) return 'chrome';
+
+        // Check for iOS (iPhone, iPad, iPod) - they have strict PWA installation flows
+        const isIOS = /ipad|iphone|ipod/.test(ua) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+        if (isIOS) return 'ios';
+
+        if (ua.includes('chrome') || ua.includes('crios')) return 'chrome';
         if (ua.includes('safari') && !ua.includes('chrome')) return 'safari';
         if (ua.includes('edge')) return 'edge';
         return 'chrome';
@@ -44,7 +49,26 @@ const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    {browser === 'safari' ? (
+                    {browser === 'ios' ? (
+                        <>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', minWidth: '32px', textAlign: 'center' }}>1</div>
+                                <p style={{ margin: 0, fontSize: '14px', lineHeight: '1.5' }}>
+                                    Tap the <strong>Share</strong> button
+                                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ verticalAlign: 'middle', margin: '0 4px', color: 'var(--accent-color)' }}>
+                                        <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                                        <polyline points="16 6 12 2 8 6" />
+                                        <line x1="12" y1="2" x2="12" y2="15" />
+                                    </svg>
+                                    in your browser's toolbar.
+                                </p>
+                            </div>
+                            <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                                <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', minWidth: '32px', textAlign: 'center' }}>2</div>
+                                <p style={{ margin: 0, fontSize: '14px' }}>Scroll down and select <strong>'Add to Home Screen'</strong> <PlusSquare size={16} style={{ verticalAlign: 'middle' }} />.</p>
+                            </div>
+                        </>
+                    ) : browser === 'safari' ? (
                         <>
                             <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                                 <div style={{ background: 'var(--bg-secondary)', padding: '8px', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', minWidth: '32px', textAlign: 'center' }}>1</div>
