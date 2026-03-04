@@ -1,0 +1,146 @@
+:root {
+  /* VitePress Light Theme Overrides based on Redly */
+  --vp-c-brand-1: #2563eb;
+  --vp-c-brand-2: #1d4ed8;
+  --vp-c-brand-3: #1e3a8a;
+
+  --vp-c-bg: #ffffff;
+  --vp-c-bg-alt: #f3f4f6;
+  --vp-c-bg-elv: #ffffff;
+  --vp-c-bg-soft: #e5e7eb;
+
+  --vp-c-text-1: #111827;
+  --vp-c-text-2: #374151;
+  --vp-c-text-3: #6b7280;
+
+  --vp-c-border: #d1d5db;
+  --vp-c-divider: #e5e7eb;
+
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+html.dark {
+  /* VitePress Dark Theme Overrides based on Redly */
+  --vp-c-brand-1: #3b82f6;
+  --vp-c-brand-2: #60a5fa;
+  --vp-c-brand-3: #93c5fd;
+
+  --vp-c-bg: #0f172a;
+  --vp-c-bg-alt: #1e293b;
+  --vp-c-bg-elv: #1e293b;
+  --vp-c-bg-soft: #334155;
+
+  --vp-c-text-1: #f8fafc;
+  --vp-c-text-2: #cbd5e1;
+  --vp-c-text-3: #9ca3af;
+
+  --vp-c-border: #334155;
+  --vp-c-divider: #1e293b;
+
+  --vp-home-hero-image-filter: var(--vp-home-hero-image-background-filter);
+
+  /* Scrollbar - Dark Mode Alpha matched from main project */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+}
+
+/* Base Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 14px !important;
+  height: 14px !important;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track) !important;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb) !important;
+  border: 4px solid transparent !important;
+  background-clip: padding-box !important;
+  border-radius: 9999px !important;
+  min-height: 40px !important;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--scrollbar-thumb-hover) !important;
+  border: 4px solid transparent !important;
+}
+
+:root {
+  /* Scrollbar - Light Mode */
+  --scrollbar-track: transparent;
+  --scrollbar-thumb: rgba(0, 0, 0, 0.15);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.25);
+}
+
+/* 1. Hide default site title text in all forms */
+.VPNavBarTitle .title,
+.VPNavBarTitle .title span,
+.VPNavBarTitle .site-title,
+.VPNavBarTitle a.title {
+  font-size: 0 !important;
+  color: transparent !important;
+  display: flex !important;
+  align-items: center !important;
+}
+
+/* 2. Force the Logo to be visible and correctly sized */
+.VPNavBarTitle .logo {
+  display: block !important;
+  height: 32px !important;
+  width: auto !important;
+  opacity: 1 !important;
+  visibility: visible !important;
+  border-radius: 0px;
+}
+
+/* 3. Hide all default VitePress appearance components */
+.VPNavBarAppearance,
+.VPNavScreenAppearance,
+.appearance {
+  display: none !important;
+}
+
+/* Styling for our custom toggle to ensure it sits nicely in the navbar */
+.VPNavBar .nav-bar-content-after,
+.VPNav .nav-bar-content-after {
+  display: flex !important;
+  align-items: center !important;
+  margin-left: 12px !important;
+}
+
+/* Center Hero Layout for Redly Documentation */
+.VPHero.has-image .container {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  text-align: center !important;
+}
+
+.VPHero .main {
+  order: 2 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  width: 100% !important;
+}
+
+.VPHero .image {
+  order: 1 !important;
+  width: 100% !important;
+  margin-bottom: 2rem !important;
+}
+
+.VPHero .image-src {
+  margin: 0 auto !important;
+  max-width: 100% !important;
+  max-height: 200px !important;
+}
+
+.VPHero .actions {
+  display: flex !important;
+  justify-content: center !important;
+  gap: 16px !important;
+}

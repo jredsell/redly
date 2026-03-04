@@ -26,8 +26,16 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      - name: Build
+      - name: Build Redly App
         run: npm run build
+
+      - name: Build VitePress Docs
+        run: npm run docs:build
+
+      - name: Merge Docs into Dist
+        run: |
+          mkdir -p dist/docs
+          cp -r docs/.vitepress/dist/* dist/docs/
 
       - name: Upload Artifacts
         uses: actions/upload-pages-artifact@v3
