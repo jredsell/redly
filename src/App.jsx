@@ -91,9 +91,9 @@ function App() {
       onRequest: (peerId, accept, reject) => {
         setPairingRequest({ id: peerId, accept, reject });
       },
-      onProgress: (peerId, msg) => console.log(`[Sync ${peerId}] ${msg}`),
+      onProgress: (peerId, msg) => { },
       onComplete: (peerId, isAutoSync) => {
-        console.log(`[Sync ${peerId}] Complete. AutoSync: ${!!isAutoSync}`);
+        // console.log(`[Sync ${peerId}] Complete. AutoSync: ${!!isAutoSync}`);
         loadNodes();
         triggerSyncPulse();
         if (!isAutoSync) {

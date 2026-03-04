@@ -251,7 +251,7 @@ export const NotesProvider = ({ children }) => {
                         await localDriver.getFileContent(activeFileId);
                         // File exists, it was a stale React render gap. Ignore.
                     } catch (e) {
-                        console.log(`[NotesContext] Active file ${activeFileId} was confirmed deleted natively. Evicting editor.`);
+                        // console.log(`[NotesContext] Active file ${activeFileId} was confirmed deleted natively. Evicting editor.`);
                         setActiveFileId(null);
                     }
                 };

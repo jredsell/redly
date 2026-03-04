@@ -171,13 +171,13 @@ export const removeTrustedDevice = (id) => {
 
 // --- Connection Handling ---
 const handleIncomingConnection = (conn) => {
-    console.log('[Sync] Incoming connection from', conn.peer);
+    // console.log('[Sync] Incoming connection from', conn.peer);
     const trusted = getTrustedDevices();
     let promptTimeout;
 
     const statePoller = setInterval(() => {
         if (conn && conn.peerConnection) {
-            console.log(`[Sync Incoming ${conn.peer}] ICE: ${conn.peerConnection.iceConnectionState} | Peer: ${conn.peerConnection.connectionState}`);
+            // console.log(`[Sync Incoming ${conn.peer}] ICE: ${conn.peerConnection.iceConnectionState} | Peer: ${conn.peerConnection.connectionState}`);
         }
     }, 2000);
     conn.on('close', () => clearInterval(statePoller));
@@ -187,7 +187,7 @@ const handleIncomingConnection = (conn) => {
     const bufferListener = (data) => {
         // Intercept Handshakes from Recovery IDs
         if (data && data.type === 'SYNC_HANDSHAKE' && data.originalId && trusted.includes(data.originalId)) {
-            console.log(`[Sync] Peer ${data.originalId} is recovering via ${conn.peer}. Approving silently.`);
+            // console.log(`[Sync] Peer ${data.originalId} is recovering via ${conn.peer}. Approving silently.`);
             clearTimeout(promptTimeout);
             addTrustedDevice(conn.peer);
             conn.off('data', bufferListener);
@@ -229,7 +229,7 @@ export const connectToPeer = (remoteId, isAutoConnect = false) => {
         try {
             // Auto-reconnect to signaling server if the tab went to sleep
             if (peer.disconnected) {
-                console.log("[Sync] Reconnecting to signaling server...");
+                // console.log("[Sync] Reconnecting to signaling server...");
                 peer.reconnect();
                 await new Promise((res, rej) => {
                     const onOpen = () => { peer.off('error', onError); res(); };
@@ -254,7 +254,7 @@ export const connectToPeer = (remoteId, isAutoConnect = false) => {
             // Granular ICE Telemetry for Mobile Debugging
             const statePoller = setInterval(() => {
                 if (conn && conn.peerConnection) {
-                    console.log(`[Sync ${remoteId}] ICE: ${conn.peerConnection.iceConnectionState} | Peer: ${conn.peerConnection.connectionState}`);
+                    // console.log(`[Sync ${remoteId}] ICE: ${conn.peerConnection.iceConnectionState} | Peer: ${conn.peerConnection.connectionState}`);
                 }
             }, 2000);
 
@@ -357,7 +357,7 @@ const initiateSyncHandshake = async (conn, isAutoSync = false) => {
 export const Math_broadcastSync_trigger = true; // Placeholder for below
 export const broadcastSync = () => {
     if (connections.size === 0) return;
-    console.log(`[Sync] Broadcasting auto-sync to ${connections.size} peers...`);
+    // console.log(`[Sync] Broadcasting auto-sync to ${connections.size} peers...`);
     connections.forEach(conn => {
         if (conn.open) initiateSyncHandshake(conn, true);
     });
@@ -367,14 +367,14 @@ const handleIncomingData = async (peerId, payload) => {
     const { type } = payload;
 
     if (type === 'SYNC_DISCONNECTING') {
-        console.log(`[Sync] Peer ${peerId} represents a dying window. Severing socket to dodge lock...`);
+        // console.log(`[Sync] Peer ${peerId} represents a dying window. Severing socket to dodge lock...`);
         const connection = connections.get(peerId);
         if (connection) connection.close();
         connections.delete(peerId);
         return;
     }
 
-    console.log(`[Sync] Received ${type} from ${peerId}`);
+    // console.log(`[Sync] Received ${type} from ${peerId}`);
     const conn = connections.get(peerId);
     if (!conn) return;
 
@@ -384,7 +384,7 @@ const handleIncomingData = async (peerId, payload) => {
         if (payload.trustedPeers && Array.isArray(payload.trustedPeers)) {
             payload.trustedPeers.forEach(id => {
                 if (id !== myId && !getTrustedDevices().includes(id)) {
-                    console.log(`[Sync Gossip] Handshake revealed new trusted peer: ${id}. Expanding mesh...`);
+                    // console.log(`[Sync Gossip] Handshake revealed new trusted peer: ${id}. Expanding mesh...`);
                     addTrustedDevice(id);
                     if (!connections.has(id)) {
                         connectToPeer(id, true).catch(() => { });
@@ -417,7 +417,7 @@ const handleIncomingData = async (peerId, payload) => {
                         if (isMaster) {
                             conflictNodes.push(nodeId);
                         } else {
-                            console.log(`[Sync] Conflict detected on ${nodeId}, deferring UI resolution to Master Peer ${peerId}`);
+                            // console.log(`[Sync] Conflict detected on ${nodeId}, deferring UI resolution to Master Peer ${peerId}`);
                         }
                         continue; // Skip automatic resolution
                     }

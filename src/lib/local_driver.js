@@ -107,7 +107,7 @@ export const auditSyncJournal = async (nodes) => {
             const writable = await fileHandle.createWritable();
             await writable.write(JSON.stringify(journal));
             await writable.close();
-            console.log("[Sync] Audited and backfilled missing native files into local journal.");
+            // console.log("[Sync] Audited and backfilled missing native files into local journal.");
         }
     } catch (err) {
         console.error("Failed to audit sync journal", err);
