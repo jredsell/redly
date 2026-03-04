@@ -185,7 +185,7 @@ export default function WelcomeScreen({ openHelp }) {
 
     // Detect if the user is on a mobile device
     const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
-    
+
     // Detect if the File System Access API is supported
     const isFileSystemSupported = 'showDirectoryPicker' in window;
 
@@ -235,10 +235,10 @@ export default function WelcomeScreen({ openHelp }) {
                             border: '1px solid var(--border-color)',
                             boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
                         }}
-                        aria-label="Install Redly as a Desktop App"
+                        aria-label="Install Redly App"
                     >
                         <ShieldCheck size={20} />
-                        <span>Install Redly Desktop App</span>
+                        <span>Install Redly App</span>
                     </button>
                 )}
 
