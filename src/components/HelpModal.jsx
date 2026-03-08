@@ -92,9 +92,15 @@ export default function HelpModal({ isOpen, onClose }) {
                                 Change
                             </button>
                         </div>
-                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', opacity: 0.8, marginBottom: '16px' }}>
+                        <p style={{ margin: 0, fontSize: '12px', color: 'var(--text-secondary)', opacity: 0.8, marginBottom: '8px' }}>
                             {storage.detail}. Your notes are stored here securely and privately.
                         </p>
+
+                        {storageMode === 'sandbox' && (
+                            <div style={{ padding: '8px', background: 'var(--bg-primary)', borderRadius: '6px', fontSize: '11.5px', color: 'var(--text-secondary)', marginBottom: '16px', borderLeft: '2px solid var(--accent-color)' }}>
+                                <b>Note:</b> Browser Storage is strictly temporary. We recommend switching to Local Storage for permanent safekeeping. You'll receive a prompt to export a backup every 7 days.
+                            </div>
+                        )}
 
                         {storageMode === 'sandbox' && (
                             <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
@@ -139,6 +145,18 @@ export default function HelpModal({ isOpen, onClose }) {
                             <b>+ Row / &minus; Row:</b> Add or remove rows.<br />
                             <b>+ Col / &minus; Col:</b> Add or remove columns.<br />
                             Use <kbd style={kbdStyle}>Tab</kbd> to jump between cells.
+                        </p>
+                    </div>
+
+                    <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '8px' }}>
+                        <h3 style={{ margin: '0 0 8px 0', fontSize: '0.95rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <LayoutList size={18} style={{ color: 'var(--accent-color)' }} aria-hidden="true" /> WikiLinks & Backlinks
+                        </h3>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                            Turn your flat folders into a linked web of ideas using WikiLinks! Type <kbd style={kbdStyle}>[[</kbd> to open an autocomplete menu specifically for notes.
+                            <br /><br />
+                            <b>Creating Links:</b> Type <code>[[Note Name]]</code> to create a clickable link instantly. Clicking the link will navigate you straight to that file.<br />
+                            <b>Linked References:</b> Notes that are linked to from other pages will automatically display a <b>Linked References</b> footer at the bottom, complete with context excerpts of exactly how they were mentioned!
                         </p>
                     </div>
 

@@ -42,6 +42,14 @@ Organize your world using the `#` **symbol**.
     
 -   **Intelligent Autocomplete**: As soon as you type `#`, Redly suggests tags you’ve used elsewhere, keeping your workspace consistent and searchable.
 
+### WikiLinks & Backlinks
+
+Turn your static folders into an interconnected web of knowledge using the `[[` **syntax**.
+
+-   **Page Links**: Type `[[Note Name]]` inside any document to establish a bi-directional link to another note. An intelligent dropdown menu will autocomplete existing file names across your workspace.
+    
+-   **Linked References**: At the bottom of any linked note, Redly automatically generates a **Linked References** section. This displays every note that links *to* the current file, complete with a contextual excerpt showing exactly how it was mentioned.
+
 ### Bi-Directional Kanban Dashboard
 
 Visualize your progress with a high-performance **Kanban Board (**`Alt + V`**)** that stays in perfect sync with your notes.
@@ -67,6 +75,8 @@ Redly offers two ways to manage your data, giving you full control over where yo
     -   **Best For**: Quick notes, mobile use, and zero-configuration privacy.
         
     -   **Compatibility**: Works across all modern browsers (Chrome, Edge, Safari, Firefox).
+
+    -   **Automatic Backups**: Browser storage is inherently temporary. To keep your data safe, Redly will automatically prompt you every 7 days to download a complete `.json` backup of your workspace if you haven't recently exported one. For an extra layer of peace-of-mind, Desktop users will receive a 48-hour warning suggesting they switch to Local Storage.
         
 -   **The “I own my data” way (Local Storage)**:
     
