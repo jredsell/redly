@@ -26,6 +26,10 @@ export default function HelpModal({ isOpen, onClose }) {
             a.download = `redly-backup-${new Date().toISOString().split('T')[0]}.json`;
             document.body.appendChild(a);
             a.click();
+
+            // Record the backup time for the 7-day warning
+            localStorage.setItem('redly_last_backup_time', Date.now().toString());
+
             // Delay revocation to ensure the browser has time to initiate the download
             setTimeout(() => {
                 document.body.removeChild(a);

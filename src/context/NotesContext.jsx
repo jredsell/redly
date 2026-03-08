@@ -160,6 +160,12 @@ export const NotesProvider = ({ children }) => {
                     let mode = await getHandle('workspace_mode');
                     if (!mode) mode = localStorage.getItem('redly_last_storage_mode');
 
+                    if (mode === 'sandbox') {
+                        if (!localStorage.getItem('redly_sandbox_start_time')) {
+                            localStorage.setItem('redly_sandbox_start_time', Date.now().toString());
+                        }
+                    }
+
                     setStorageMode(mode || 'sandbox');
                     const nodes = await getNodes();
                     setNodes(nodes);
@@ -224,6 +230,13 @@ export const NotesProvider = ({ children }) => {
         try {
             await initWorkspace(mode, options);
             localStorage.setItem('redly_last_storage_mode', mode); // Fallback for UI sync
+
+            if (mode === 'sandbox') {
+                if (!localStorage.getItem('redly_sandbox_start_time')) {
+                    localStorage.setItem('redly_sandbox_start_time', Date.now().toString());
+                }
+            }
+
             setStorageMode(mode);
             setWorkspaceHandle(true);
             const nodes = await getNodes();

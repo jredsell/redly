@@ -14,6 +14,7 @@ import RedlyLogo from './components/RedlyLogo';
 import PullToRefresh from './components/PullToRefresh';
 import { requestNotificationPermission } from './utils/notificationManager';
 import * as syncEngine from './lib/sync_engine';
+import { exportSandboxData } from './lib/db';
 
 function NotificationToggle() {
   const { notificationSettings, setNotificationSettings } = useNotes();
@@ -75,16 +76,94 @@ function NotificationToggle() {
 }
 
 function App() {
-  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode, loadNodes, triggerSyncPulse } = useNotes();
+  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode, loadNodes, triggerSyncPulse, storageMode } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [storageWarningOpen, setStorageWarningOpen] = useState(false);
+  const [backupWarningOpen, setBackupWarningOpen] = useState(false);
   const [pairingRequest, setPairingRequest] = useState(null);
   const [syncConflicts, setSyncConflicts] = useState(null);
   const [syncToasts, setSyncToasts] = useState([]);
   const [syncSuccessModal, setSyncSuccessModal] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
+
+  const handleExport = async () => {
+    try {
+      const data = await exportSandboxData();
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.style.display = 'none';
+      a.href = url;
+      a.download = `redly-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+
+      localStorage.setItem('redly_last_backup_time', Date.now().toString());
+      setBackupWarningOpen(false);
+
+      setTimeout(() => {
+        document.body.removeChild(a);
+        window.URL.revokeObjectURL(url);
+      }, 1000);
+    } catch (e) {
+      alert('Export failed: ' + e.message);
+    }
+  };
+
+  useEffect(() => {
+    // Check if we need to show the 48-hour browser storage warning
+    if (workspaceHandle && storageMode === 'sandbox') {
+      const startTimeStr = localStorage.getItem('redly_sandbox_start_time');
+      const now = Date.now();
+
+      // 48 Hour Local Storage Warning
+      const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+      const isFileSystemSupported = 'showDirectoryPicker' in window;
+
+      let showingStorageWarning = false;
+      if (!isMobile && isFileSystemSupported) {
+        const dismissed = localStorage.getItem('redly_sandbox_warning_dismissed') === 'true';
+        if (!dismissed && startTimeStr) {
+          const startTime = parseInt(startTimeStr, 10);
+          const FORTY_EIGHT_HOURS = 48 * 60 * 60 * 1000;
+          if (now - startTime > FORTY_EIGHT_HOURS) {
+            setStorageWarningOpen(true);
+            showingStorageWarning = true;
+          }
+        }
+      }
+
+      // 7-day Backup Warning
+      if (!showingStorageWarning) {
+        const SEVEN_DAYS = 7 * 24 * 60 * 60 * 1000;
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        const lastBackupTimeStr = localStorage.getItem('redly_last_backup_time');
+        const snoozeTimeStr = localStorage.getItem('redly_backup_snooze_time');
+
+        let lastValidTime = null;
+        if (lastBackupTimeStr) {
+          lastValidTime = parseInt(lastBackupTimeStr, 10);
+        } else if (startTimeStr) {
+          lastValidTime = parseInt(startTimeStr, 10);
+        }
+
+        let isSnoozed = false;
+        if (snoozeTimeStr) {
+          const snoozeTime = parseInt(snoozeTimeStr, 10);
+          if (now - snoozeTime < ONE_DAY) {
+            isSnoozed = true;
+          }
+        }
+
+        if (!isSnoozed && lastValidTime && (now - lastValidTime > SEVEN_DAYS)) {
+          setBackupWarningOpen(true);
+        }
+      }
+    }
+  }, [workspaceHandle, storageMode]);
 
   useEffect(() => {
     syncEngine.initSyncEngine({
@@ -106,7 +185,7 @@ function App() {
         setSyncConflicts({ peerId, conflicts: conflictsData });
       }
     }).catch(e => console.error("Failed to init sync engine", e));
-  }, [loadNodes]);
+  }, [loadNodes, triggerSyncPulse]);
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -246,6 +325,59 @@ function App() {
               <button className="primary-btn" onClick={() => setSyncSuccessModal(false)} style={{ padding: '10px 32px', display: 'inline-flex' }}>
                 Okay
               </button>
+            </div>
+          </div>
+        )}
+
+        {storageWarningOpen && (
+          <div className="modal-overlay" style={{ zIndex: 9999 }}>
+            <div className="modal-content" style={{ maxWidth: '420px', padding: '32px' }}>
+              <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', marginBottom: '12px' }}>Browser Storage Warning</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14.5px', marginBottom: '24px', lineHeight: '1.5' }}>
+                You're using temporary browser storage. For total peace of mind, switch to a Local Folder to save notes directly to your device.
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  className="primary-btn"
+                  onClick={() => {
+                    localStorage.setItem('redly_sandbox_warning_dismissed', 'true');
+                    setStorageWarningOpen(false);
+                  }}
+                  style={{ padding: '10px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
+                >
+                  Got it
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {backupWarningOpen && (
+          <div className="modal-overlay" style={{ zIndex: 9999 }}>
+            <div className="modal-content" style={{ maxWidth: '420px', padding: '32px' }}>
+              <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', marginBottom: '12px' }}>Backup Recommended</h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '14.5px', marginBottom: '24px', lineHeight: '1.5' }}>
+                It's been over 7 days since you last backed up your Browser Storage notes. Do you want to export a secure backup now?
+              </p>
+              <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                <button
+                  className="secondary-btn"
+                  onClick={() => {
+                    localStorage.setItem('redly_backup_snooze_time', Date.now().toString());
+                    setBackupWarningOpen(false);
+                  }}
+                  style={{ padding: '10px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                >
+                  Later
+                </button>
+                <button
+                  className="primary-btn"
+                  onClick={handleExport}
+                  style={{ padding: '10px 24px', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' }}
+                >
+                  Backup Now
+                </button>
+              </div>
             </div>
           </div>
         )}
