@@ -1182,14 +1182,25 @@ export default function Editor({ fileId }) {
                     onChange={handleTitleChange}
                     placeholder="Note Title"
                 />
-                <button
-                    className="icon-button"
-                    onClick={() => setShowDeleteConfirm(true)}
-                    title="Delete Note"
-                    style={{ color: 'var(--danger-color)', marginLeft: 'auto' }}
-                >
-                    <Trash size={18} />
-                </button>
+                <div style={{ display: 'flex', alignItems: 'center', marginLeft: 'auto', gap: '16px' }}>
+                    <span style={{ color: 'var(--text-tertiary)', fontSize: '13px', whiteSpace: 'nowrap' }}>
+                        {(() => {
+                            if (!editor) return '0 words / 0 chars';
+                            const textLength = editor.storage.characterCount?.characters() ?? editor.getText().length;
+                            const text = editor.getText();
+                            const words = text.trim() ? text.trim().split(/\s+/).length : 0;
+                            return `${words} words / ${textLength} chars`;
+                        })()}
+                    </span>
+                    <button
+                        className="icon-button"
+                        onClick={() => setShowDeleteConfirm(true)}
+                        title="Delete Note"
+                        style={{ color: 'var(--danger-color)' }}
+                    >
+                        <Trash size={18} />
+                    </button>
+                </div>
             </div>
 
             {showDeleteConfirm && (
