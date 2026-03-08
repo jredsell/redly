@@ -21,6 +21,7 @@ import taskLists from 'markdown-it-task-lists';
 
 import { useNotes } from '../context/NotesContext';
 import InlineDateInput from './InlineDateInput';
+import Backlinks from './Backlinks';
 import { getDateColor, parseDateString } from '../utils/dateHelpers';
 import {
     Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
@@ -74,6 +75,74 @@ const TagHighlighter = Extension.create({
                     decorations(state) {
                         return this.getState(state);
                     },
+                },
+            }),
+        ];
+    },
+});
+
+const WikiLinkHighlighter = Extension.create({
+    name: 'wikiLinkHighlighter',
+    addProseMirrorPlugins() {
+        return [
+            new Plugin({
+                key: new PluginKey('wikiLinkHighlighter'),
+                state: {
+                    init(_, { doc }) {
+                        const decorations = [];
+                        doc.descendants((node, pos) => {
+                            if (node.isText && node.text) {
+                                const regex = /\[\[([^\]]+)\]\]/g;
+                                let match;
+                                while ((match = regex.exec(node.text)) !== null) {
+                                    const start = pos + match.index;
+                                    const end = start + match[0].length;
+                                    // Store the target note name in the dataset so we can click it later
+                                    decorations.push(Decoration.inline(start, end, {
+                                        class: 'editor-wikilink',
+                                        'data-target': match[1].trim()
+                                    }));
+                                }
+                            }
+                        });
+                        return DecorationSet.create(doc, decorations);
+                    },
+                    apply(transaction, oldState) {
+                        if (!transaction.docChanged) return oldState;
+                        const doc = transaction.doc;
+                        const decorations = [];
+                        doc.descendants((node, pos) => {
+                            if (node.isText && node.text) {
+                                const regex = /\[\[([^\]]+)\]\]/g;
+                                let match;
+                                while ((match = regex.exec(node.text)) !== null) {
+                                    const start = pos + match.index;
+                                    const end = start + match[0].length;
+                                    decorations.push(Decoration.inline(start, end, {
+                                        class: 'editor-wikilink',
+                                        'data-target': match[1].trim()
+                                    }));
+                                }
+                            }
+                        });
+                        return DecorationSet.create(doc, decorations);
+                    },
+                },
+                props: {
+                    decorations(state) {
+                        return this.getState(state);
+                    },
+                    handleClick(view, pos, event) {
+                        if (event.target && event.target.classList.contains('editor-wikilink')) {
+                            const targetNote = event.target.getAttribute('data-target');
+                            if (targetNote) {
+                                // Dispatch a custom event attached to window that Editor.jsx can listen to
+                                window.dispatchEvent(new CustomEvent('wiki-link-clicked', { detail: { targetNote } }));
+                                return true; // prevent default selection
+                            }
+                        }
+                        return false;
+                    }
                 },
             }),
         ];
@@ -187,6 +256,13 @@ const td = new TurndownService({
     }
 });
 td.use(gfm);
+
+// Prevent Turndown from escaping wiki links [[Note Name]] when saving to markdown
+const originalEscape = td.escape;
+td.escape = function (string) {
+    const escaped = originalEscape.call(this, string);
+    return escaped.replace(/\\\[\\\[(.*?)\\\]\\\]/g, '[[$1]]');
+};
 
 // Table support fix for Tiptap's nested <p> tags
 td.addRule('tableCell', {
@@ -461,7 +537,7 @@ const TableControlsMenu = ({ editor, trigger, onClose }) => {
 };
 
 export default function Editor({ fileId }) {
-    const { nodes, editNode, removeNode, getFileContent, ensureAllContentsLoaded, syncPulse } = useNotes();
+    const { nodes, editNode, removeNode, getFileContent, ensureAllContentsLoaded, syncPulse, openAndExpandFile } = useNotes();
     const [file, setFile] = useState(null);
     const saveTimeoutRef = useRef(null);
     const lastSavedContentRef = useRef(''); // Track the last saved state to prevent echo updates
@@ -469,9 +545,30 @@ export default function Editor({ fileId }) {
     const typingTimeoutRef = useRef(null);
     const [localTitle, setLocalTitle] = useState('');
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+    // Listen for custom wiki link click events dispatched by the Prosemirror plugin
+    useEffect(() => {
+        const handleWikiLinkClick = (e) => {
+            const targetName = e.detail?.targetNote?.toLowerCase();
+            if (!targetName) return;
+
+            // Find the note with this name
+            const targetNode = nodes.find(n => n.type === 'file' && n.name.toLowerCase() === targetName);
+            if (targetNode) {
+                openAndExpandFile(targetNode.id);
+            } else {
+                // If the user clicks a link to a note that doesn't exist, we could create it, but for now just console log
+                // console.log("Target note not found: ", targetName);
+            }
+        };
+
+        window.addEventListener('wiki-link-clicked', handleWikiLinkClick);
+        return () => window.removeEventListener('wiki-link-clicked', handleWikiLinkClick);
+    }, [nodes, openAndExpandFile]);
     const pendingUpdatesRef = useRef({}); // Merge updates (name, content) to prevent race conditions during renames
     const [slashMenu, setSlashMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
     const [tagMenu, setTagMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
+    const [linkMenu, setLinkMenu] = useState({ isOpen: false, top: 0, left: 0, query: '', triggerIdx: -1, selectedIndex: 0 });
     const [availableTags, setAvailableTags] = useState([]);
     const [bubbleMenu, setBubbleMenu] = useState({ isOpen: false, top: 0, left: 0 });
     const [tableTriggerCoords, setTableTriggerCoords] = useState(null);
@@ -479,6 +576,7 @@ export default function Editor({ fileId }) {
     const [forceRender, setForceRender] = useState(0);
     const slashMenuListRef = useRef(null);
     const tagMenuListRef = useRef(null);
+    const linkMenuListRef = useRef(null);
 
     useEffect(() => {
         ensureAllContentsLoaded();
@@ -542,6 +640,7 @@ export default function Editor({ fileId }) {
 
     const extensions = useMemo(() => [
         TagHighlighter,
+        WikiLinkHighlighter,
         StarterKit.configure({
             heading: { levels: [1, 2, 3] },
             history: true,
@@ -827,6 +926,49 @@ export default function Editor({ fileId }) {
                     }
                 }
 
+                if (linkMenu.isOpen) {
+                    if (event.key === 'ArrowDown') {
+                        setLinkMenu(prev => {
+                            const filteredNodes = nodes.filter(n => n.type === 'file' && n.name.toLowerCase().includes((prev.query || '').toLowerCase()));
+                            return { ...prev, selectedIndex: (prev.selectedIndex + 1) % (filteredNodes.length || 1) };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'ArrowUp') {
+                        setLinkMenu(prev => {
+                            const filteredNodes = nodes.filter(n => n.type === 'file' && n.name.toLowerCase().includes((prev.query || '').toLowerCase()));
+                            return { ...prev, selectedIndex: (prev.selectedIndex - 1 + (filteredNodes.length || 1)) % (filteredNodes.length || 1) };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'Enter') {
+                        setLinkMenu(prev => {
+                            const filteredNodes = nodes.filter(n => n.type === 'file' && n.name.toLowerCase().includes((prev.query || '').toLowerCase()));
+                            const selectedNode = filteredNodes[prev.selectedIndex];
+                            if (selectedNode) {
+                                setTimeout(() => {
+                                    view.dispatch(view.state.tr.delete(prev.triggerIdx, view.state.selection.from).insertText(`[[${selectedNode.name}]] `));
+                                    view.focus();
+                                }, 0);
+                            } else if (prev.query && prev.query.trim().length > 0) {
+                                // Fallback to inserting exactly what they typed if no match but they pressed enter
+                                setTimeout(() => {
+                                    view.dispatch(view.state.tr.delete(prev.triggerIdx, view.state.selection.from).insertText(`[[${prev.query}]] `));
+                                    view.focus();
+                                }, 0);
+                            } else {
+                                // If empty query and nothing selected, just close
+                            }
+                            return { ...prev, isOpen: false };
+                        });
+                        return true;
+                    }
+                    if (event.key === 'Escape') {
+                        setLinkMenu(prev => ({ ...prev, isOpen: false }));
+                        return true;
+                    }
+                }
+
                 if (slashMenu.isOpen) {
                     if (event.key === 'ArrowDown') {
                         setSlashMenu(prev => {
@@ -986,6 +1128,7 @@ export default function Editor({ fileId }) {
                         const textBefore = parent.textBetween(0, Math.min($pos.parentOffset, parent.content.size), '\n');
                         const slashMatch = textBefore.match(/(?:^|\s)\/([a-zA-Z0-9]*)$/);
                         const tagMatch = textBefore.match(/(?:^|\s)#([a-zA-Z0-9_-]*)$/);
+                        const linkMatch = textBefore.match(/(?:^|\s)\[\[([a-zA-Z0-9_\-\s]*)$/);
 
                         if (slashMatch) {
                             const query = slashMatch[1];
@@ -1013,6 +1156,7 @@ export default function Editor({ fileId }) {
                                 setSlashMenu(prev => ({ ...prev, isOpen: false }));
                             }
                             setTagMenu(prev => ({ ...prev, isOpen: false }));
+                            setLinkMenu(prev => ({ ...prev, isOpen: false }));
                         } else if (tagMatch) {
                             const query = tagMatch[1];
                             const triggerIdx = from - query.length - 1;
@@ -1039,9 +1183,38 @@ export default function Editor({ fileId }) {
                                 setTagMenu(prev => ({ ...prev, isOpen: false }));
                             }
                             setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                            setLinkMenu(prev => ({ ...prev, isOpen: false }));
+                        } else if (linkMatch) {
+                            const query = linkMatch[1];
+                            const triggerIdx = from - query.length - 2; // -2 for '[['
+
+                            try {
+                                const coords = editor.view.coordsAtPos(triggerIdx);
+                                if (coords && typeof coords.bottom === 'number' && typeof coords.left === 'number') {
+                                    const menuHeight = 200;
+                                    const viewportHeight = window.innerHeight;
+                                    const wouldOverflow = coords.bottom + menuHeight > viewportHeight - 20;
+
+                                    setLinkMenu({
+                                        isOpen: true,
+                                        top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
+                                        left: coords.left,
+                                        query: query || '',
+                                        triggerIdx: triggerIdx,
+                                        selectedIndex: 0
+                                    });
+                                } else {
+                                    setLinkMenu(prev => ({ ...prev, isOpen: false }));
+                                }
+                            } catch (e) {
+                                setLinkMenu(prev => ({ ...prev, isOpen: false }));
+                            }
+                            setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                            setTagMenu(prev => ({ ...prev, isOpen: false }));
                         } else {
                             setSlashMenu(prev => ({ ...prev, isOpen: false }));
                             setTagMenu(prev => ({ ...prev, isOpen: false }));
+                            setLinkMenu(prev => ({ ...prev, isOpen: false }));
                         }
                     }
                 }
@@ -1087,6 +1260,15 @@ export default function Editor({ fileId }) {
             }
         }
     }, [tagMenu.selectedIndex, tagMenu.isOpen]);
+
+    useEffect(() => {
+        if (linkMenu.isOpen && linkMenuListRef.current) {
+            const activeItem = linkMenuListRef.current.children[linkMenu.selectedIndex];
+            if (activeItem) {
+                activeItem.scrollIntoView({ block: 'nearest' });
+            }
+        }
+    }, [linkMenu.selectedIndex, linkMenu.isOpen]);
 
     useEffect(() => {
         const f = nodes.find(n => n.id === fileId);
@@ -1220,6 +1402,7 @@ export default function Editor({ fileId }) {
 
             <div className="editor-body" style={{ flex: 1, overflowY: 'auto', padding: '24px', position: 'relative' }} onKeyDownCapture={handleKeyDown}>
                 <EditorContent editor={editor} className="tiptap-container" />
+                <Backlinks noteId={fileId} />
 
                 {/* Table Trigger Button and its Menu */}
                 {tableTriggerCoords && (
@@ -1336,6 +1519,59 @@ export default function Editor({ fileId }) {
                         </ul>
                     </div>
                 )}
+
+                {/* Custom Link Menu */}
+                {linkMenu.isOpen && (
+                    <div style={{
+                        position: 'fixed',
+                        top: linkMenu.top,
+                        left: linkMenu.left,
+                        backgroundColor: 'var(--bg-secondary)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: '8px',
+                        boxShadow: 'var(--shadow-md)',
+                        zIndex: 1000,
+                        minWidth: '240px',
+                        padding: '4px',
+                        maxHeight: '250px',
+                        overflowY: 'auto'
+                    }}>
+                        <ul ref={linkMenuListRef} style={{ listStyle: 'none', margin: 0, padding: 0 }}>
+                            {nodes
+                                .filter(n => n.type === 'file' && n.name.toLowerCase().includes((linkMenu.query || '').toLowerCase()))
+                                .map((node, idx) => (
+                                    <li
+                                        key={node.id}
+                                        onMouseDown={(e) => {
+                                            e.preventDefault();
+                                            editor.chain().focus().deleteRange({ from: linkMenu.triggerIdx, to: editor.state.selection.from }).insertContent(`[[${node.name}]] `).run();
+                                            setLinkMenu(prev => ({ ...prev, isOpen: false }));
+                                        }}
+                                        style={{
+                                            padding: '8px 12px',
+                                            cursor: 'pointer',
+                                            borderRadius: '4px',
+                                            backgroundColor: idx === linkMenu.selectedIndex ? 'var(--bg-accent)' : 'transparent',
+                                            color: idx === linkMenu.selectedIndex ? 'var(--accent-color)' : 'var(--text-primary)',
+                                            fontSize: '14px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '8px',
+                                            fontWeight: 500
+                                        }}
+                                    >
+                                        <span style={{ color: 'var(--text-tertiary)' }}>📄</span>
+                                        {node.name}
+                                    </li>
+                                ))}
+                            {nodes.filter(n => n.type === 'file' && n.name.toLowerCase().includes((linkMenu.query || '').toLowerCase())).length === 0 && (
+                                <li style={{ padding: '8px 12px', color: 'var(--text-tertiary)', fontSize: '13px', fontStyle: 'italic' }}>
+                                    Create link to "{linkMenu.query}"...
+                                </li>
+                            )}
+                        </ul>
+                    </div>
+                )}
             </div>
 
             <style>{`
@@ -1442,6 +1678,19 @@ export default function Editor({ fileId }) {
                     background: var(--bg-hover);
                     color: var(--text-primary);
                     border-color: var(--text-tertiary);
+                }
+                .editor-wikilink {
+                    color: var(--accent-color);
+                    background-color: var(--bg-accent);
+                    padding: 2px 6px;
+                    border-radius: 4px;
+                    font-size: 0.95em;
+                    cursor: pointer;
+                    transition: opacity 0.2s;
+                    text-decoration: none;
+                }
+                .editor-wikilink:hover {
+                    opacity: 0.8;
                 }
             `}</style>
         </div>

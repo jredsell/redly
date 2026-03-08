@@ -3,6 +3,7 @@ import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspa
 import * as localDriver from '../lib/local_driver';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
+import { buildBacklinkIndex } from '../utils/backlinkHelper';
 import * as syncEngine from '../lib/sync_engine';
 
 const NotesContext = createContext(undefined);
@@ -10,6 +11,7 @@ const NotesContext = createContext(undefined);
 export const NotesProvider = ({ children }) => {
     const [nodes, setNodes] = useState([]);
     const [trashNodes, setTrashNodes] = useState([]);
+    const [backlinkIndex, setBacklinkIndex] = useState(new Map());
     const [workspaceHandle, setWorkspaceHandle] = useState(null); // 'active' flag
     const [storageMode, setStorageMode] = useState(null);
     const [isInitializing, setIsInitializing] = useState(true);
@@ -64,6 +66,26 @@ export const NotesProvider = ({ children }) => {
         syncEngine.onSyncStatusChanged(updateStatus);
         return () => syncEngine.removeSyncStatusChanged(updateStatus);
     }, []);
+
+    useEffect(() => {
+        if (!workspaceHandle || nodes.length === 0) {
+            setBacklinkIndex(new Map());
+            return;
+        }
+
+        // This calculates backlinks in the background without blocking render.
+        // It relies on the nodes having content, or pulling from the cache map if needed.
+        // Since we lazy load content, we might not have all content strictly in `nodes`.
+        // The most accurate way is for the Editor to save content to nodes, which happens eventually.
+        const calculateBacklinks = async () => {
+            const index = buildBacklinkIndex(nodes);
+            setBacklinkIndex(index);
+        };
+
+        // Use a small timeout to not block the main thread during heavy typing
+        const timeoutId = setTimeout(calculateBacklinks, 500);
+        return () => clearTimeout(timeoutId);
+    }, [nodes, workspaceHandle]);
 
     useEffect(() => {
         // If the PWA is opened in standalone mode, auto-detect it's installed
@@ -513,7 +535,7 @@ export const NotesProvider = ({ children }) => {
         showInstallModal, setShowInstallModal,
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode,
-        syncPulse, triggerSyncPulse, syncStatus
+        syncPulse, triggerSyncPulse, syncStatus, backlinkIndex
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;
