@@ -189,12 +189,17 @@ export default function WelcomeScreen({ openHelp }) {
     // Detect if the File System Access API is supported
     const isFileSystemSupported = 'showDirectoryPicker' in window;
 
-    const handleLocalStorageClick = () => {
+    const handleLocalStorageClick = async () => {
         if (!isFileSystemSupported) {
-            alert("Local storage is not supported in this browser.\n\nTo use local storage, please use a browser that supports the File System Access API, such as Chrome, Edge, or Opera.");
+            alert("Local storage is not supported in this browser.\n\nTo use local storage natively, please use Chrome, Edge, or Opera.");
             return;
         }
+
         selectWorkspace('local');
+    };
+
+    const handleSandboxClick = async () => {
+        selectWorkspace('sandbox');
     };
     if (needsPermission) {
         return (

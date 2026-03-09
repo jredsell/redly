@@ -15,6 +15,7 @@ import PullToRefresh from './components/PullToRefresh';
 import { requestNotificationPermission } from './utils/notificationManager';
 import * as syncEngine from './lib/sync_engine';
 import { exportSandboxData } from './lib/db';
+import { migrateSandboxToLocal } from './lib/migration';
 
 function NotificationToggle() {
   const { notificationSettings, setNotificationSettings } = useNotes();
@@ -76,7 +77,7 @@ function NotificationToggle() {
 }
 
 function App() {
-  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode, loadNodes, triggerSyncPulse, storageMode } = useNotes();
+  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode, loadNodes, triggerSyncPulse, storageMode, nodes, selectWorkspace } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -188,7 +189,7 @@ function App() {
   }, [loadNodes, triggerSyncPulse]);
 
   useEffect(() => {
-    const handleKeyDown = (e) => {
+    const handleKeyDown = async (e) => { // Made async to support await in migration logic
       if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || (e.target.closest('.ProseMirror') && !e.altKey)) {
         return;
       }
@@ -230,8 +231,16 @@ function App() {
         setShowTasks(true);
         setSidebarOpen(false);
       }
-      if (e.altKey && !e.shiftKey && e.key.toLowerCase() === 'w') {
+      if (e.altKey && e.key.toLowerCase() === 'w') {
         e.preventDefault();
+
+        // Handle Migration Intercept for Keyboard Shortcut by opening HelpModal
+        if (storageMode === 'sandbox' && nodes && nodes.length > 0) {
+          setHelpOpen(true);
+          // We let the Help Modal handle the UI prompt when they click Change Workspace
+          return;
+        }
+
         disconnectWorkspace();
       }
     };

@@ -30,6 +30,7 @@
     "clsx": "^2.1.1",
     "html5-qrcode": "^2.3.8",
     "idb": "^8.0.3",
+    "jszip": "^3.10.1",
     "lucide-react": "^0.575.0",
     "markdown-it": "^14.1.1",
     "markdown-it-task-lists": "^2.1.1",

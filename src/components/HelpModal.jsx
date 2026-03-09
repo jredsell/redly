@@ -2,11 +2,15 @@ import React from 'react';
 import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell, LayoutList, Search } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 
-import { exportSandboxData, importSandboxData } from '../lib/db';
-import { Download, Upload } from 'lucide-react';
+import { exportSandboxToZip, importZipToSandbox, migrateLocalToSandbox, migrateSandboxToLocal } from '../lib/migration';
+import { Download, Upload, FolderUp } from 'lucide-react';
+import { createNode } from '../lib/db';
 
 export default function HelpModal({ isOpen, onClose }) {
-    const { storageMode, disconnectWorkspace } = useNotes();
+    const { storageMode, disconnectWorkspace, nodes, selectWorkspace } = useNotes();
+    const [isMigrating, setIsMigrating] = React.useState(false);
+    const [showMigrationPrompt, setShowMigrationPrompt] = React.useState(false);
+
     if (!isOpen) return null;
 
     const getStorageInfo = () => {
@@ -17,13 +21,12 @@ export default function HelpModal({ isOpen, onClose }) {
 
     const handleExport = async () => {
         try {
-            const data = await exportSandboxData();
-            const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+            const blob = await exportSandboxToZip();
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.style.display = 'none';
             a.href = url;
-            a.download = `redly-backup-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `redly-backup-${new Date().toISOString().split('T')[0]}.zip`;
             document.body.appendChild(a);
             a.click();
 
@@ -43,17 +46,112 @@ export default function HelpModal({ isOpen, onClose }) {
     const handleImport = async (e) => {
         const file = e.target.files[0];
         if (!file) return;
-        if (!window.confirm('This will OVERWRITE all your current browser notes. Continue?')) return;
+        if (!window.confirm('This will insert the files from your ZIP into your current browser notes. Continue?')) return;
 
         try {
-            const text = await file.text();
-            const data = JSON.parse(text);
-            await importSandboxData(data);
+            await importZipToSandbox(file, createNode);
             window.location.reload(); // Refresh to see changes
         } catch (e) {
             alert('Import failed: ' + e.message);
         }
     };
+
+    const handleImportFolder = async () => {
+        try {
+            const dirHandle = await window.showDirectoryPicker({ mode: 'read' });
+            if (!window.confirm(`This will import all supported files from "${dirHandle.name}" into your browser storage. Continue?`)) return;
+
+            await migrateLocalToSandbox(dirHandle, createNode);
+            window.location.reload();
+        } catch (e) {
+            if (e.name !== 'AbortError') alert('Folder Import failed: ' + e.message);
+        }
+    };
+
+    const handleDisconnect = async () => {
+        if (storageMode === 'sandbox' && nodes && nodes.length > 0) {
+            // Show custom migration prompt instead of window.confirm
+            setShowMigrationPrompt(true);
+            return;
+        }
+
+        disconnectWorkspace();
+        onClose();
+    };
+
+    const confirmMigration = async () => {
+        setShowMigrationPrompt(false);
+        if ('showDirectoryPicker' in window) {
+            try {
+                setIsMigrating(true);
+                const dirHandle = await window.showDirectoryPicker({ mode: 'readwrite' });
+                await migrateSandboxToLocal(dirHandle, nodes);
+                await selectWorkspace('local', { handle: dirHandle });
+                setIsMigrating(false);
+                onClose();
+            } catch (e) {
+                setIsMigrating(false);
+                if (e.name !== 'AbortError') alert("Migration failed: " + e.message);
+            }
+        } else {
+            alert("Your browser doesn't support the Native File System.\n\nWe will export a .zip backup of your notes instead.");
+            await handleExport();
+        }
+    };
+
+    const skipMigration = () => {
+        setShowMigrationPrompt(false);
+        disconnectWorkspace();
+        onClose();
+    };
+
+    if (showMigrationPrompt) {
+        return (
+            <div className="modal-overlay" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)' }}>
+                <div className="modal-content" style={{ background: 'var(--bg-primary)', padding: '32px', borderRadius: '12px', color: 'var(--text-primary)', maxWidth: '420px', width: '90%' }}>
+                    <h2 style={{ fontSize: '20px', margin: '0 0 12px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <Move size={20} style={{ color: 'var(--accent-color)' }} />
+                        Migrate Notes?
+                    </h2>
+                    <p style={{ margin: '0 0 24px 0', color: 'var(--text-secondary)', lineHeight: '1.5' }}>
+                        Before you change workspaces, would you like to migrate your Browser notes to a Local folder on your computer?
+                        <br /><br />
+                        <span style={{ fontSize: '0.9em', opacity: 0.8 }}>(If you skip this, they will safely remain in the browser sandbox for later)</span>
+                    </p>
+                    <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end' }}>
+                        <button
+                            onClick={skipMigration}
+                            style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid var(--border-color)', background: 'transparent', color: 'var(--text-primary)', cursor: 'pointer', fontWeight: 500 }}
+                        >
+                            Skip & Change
+                        </button>
+                        <button
+                            onClick={confirmMigration}
+                            style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', background: 'var(--accent-color)', color: 'white', cursor: 'pointer', fontWeight: 500 }}
+                        >
+                            Select Folder to Migrate
+                        </button>
+                    </div>
+                </div>
+            </div>
+        );
+    }
+
+    if (isMigrating) {
+        return (
+            <div className="modal-overlay" style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', zIndex: 100, display: 'flex', alignItems: 'center', justifyContent: 'center', backdropFilter: 'blur(3px)' }}>
+                <div className="modal-content" style={{ background: 'var(--bg-primary)', padding: '40px', borderRadius: '12px', textAlign: 'center', color: 'var(--text-primary)' }}>
+                    <RefreshCw className="spin" size={32} style={{ color: 'var(--accent-color)', marginBottom: '16px' }} />
+                    <h2 style={{ fontSize: '20px', margin: '0 0 8px 0' }}>Migrating Data...</h2>
+                    <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Copying your notes. Please don't close this window.</p>
+                    <style>{`
+                        @keyframes spin { 100% { transform: rotate(360deg); } }
+                        .spin { animation: spin 2s linear infinite; }
+                    `}</style>
+                </div>
+            </div>
+        );
+    }
 
     const storage = getStorageInfo();
 
@@ -83,7 +181,7 @@ export default function HelpModal({ isOpen, onClose }) {
                                 <div style={{ fontSize: '15px', fontWeight: 700 }}>{storage.name}</div>
                             </div>
                             <button
-                                onClick={() => { disconnectWorkspace(); onClose(); }}
+                                onClick={handleDisconnect}
                                 className="secondary-action-btn"
                                 aria-label="Change current storage location"
                                 style={{ padding: '8px 12px', fontSize: '12px', borderStyle: 'dashed', borderRadius: '8px' }}
@@ -103,22 +201,34 @@ export default function HelpModal({ isOpen, onClose }) {
                         )}
 
                         {storageMode === 'sandbox' && (
-                            <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                            <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-color)', paddingTop: '16px', flexWrap: 'wrap' }}>
                                 <button
                                     onClick={handleExport}
                                     className="secondary-action-btn"
-                                    style={{ flex: 1, padding: '8px', fontSize: '12px', borderRadius: '8px', justifyContent: 'center' }}
+                                    style={{ flex: '1 1 auto', padding: '8px', fontSize: '12px', borderRadius: '8px', justifyContent: 'center' }}
                                 >
                                     <Download size={14} style={{ marginRight: '6px' }} />
                                     Export Backup
                                 </button>
+
+                                {'showDirectoryPicker' in window && (
+                                    <button
+                                        onClick={handleImportFolder}
+                                        className="secondary-action-btn"
+                                        style={{ flex: '1 1 auto', padding: '8px', fontSize: '12px', borderRadius: '8px', justifyContent: 'center', display: 'flex', alignItems: 'center' }}
+                                    >
+                                        <FolderUp size={14} style={{ marginRight: '6px' }} />
+                                        Import Folder
+                                    </button>
+                                )}
+
                                 <label
                                     className="secondary-action-btn"
-                                    style={{ flex: 1, padding: '8px', fontSize: '12px', borderRadius: '8px', justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                                    style={{ flex: '1 1 auto', padding: '8px', fontSize: '12px', borderRadius: '8px', justifyContent: 'center', cursor: 'pointer', display: 'flex', alignItems: 'center', background: 'rgba(37, 99, 235, 0.05)', borderColor: 'rgba(37, 99, 235, 0.2)', color: 'var(--accent-color)' }}
                                 >
                                     <Upload size={14} style={{ marginRight: '6px' }} />
-                                    Import Backup
-                                    <input name="import-backup" id="import-backup" type="file" accept=".json" onChange={handleImport} style={{ display: 'none' }} />
+                                    Import (.zip)
+                                    <input name="import-backup" id="import-backup" type="file" accept=".zip" onChange={handleImport} style={{ display: 'none' }} />
                                 </label>
                             </div>
                         )}

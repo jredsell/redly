@@ -12,7 +12,7 @@ export const initWorkspace = async (mode, options = {}) => {
       localDriver.setRootHandle(handle);
       await setHandle('workspace_mode', 'sandbox');
     } else if (mode === 'local') {
-      const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+      const handle = options.handle || await window.showDirectoryPicker({ mode: 'readwrite' });
       localDriver.setRootHandle(handle);
       await setHandle('workspace_mode', 'local');
       await setHandle('local_root', handle);
