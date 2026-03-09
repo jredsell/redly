@@ -242,7 +242,7 @@ const InlineDateInputNodeView = (props) => {
     );
 };
 
-const md = markdownit({ html: false, linkify: true, typographer: true }).use(taskLists, { label: false });
+const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: false });
 
 const td = new TurndownService({
     headingStyle: 'atx',
@@ -635,25 +635,18 @@ export default function Editor({ fileId }) {
                 let html = currentUpdates.content;
 
                 // Pre-process HTML to ensure tables have a <thead> so turndown-plugin-gfm parses them correctly
-                try {
-                    const parser = new DOMParser();
-                    const doc = parser.parseFromString(html, 'text/html');
-                    const tables = doc.querySelectorAll('table');
-                    tables.forEach(table => {
-                        const tbody = table.querySelector('tbody');
-                        if (tbody) {
-                            const firstRow = tbody.querySelector('tr');
-                            if (firstRow && firstRow.querySelector('th')) {
-                                const thead = doc.createElement('thead');
-                                thead.appendChild(firstRow);
-                                table.insertBefore(thead, tbody);
-                            }
-                        }
-                    });
-                    html = doc.body.innerHTML;
-                } catch (e) {
-                    console.error('Table preprocessing error', e);
-                }
+                // Tiptap Table extension outputs <tbody><tr><th>...</th></tr>...<tbody>
+                // Turndown GFM requires <thead><tr><th>...</th></tr></thead><tbody>...</tbody>
+
+                // 1. If there's a <tbody> containing the first row with <th>s, convert that row's wrapper to <thead>
+                html = html.replace(/(<table[^>]*>[\s\S]*?)(<tbody[^>]*>\s*)(<tr[^>]*>\s*(?:<th[^>]*>[\s\S]*?<\/th>\s*)+<\/tr>)/ig, (match, tableStart, tbody, firstRow) => {
+                    return `${tableStart}<thead>${firstRow}</thead>${tbody}`;
+                });
+
+                // 2. If for some reason Tiptap output <tr><th> WITHOUT a tbody, wrap it in a thead
+                html = html.replace(/(<table[^>]*>)(?!\s*<thead|\s*<tbody)\s*(<tr[^>]*>\s*(?:<th[^>]*>[\s\S]*?<\/th>\s*)+<\/tr>)/ig, (match, tableStart, firstRow) => {
+                    return `${tableStart}<thead>${firstRow}</thead>`;
+                });
 
                 currentUpdates.content = td.turndown(html);
                 lastSavedContentRef.current = currentUpdates.content;
