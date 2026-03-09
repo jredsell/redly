@@ -11,9 +11,7 @@ export default function Backlinks({ noteId }) {
 
     const noteNameKey = currentNote.name.toLowerCase();
     const links = backlinkIndex.get(noteNameKey) || [];
-    console.log("[Backlinks] Index keys:", Array.from(backlinkIndex.keys()));
-    console.log("[Backlinks] Current note key:", noteNameKey);
-    console.log("[Backlinks] Found links:", links);
+
 
     if (links.length === 0) return null;
 

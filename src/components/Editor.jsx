@@ -267,9 +267,15 @@ td.escape = function (string) {
 // Table support fix for Tiptap's nested <p> tags
 td.addRule('tableCell', {
     filter: ['th', 'td'],
-    replacement: (content) => {
+    replacement: (content, node) => {
+        // Find index of cell to determine if we need the leading pipe
+        const index = Array.prototype.indexOf.call(node.parentNode.childNodes, node);
+        let prefix = ' ';
+        if (index === 0) prefix = '| ';
+
         // Strip newlines and paragraph markers inside table cells to maintain GFM compatibility
-        return content.replace(/\n/g, ' ').trim();
+        const cleanContent = content.replace(/\n/g, ' ').trim();
+        return prefix + cleanContent + ' |';
     }
 });
 // Task Item serialization
@@ -626,7 +632,30 @@ export default function Editor({ fileId }) {
             pendingUpdatesRef.current = {}; // Clear buffer BEFORE the async call
 
             if (currentUpdates.content) {
-                currentUpdates.content = td.turndown(currentUpdates.content);
+                let html = currentUpdates.content;
+
+                // Pre-process HTML to ensure tables have a <thead> so turndown-plugin-gfm parses them correctly
+                try {
+                    const parser = new DOMParser();
+                    const doc = parser.parseFromString(html, 'text/html');
+                    const tables = doc.querySelectorAll('table');
+                    tables.forEach(table => {
+                        const tbody = table.querySelector('tbody');
+                        if (tbody) {
+                            const firstRow = tbody.querySelector('tr');
+                            if (firstRow && firstRow.querySelector('th')) {
+                                const thead = doc.createElement('thead');
+                                thead.appendChild(firstRow);
+                                table.insertBefore(thead, tbody);
+                            }
+                        }
+                    });
+                    html = doc.body.innerHTML;
+                } catch (e) {
+                    console.error('Table preprocessing error', e);
+                }
+
+                currentUpdates.content = td.turndown(html);
                 lastSavedContentRef.current = currentUpdates.content;
             }
             editNode(fileId, currentUpdates);
