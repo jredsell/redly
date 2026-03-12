@@ -1,0 +1,6 @@
+
+C:\Users\jonat\Downloads\redly\src\components\Editor.jsx
+  34:8  error  Parsing error: Identifier 'CodeBlock' has already been declared
+
+✖ 1 problem (1 error, 0 warnings)
+

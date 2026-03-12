@@ -178,7 +178,7 @@ export default function FileTree({ node, depth }) {
                         e.preventDefault();
                         e.stopPropagation();
                         handleDelete(e);
-                    } else if (e.key === 'F2') {
+                    } else if (e.altKey && e.key.toLowerCase() === 'r') {
                         // Rename item
                         e.preventDefault();
                         e.stopPropagation();

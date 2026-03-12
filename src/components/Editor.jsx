@@ -22,96 +22,14 @@ import taskLists from 'markdown-it-task-lists';
 import { useNotes } from '../context/NotesContext';
 import InlineDateInput from './InlineDateInput';
 import Backlinks from './Backlinks';
-import { getDateColor, parseDateString } from '../utils/dateHelpers';
+import { parseDateString } from '../utils/dateHelpers';
 import {
     Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
     List, ListOrdered, Quote, CheckSquare, Link as LinkIcon, ExternalLink,
     Table as TableIcon, PlusSquare, MinusSquare, Columns, Rows, MoreHorizontal, LayoutTemplate
 } from 'lucide-react';
 
-const TEMPLATES = [
-    {
-        id: 'meeting',
-        name: 'Meeting Notes',
-        icon: '📝',
-        description: 'Standard agenda, discussion, and action items.',
-        content: `
-# Meeting: [Topic/Title]
-**Date:** YYYY-MM-DD
-**Attendees:** [Names]
-
-## Agenda
-- [ ] Item 1
-- [ ] Item 2
-
-## Discussion & Notes
-- 
-
-## Action Items
-- [ ] @Name - Task 1 (Due: YYYY-MM-DD)
-- [ ] @Name - Task 2 (Due: YYYY-MM-DD)
-        `.trim()
-    },
-    {
-        id: 'project-update',
-        name: 'Project Update',
-        icon: '🚀',
-        description: 'Status, highlights, challenges, and next steps.',
-        content: `
-# Project Update: [Project Name]
-**Date:** YYYY-MM-DD
-**Status:** 🟢 On Track / 🟡 At Risk / 🔴 Blocked
-
-## Highlights / Accomplishments
-- 
-- 
-
-## Challenges / Blockers
-- 
-
-## Next Steps
-- [ ] 
-- [ ] 
-        `.trim()
-    },
-    {
-        id: 'daily-journal',
-        name: 'Daily Journal',
-        icon: '📓',
-        description: 'Daily log of accomplishments and goals.',
-        content: `
-# Daily Log: YYYY-MM-DD
-
-## What I accomplished today:
-- 
-
-## What I learned / Observations:
-- 
-
-## Goals for tomorrow:
-- [ ] 
-        `.trim()
-    },
-    {
-        id: '1on1',
-        name: '1-on-1 Catch-up',
-        icon: '💬',
-        description: 'Sync with a team member or manager.',
-        content: `
-# 1-on-1: [Name] & [Name]
-**Date:** YYYY-MM-DD
-
-## Updates since last time
-- 
-
-## Topics to Discuss
-- 
-
-## Action Items
-- [ ] 
-        `.trim()
-    }
-];
+import TemplateModal from './TemplateModal';
 
 
 
@@ -126,6 +44,7 @@ const TagHighlighter = Extension.create({
                         const decorations = [];
                         doc.descendants((node, pos) => {
                             if (node.isText && node.text) {
+                                // eslint-disable-next-line no-useless-escape
                                 const regex = /(?:^|\s)(#[a-zA-Z0-9_\-]+)/g;
                                 let match;
                                 while ((match = regex.exec(node.text)) !== null) {
@@ -385,6 +304,7 @@ td.addRule('taskItem', {
         let cleanContent = content.trim();
 
         // Remove any leading/trailing list markers that might have leaked from default rules
+        // eslint-disable-next-line no-useless-escape
         cleanContent = cleanContent.replace(/^[\s\-\*\[\]x]*\s*/, '');
         // Remove "Due:" text if added by badges
         cleanContent = cleanContent.replace(/Due:\s*[^]*?(\n|$)/g, '').trim();
@@ -449,7 +369,7 @@ const SLASH_OPTIONS = [
     { label: 'Divider', icon: '—', command: (editor) => editor.chain().focus().setHorizontalRule().run() },
 ];
 
-const BubbleMenuUI = ({ editor, bubbleMenu, setBubbleMenu }) => {
+const BubbleMenuUI = ({ editor, bubbleMenu }) => {
     const [, setTick] = useState(0);
 
     useEffect(() => {
@@ -664,8 +584,7 @@ export default function Editor({ fileId }) {
     const [tableTriggerCoords, setTableTriggerCoords] = useState(null);
     const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
     const [templateMenu, setTemplateMenu] = useState({ isOpen: false });
-    const templateMenuListRef = useRef(null);
-    const [forceRender, setForceRender] = useState(0);
+    const [, setForceRender] = useState(0);
     const slashMenuListRef = useRef(null);
     const tagMenuListRef = useRef(null);
     const linkMenuListRef = useRef(null);
@@ -907,6 +826,7 @@ export default function Editor({ fileId }) {
 
                             // Fallback: Parse from text content (needed for initial load from Markdown)
                             const text = node.innerText || node.textContent || '';
+                            // eslint-disable-next-line no-useless-escape
                             const dateMatch = text.match(/@(\d{2,4}[-\/\. ]\d{2}[-\/\. ]\d{2,4}(?:\s\d{2}:\d{2})?)/);
                             if (dateMatch) {
                                 const { parsedDate, hasDate, hasTime } = parseDateString(dateMatch[1]);
@@ -939,6 +859,7 @@ export default function Editor({ fileId }) {
 
                             // Fallback: Parse from text content
                             const text = node.innerText || node.textContent || '';
+                            // eslint-disable-next-line no-useless-escape
                             const dateMatch = text.match(/@(\d{2,4}[-\/\. ]\d{2}[-\/\. ]\d{2,4}(?:\s\d{2}:\d{2})?)/);
                             if (dateMatch) {
                                 const { parsedDate, hasDate, hasTime } = parseDateString(dateMatch[1]);
@@ -1140,64 +1061,7 @@ export default function Editor({ fileId }) {
                     return true;
                 }
 
-                if (templateMenu.isOpen) {
-                    if (event.key === 'ArrowDown') {
-                        event.preventDefault();
-                        setTemplateMenu(prev => ({ ...prev, selectedIndex: (prev.selectedIndex + 1) % TEMPLATES.length }));
-                        return true;
-                    }
-                    if (event.key === 'ArrowUp') {
-                        event.preventDefault();
-                        setTemplateMenu(prev => ({ ...prev, selectedIndex: (prev.selectedIndex - 1 + TEMPLATES.length) % TEMPLATES.length }));
-                        return true;
-                    }
-                    if (event.key === 'Enter') {
-                        event.preventDefault();
-                        const selectedTemplate = TEMPLATES[templateMenu.selectedIndex];
-                        if (selectedTemplate) {
-                            setTimeout(() => {
-                                const preparedContent = selectedTemplate.content.replace(/^(\\s*-\\s*\\[[ xX]\\])(\\S)/gm, '$1 $2');
-                                let html = md.render(preparedContent);
-                                html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
-                                    .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
 
-                                view.dispatch(view.state.tr.insert(view.state.selection.from, editor.schema.nodeFromJSON(editor.commands.createContext(html))));
-                                // Alternative using Tiptap's insertContent which handles HTML parsing automatically
-                            }, 0);
-
-                            // It's safer to use editor.commands since it handles HTML -> ProseMirror nodes conversion out of the box correctly with extensions
-                            setTimeout(() => {
-                                const preparedContent = selectedTemplate.content.replace(/^(\s*-\s*\[[ xX]\])(\S)/gm, '$1 $2');
-                                let html = md.render(preparedContent);
-                                html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
-                                    .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
-
-                                // ensure task list dates are parsed correctly
-                                html = html.replace(/(<li data-type="taskItem"[^>]*>)([\s\S]*?)(<\/li>)/gi, (match, openTag, liContent, closeTag) => {
-                                    const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
-                                    const dateMatch = liContent.match(dateRegex);
-                                    if (dateMatch) {
-                                        const dateStr = dateMatch[1];
-                                        const isoDate = dateStr.replace(' ', 'T');
-                                        const cleanedContent = liContent.replace(dateRegex, '').trim();
-                                        return `${openTag.replace('>', ` data-date="${isoDate}" data-has-date="true" data-has-time="${isoDate.includes('T')}">`)}${cleanedContent}${closeTag}`;
-                                    }
-                                    return match;
-                                });
-
-                                editor.chain().focus().insertContent(html).run();
-                            }, 0);
-
-                        }
-                        setTemplateMenu({ isOpen: false });
-                        return true;
-                    }
-                    if (event.key === 'Escape') {
-                        event.preventDefault();
-                        setTemplateMenu({ isOpen: false });
-                        return true;
-                    }
-                }
 
                 return false;
             }
@@ -1285,7 +1149,7 @@ export default function Editor({ fileId }) {
                         } else {
                             setBubbleMenu({ isOpen: false, top: 0, left: 0 });
                         }
-                    } catch (innerErr) {
+                    } catch {
                         // This handles cases where domAtPos or coordsAtPos throws
                         setBubbleMenu({ isOpen: false, top: 0, left: 0 });
                     }
@@ -1325,7 +1189,7 @@ export default function Editor({ fileId }) {
                                 } else {
                                     setSlashMenu(prev => ({ ...prev, isOpen: false }));
                                 }
-                            } catch (e) {
+                            } catch {
                                 setSlashMenu(prev => ({ ...prev, isOpen: false }));
                             }
                             setTagMenu(prev => ({ ...prev, isOpen: false }));
@@ -1352,7 +1216,7 @@ export default function Editor({ fileId }) {
                                 } else {
                                     setTagMenu(prev => ({ ...prev, isOpen: false }));
                                 }
-                            } catch (e) {
+                            } catch {
                                 setTagMenu(prev => ({ ...prev, isOpen: false }));
                             }
                             setSlashMenu(prev => ({ ...prev, isOpen: false }));
@@ -1379,7 +1243,7 @@ export default function Editor({ fileId }) {
                                 } else {
                                     setLinkMenu(prev => ({ ...prev, isOpen: false }));
                                 }
-                            } catch (e) {
+                            } catch {
                                 setLinkMenu(prev => ({ ...prev, isOpen: false }));
                             }
                             setSlashMenu(prev => ({ ...prev, isOpen: false }));
@@ -1514,7 +1378,7 @@ export default function Editor({ fileId }) {
                         if (isExternalUpdate) {
                             try {
                                 editor.commands.setTextSelection(selection);
-                            } catch (e) { /* ignore */ }
+                            } catch { /* ignore */ }
                         }
                     };
                     loadContent();
@@ -1757,65 +1621,39 @@ export default function Editor({ fileId }) {
 
                 {/* Custom Template Modal */}
                 {templateMenu.isOpen && (
-                    <div className="modal-overlay" onClick={() => setTemplateMenu({ isOpen: false })}>
-                        <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', width: '95%' }}>
-                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                                <h2 style={{ marginTop: 0, color: 'var(--text-primary)', fontSize: '20px', fontWeight: '600', marginBottom: 0 }}>Insert Template</h2>
-                                <button onClick={() => setTemplateMenu({ isOpen: false })} style={{ background: 'transparent', border: 'none', color: 'var(--text-tertiary)', cursor: 'pointer', fontSize: '20px' }}>&#x2715;</button>
-                            </div>
-                            <ul ref={templateMenuListRef} style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                {TEMPLATES.map((template, idx) => (
-                                    <li
-                                        key={template.id}
-                                        onMouseEnter={() => setTemplateMenu(p => ({ ...p, selectedIndex: idx }))}
-                                        onClick={() => {
-                                            setTimeout(() => {
-                                                const preparedContent = template.content.replace(/^(\s*-\s*\[[ xX]\])(\S)/gm, '$1 $2');
-                                                let html = md.render(preparedContent);
-                                                html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
-                                                    .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
+                    <TemplateModal
+                        isOpen={templateMenu.isOpen}
+                        onClose={() => setTemplateMenu({ isOpen: false })}
+                        onInsert={(content) => {
+                            if (!editor || typeof content !== 'string') return;
 
-                                                html = html.replace(/(<li data-type="taskItem"[^>]*>)([\s\S]*?)(<\/li>)/gi, (match, openTag, liContent, closeTag) => {
-                                                    const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
-                                                    const dateMatch = liContent.match(dateRegex);
-                                                    if (dateMatch) {
-                                                        const dateStr = dateMatch[1];
-                                                        const isoDate = dateStr.replace(' ', 'T');
-                                                        const cleanedContent = liContent.replace(dateRegex, '').trim();
-                                                        return `${openTag.replace('>', ` data-date="${isoDate}" data-has-date="true" data-has-time="${isoDate.includes('T')}">`)}${cleanedContent}${closeTag}`;
-                                                    }
-                                                    return match;
-                                                });
+                            // Re-use logic to safely insert Tiptap nodes
+                            setTimeout(() => {
+                                const today = new Date().toISOString().split('T')[0];
+                                const preparedContent = content
+                                    .replace(/@today/g, today)
+                                    .replace(/^(\s*-\s*\[[ xX]\])(\S)/gm, '$1 $2');
+                                let html = md.render(preparedContent);
+                                html = html.replace(/<ul[^>]*class=["'][^"']*task-list[^"']*["'][^>]*>/gi, '<ul data-type="taskList">')
+                                    .replace(/<li[^>]*class=["'][^"']*task-list-item[^"']*["'][^>]*>/gi, '<li data-type="taskItem">');
 
-                                                editor.chain().focus().insertContent(html).run();
-                                            }, 0);
-                                            setTemplateMenu({ isOpen: false });
-                                        }}
-                                        style={{
-                                            padding: '12px 16px',
-                                            cursor: 'pointer',
-                                            borderRadius: '8px',
-                                            backgroundColor: idx === templateMenu.selectedIndex ? 'var(--bg-accent)' : 'var(--bg-secondary)',
-                                            border: '1px solid ' + (idx === templateMenu.selectedIndex ? 'var(--accent-color)' : 'var(--border-color)'),
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: '16px',
-                                            transition: 'all 0.1s ease',
-                                        }}
-                                    >
-                                        <div style={{ fontSize: '24px' }}>{template.icon}</div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                                            <span style={{ fontWeight: '600', color: idx === templateMenu.selectedIndex ? 'var(--accent-color)' : 'var(--text-primary)' }}>{template.name}</span>
-                                            <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>{template.description}</span>
-                                        </div>
-                                    </li>
-                                ))}
-                            </ul>
-                            <div style={{ marginTop: '16px', fontSize: '12px', color: 'var(--text-tertiary)', textAlign: 'center' }}>
-                                Use <kbd style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '11px', fontFamily: 'monospace' }}>&uarr;</kbd> <kbd style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '11px', fontFamily: 'monospace' }}>&darr;</kbd> to navigate, <kbd style={{ background: 'var(--bg-secondary)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', fontSize: '11px', fontFamily: 'monospace' }}>Enter</kbd> to select
-                            </div>
-                        </div>
-                    </div>
+                                html = html.replace(/(<li data-type="taskItem"[^>]*>)([\s\S]*?)(<\/li>)/gi, (match, openTag, liContent, closeTag) => {
+                                    const dateRegex = /@(\d{4}-\d{2}-\d{2}(?:\s+\d{2}:\d{2})?)/;
+                                    const dateMatch = liContent.match(dateRegex);
+                                    if (dateMatch) {
+                                        const dateStr = dateMatch[1];
+                                        const isoDate = dateStr.replace(' ', 'T');
+                                        const cleanedContent = liContent.replace(dateRegex, '').trim();
+                                        return `${openTag.replace('>', ` data-date="${isoDate}" data-has-date="true" data-has-time="${isoDate.includes('T')}">`)}${cleanedContent}${closeTag}`;
+                                    }
+                                    return match;
+                                });
+
+                                editor.chain().focus().insertContent(html).run();
+                            }, 0);
+                            setTemplateMenu({ isOpen: false });
+                        }}
+                    />
                 )}
             </div>
 

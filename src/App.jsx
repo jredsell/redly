@@ -231,18 +231,6 @@ function App() {
         setShowTasks(true);
         setSidebarOpen(false);
       }
-      if (e.altKey && e.key.toLowerCase() === 'w') {
-        e.preventDefault();
-
-        // Handle Migration Intercept for Keyboard Shortcut by opening HelpModal
-        if (storageMode === 'sandbox' && nodes && nodes.length > 0) {
-          setHelpOpen(true);
-          // We let the Help Modal handle the UI prompt when they click Change Workspace
-          return;
-        }
-
-        disconnectWorkspace();
-      }
     };
     window.addEventListener('keydown', handleKeyDown);
     if (activeFileId && showTasks) {

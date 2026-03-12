@@ -142,7 +142,7 @@ export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') 
                     parentId: currentPath || null,
                     updatedAt: file.lastModified
                 });
-            } else if (entry.kind === 'directory' && !entry.name.startsWith('.')) {
+            } else if (entry.kind === 'directory') {
                 nodes.push({ id: nodePath, name: entry.name, type: 'folder', parentId: currentPath || null, updatedAt: Date.now() });
                 const children = await getNodes(entry, nodePath);
                 nodes.push(...children);

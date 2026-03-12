@@ -348,9 +348,6 @@ export default function HelpModal({ isOpen, onClose }) {
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Toggle List/Kanban View</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>V</kbd></div>
 
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Change Workspace</span>
-                            <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>W</kbd></div>
-
                             <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>Help</span>
                             <div><kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>/</kbd></div>
                         </div>
@@ -365,7 +362,7 @@ export default function HelpModal({ isOpen, onClose }) {
                             <b>Traverse Tree:</b> Use Arrow Keys (<kbd style={kbdStyle}>↑</kbd> <kbd style={kbdStyle}>↓</kbd> <kbd style={kbdStyle}>←</kbd> <kbd style={kbdStyle}>→</kbd>) to move through the tree. <br />
                             <b>Enter Note:</b> Press <kbd style={kbdStyle}>→</kbd> (Right Arrow) or <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>E</kbd> to jump from the sidebar into the editor. <br />
                             <b>Open Note:</b> Press <kbd style={kbdStyle}>Enter</kbd> or <kbd style={kbdStyle}>Space</kbd> on a selected note to open it. <br />
-                            <b>Rename:</b> Press <kbd style={kbdStyle}>F2</kbd> on any selected folder or note to rename it.<br />
+                            <b>Rename:</b> Press <kbd style={kbdStyle}>Alt</kbd> + <kbd style={kbdStyle}>R</kbd> on any selected folder or note to rename it.<br />
                             <b>Delete:</b> Press <kbd style={kbdStyle}>Delete</kbd> (or <kbd style={kbdStyle}>Ctrl</kbd> + <kbd style={kbdStyle}>Backspace</kbd>) to remove an item. <br />
                             <br />
                             <b>Recent Files:</b> Re-open your most recently edited notes straight from the top of the Welcome Screen.<br />

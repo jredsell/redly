@@ -348,7 +348,11 @@ export const NotesProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [notificationSettings.enabled, workspaceHandle]);
 
-    const tree = buildTree(nodes);
+    const tree = buildTree(nodes.filter(n => {
+        const parts = n.id.split('/');
+        // Hide anything in a dot-folder (like .templates, .trash, .sync) from the main tree
+        return !parts.some(p => p.startsWith('.') && p !== '.');
+    }));
 
     const toggleFolder = (folderId) => {
         setExpandedFolders(prev => {
@@ -386,7 +390,7 @@ export const NotesProvider = ({ children }) => {
         }
     };
 
-    const addNode = async (name, type, parentId = null) => {
+    const addNode = async (name, type, parentId = null, autoOpen = true, initialContent = '') => {
         if (!workspaceHandle) return;
         const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim();
         const extension = type === 'file' ? '.md' : '';
@@ -407,12 +411,12 @@ export const NotesProvider = ({ children }) => {
             name: safeName,
             type,
             parentId,
-            ...(type === 'file' ? { content: '' } : {})
+            ...(type === 'file' ? { content: initialContent } : {})
         };
 
         const previousNodes = nodes;
         setNodes(prev => [...prev, newNode]);
-        if (type === 'file') setActiveFileId(newNode.id);
+        if (type === 'file' && autoOpen) setActiveFileId(newNode.id);
         if (parentId && !expandedFolders.has(parentId)) {
             setExpandedFolders(prev => new Set(prev).add(parentId));
         }
@@ -425,10 +429,12 @@ export const NotesProvider = ({ children }) => {
             // But for safety and to get formal IDs:
             await loadNodes();
             syncEngine.broadcastSync();
+            return newNode;
         } catch (e) {
             console.error("Failed to add node:", e);
             setNodes(previousNodes);
             alert("Error: Could not create " + type + ". Reverting changes.");
+            return null;
         }
     };
 
