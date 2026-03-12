@@ -1,4 +1,4 @@
-\# Templates
+# Templates
 
 
 
@@ -6,7 +6,8 @@ Speed up your workflow by using templates for recurring layouts like meeting not
 
 
 
-\- \*\*Using a Template:\*\* Press the `INSERT` key while editing a note.
+- **Using a Template:** Press the `INSERT` key while editing a note.
 
-\- \*\*Managing Templates:\*\* You can create your own, edit existing ones, or delete those you no longer need via the Templates menu.
+- **Managing Templates:** You can create your own, edit existing ones, or delete those you no longer need via the Templates menu.
+
 

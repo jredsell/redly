@@ -1,4 +1,4 @@
-\# Keyboard Shortcuts
+# Keyboard Shortcuts
 
 
 
@@ -10,25 +10,26 @@ Master Redly with these speed-focused shortcuts.
 
 | :--- | :--- |
 
-| \*\*Home Screen\*\* | `ALT + H` |
+| **Home Screen** | `ALT + H` |
 
-| \*\*New Note\*\* | `ALT + N` |
+| **New Note** | `ALT + N` |
 
-| \*\*New Folder\*\* | `ALT + F` |
+| **New Folder** | `ALT + F` |
 
-| \*\*Focus Sidebar\*\* | `ALT + S` |
+| **Focus Sidebar** | `ALT + S` |
 
-| \*\*Focus Editor\*\* | `ALT + E` |
+| **Focus Editor** | `ALT + E` |
 
-| \*\*Rename Note/Folder\*\* | `ALT + R` |
+| **Rename Note/Folder** | `ALT + R` |
 
-| \*\*Global Task View\*\* | `ALT + T` |
+| **Global Task View** | `ALT + T` |
 
-| \*\*Toggle Kanban/List\*\* | `ALT + V` |
+| **Toggle Kanban/List** | `ALT + V` |
 
-| \*\*Filter Tags\*\* | `ALT + G` |
+| **Filter Tags** | `ALT + G` |
 
-| \*\*Insert Template\*\* | `INSERT` |
+| **Insert Template** | `INSERT` |
 
-| \*\*Open Guide\*\* | `ALT + /` |
+| **Open Guide** | `ALT + /` |
+
 

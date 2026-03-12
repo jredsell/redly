@@ -2,6 +2,7 @@ export default {
     title: 'Redly',
     description: 'Guides and Documentation for Redly',
     base: '/redly/docs/',
+    cleanUrls: true,
     themeConfig: {
         logo: '/Redly_logo_full.png',
         nav: [

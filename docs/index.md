@@ -10,9 +10,10 @@ hero:
     alt: Redly
   actions:
     - theme: brand
-      text: Get Started
+      text: Documentation
       link: /getting-started/introduction
     - theme: alt
       text: Open Redly App
       link: https://jredsell.github.io/redly
 ---
+
