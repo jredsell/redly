@@ -1,8 +1,13 @@
 <script setup>
 import { useData } from 'vitepress'
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 
 const { isDark } = useData()
+const mounted = ref(false)
+
+onMounted(() => {
+  mounted.value = true
+})
 
 const toggleTheme = () => {
   isDark.value = !isDark.value
@@ -11,6 +16,7 @@ const toggleTheme = () => {
 
 <template>
   <button 
+    v-if="mounted"
     class="custom-theme-toggle" 
     @click="toggleTheme"
     title="Toggle Theme"

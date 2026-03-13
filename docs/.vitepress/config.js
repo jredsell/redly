@@ -3,6 +3,9 @@ export default {
     description: 'Guides and Documentation for Redly',
     base: '/redly/docs/',
     cleanUrls: true,
+    head: [
+        ['link', { rel: 'icon', href: '/redly/docs/favicon.png' }]
+    ],
     themeConfig: {
         logo: '/Redly_logo_full.png',
         nav: [
