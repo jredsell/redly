@@ -1,10 +1,6 @@
 # Storage Options
 
-
-
 Redly gives you full control over where your data lives.
-
-
 
 ### 1. Browser Storage
 
@@ -13,8 +9,6 @@ Redly gives you full control over where your data lives.
 - **Best for:** Quick setup, mobile devices, or temporary use.
 
 - **Note:** Clearing your browser cache can delete your data. Use the **Export to ZIP** feature regularly.
-
-
 
 ### 2. Local Storage (Recommended)
 
@@ -26,4 +20,16 @@ Redly gives you full control over where your data lives.
 
 - **Compatibility:** Requires a modern browser like Chrome, Edge, or Opera.
 
+### Browser Support
 
+| Browser | Browser Storage | Local Storage |
+| :--- | :--- | :--- |
+| **Chrome** | ✅ Supported | ✅ Supported |
+| **Edge** | ✅ Supported | ✅ Supported |
+| **Safari** | ✅ Supported | ❌ Not Supported |
+| **Firefox** | ✅ Supported | ❌ Not Supported |
+| **Opera** | ✅ Supported | ✅ Supported |
+
+::: tip Recommendation
+For the best experience and data safety, we recommend using **Chrome** or **Edge** with **Local Storage**.
+:::

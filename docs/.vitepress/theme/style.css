@@ -112,6 +112,10 @@ html.dark {
 }
 
 /* Center Hero Layout for Redly Documentation */
+.VPHero.has-image {
+  padding-top: 80px !important;
+}
+
 .VPHero.has-image .container {
   display: flex !important;
   flex-direction: column !important;
