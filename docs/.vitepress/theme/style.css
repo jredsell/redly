@@ -113,7 +113,19 @@ html.dark {
 
 /* Center Hero Layout for Redly Documentation */
 .VPHero.has-image {
-  padding-top: 80px !important;
+  padding-top: 100px !important;
+  padding-bottom: 60px !important;
+}
+
+@media (min-width: 960px) {
+  .VPHero.has-image {
+    min-height: calc(85vh - var(--vp-nav-height)) !important;
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: center !important;
+    padding-top: 40px !important;
+    padding-bottom: 120px !important;
+  }
 }
 
 .VPHero.has-image .container {
