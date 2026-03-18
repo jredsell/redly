@@ -913,6 +913,8 @@ export default function Editor({ fileId }) {
             setForceRender(prev => prev + 1);
         },
         editorProps: {
+            scrollMargin: { top: 0, bottom: 200, left: 0, right: 0 },
+            scrollThreshold: { top: 0, bottom: 200, left: 0, right: 0 },
             handleKeyDown: (view, event) => {
                 if (tagMenu.isOpen) {
                     if (event.key === 'ArrowDown') {
