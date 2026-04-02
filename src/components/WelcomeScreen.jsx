@@ -279,6 +279,8 @@ export default function WelcomeScreen({ openHelp }) {
         selectWorkspace('local');
     };
 
+    const handleSandboxClick = () => selectWorkspace('sandbox');
+
     const handleGithubConnect = async (config) => {
         await selectWorkspace('github', { config });
         setShowGithubModal(false);

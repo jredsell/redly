@@ -98,6 +98,31 @@ self.onmessage = async ({ data }) => {
                 break;
             }
             
+            case 'RENAME': {
+                const { oldPath, newPath, message, token, corsProxy, autoPush } = payload;
+                try {
+                    await git.remove({ fs, dir, filepath: oldPath });
+                } catch (e) {
+                    console.warn('[Worker] Git remove failed (might be a new untracked file):', e);
+                }
+                await git.add({ fs, dir, filepath: newPath });
+                await git.commit({
+                    fs, dir,
+                    message: message || `Rename from ${oldPath} to ${newPath}`,
+                    author: { name: 'Redly User', email: 'user@redly.app' }
+                });
+                if (autoPush) {
+                    await git.push({
+                        fs, http, dir,
+                        remote: 'origin',
+                        corsProxy: corsProxy || defaultProxy,
+                        onAuth: () => ({ username: token })
+                    });
+                }
+                self.postMessage({ id, type: 'SUCCESS' });
+                break;
+            }
+
             default:
                 self.postMessage({ id, type: 'ERROR', error: 'Unknown action type' });
         }

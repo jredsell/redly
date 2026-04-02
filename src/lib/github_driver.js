@@ -161,10 +161,12 @@ export const createNode = async (node) => {
     }).catch(err => console.error('[GitHub Sync] Create Failed:', err));
 };
 
-export const updateNode = async (id, updates) => {
-    const path = `${dir}/${id}`;
+export const updateNode = async (id, updates, oldNode) => {
+    const oldPath = `${dir}/${id}`;
+    
+    // 1. Handle Content Translation
     if (updates.content !== undefined) {
-        await pfs.writeFile(path, updates.content);
+        await pfs.writeFile(oldPath, updates.content);
         
         sendRequest('COMMIT', {
             filepath: id,
@@ -173,6 +175,42 @@ export const updateNode = async (id, updates) => {
             corsProxy: githubConfig.corsProxy,
             autoPush: true
         }).catch(err => console.error('[GitHub Sync] Update Failed:', err));
+    }
+
+    // 2. Handle Renaming or Moving
+    if ((updates.name && updates.name !== oldNode.name) || (updates.parentId !== undefined && updates.parentId !== oldNode.parentId)) {
+        const newName = updates.name || oldNode.name;
+        const newParentId = updates.parentId !== undefined ? updates.parentId : oldNode.parentId;
+        
+        // Construct new ID (same logic as local_driver)
+        let newId = id;
+        if (oldNode.type === 'file') {
+            const fileName = `${newName}.md`;
+            newId = newParentId ? `${newParentId}/${fileName}` : fileName;
+        } else {
+            newId = newParentId ? `${newParentId}/${newName}` : newName;
+        }
+
+        const newPath = `${dir}/${newId}`;
+        
+        // Ensure parent directory exists if moving
+        if (updates.parentId !== undefined) {
+            const parentDir = newPath.substring(0, newPath.lastIndexOf('/'));
+            try { await pfs.mkdir(parentDir); } catch(e) {}
+        }
+
+        await pfs.rename(oldPath, newPath);
+
+        sendRequest('RENAME', {
+            oldPath: id,
+            newPath: newId,
+            message: `Rename ${oldNode.name} to ${newName}`,
+            token: githubConfig.token,
+            corsProxy: githubConfig.corsProxy,
+            autoPush: true
+        }).catch(err => console.error('[GitHub Sync] Rename Failed:', err));
+
+        return { ...oldNode, ...updates, id: newId };
     }
 };
 
