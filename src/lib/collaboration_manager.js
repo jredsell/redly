@@ -56,7 +56,9 @@ class CollaborationManager {
         const DEFAULT_SIGNALING = [
             'wss://signaling.yjs.dev',
             'wss://y-webrtc-signaling-eu.herokuapp.com',
-            'wss://y-webrtc-signaling-us.herokuapp.com'
+            'wss://y-webrtc-signaling-us.herokuapp.com',
+            'wss://y-webrtc.fly.dev',
+            'wss://y-webrtc.onrender.com'
         ];
         const signaling = signalingUrl ? [signalingUrl] : DEFAULT_SIGNALING;
 
@@ -95,11 +97,15 @@ class CollaborationManager {
         console.log(`[Collab] Session initialized. Room: ${roomId}`);
         
         this.provider.on('status', event => {
-            console.log(`[Collab] Connection status:`, event.status || event); // Fix for undefined status
+            const connected = event.status === 'connected';
+            console.log(`[Collab] Connection status:`, event.status, connected ? '✅' : '⏳');
+            if (connected) {
+                console.log(`[Collab] Connected via:`, this.provider.signalingUrls?.[0] || 'Local/BroadcastChannel');
+            }
         });
 
         this.provider.on('synced', synced => {
-            console.log(`[Collab] Document synced: ${synced}`);
+            console.log(`[Collab] Document synced: ${synced ? '✅' : '❌'}`);
         });
 
         return {
