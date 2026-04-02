@@ -280,7 +280,8 @@ export const NotesProvider = ({ children }) => {
         const node = nodes.find(n => n.id === nodeId);
         const initialContent = (node && node.type === 'file') ? node.content : null;
 
-        collabManager.initSession(roomId, key, initialContent);
+        // Pass nodeId as the field name
+        collabManager.initSession(roomId, key, nodeId, initialContent);
         collabManager.setPresence({ name: 'Host', color: '#2563eb', initial: 'H' });
 
         setCollaboration({
@@ -297,9 +298,20 @@ export const NotesProvider = ({ children }) => {
     }, [nodes]);
 
     const stopCollaboration = useCallback(() => {
+        const role = collaboration.role;
+        const sharedId = collaboration.sharedNodeId;
+        
         collabManager.stopSession();
-        setCollaboration({ active: false, roomId: null, key: null, sharedNodeId: null, sharedType: null });
-    }, []);
+        setCollaboration({ active: false, roomId: null, key: null, sharedNodeId: null, sharedType: null, role: null });
+
+        // If we were a guest, remove the virtual node we were viewing
+        if (role === 'guest' && sharedId) {
+            setNodes(prev => prev.filter(n => n.id !== sharedId));
+            if (activeFileId === sharedId) {
+                setActiveFileId(null);
+            }
+        }
+    }, [collaboration.role, collaboration.sharedNodeId, activeFileId, collabManager]);
 
     const disconnectWorkspace = async () => {
 
@@ -623,7 +635,7 @@ export const NotesProvider = ({ children }) => {
             if (collaboration.active && collaboration.roomId === params.roomId) return;
 
             console.log(`[Collab] Auto-joining room: ${params.roomId}`);
-            collabManager.initSession(params.roomId, params.key);
+            collabManager.initSession(params.roomId, params.key, params.id || 'joined');
             collabManager.setPresence({ name: 'Guest', color: '#16a34a', initial: 'G' });
             
             const sharedType = params.type || 'joined';
@@ -655,6 +667,9 @@ export const NotesProvider = ({ children }) => {
                 });
                 setActiveFileId(sharedId);
             }
+
+            // Clean up the URL hash to prevent re-joining on refresh
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
         }
     }, [collaboration.active, collaboration.roomId, collabManager]);
 

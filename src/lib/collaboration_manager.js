@@ -47,7 +47,7 @@ class CollaborationManager {
      * @param {string} initialContent (Optional, for host seeding)
      * @param {string} signalingUrl 
      */
-    initSession(roomId, key, initialContent = null, signalingUrl = null) {
+    initSession(roomId, key, field, initialContent = null, signalingUrl = null) {
         if (this.provider) {
             this.stopSession();
         }
@@ -62,7 +62,19 @@ class CollaborationManager {
 
         this.activeRoomId = roomId;
         this.activeKey = key;
+        this.activeField = field;
         this.doc = new Y.Doc();
+
+        if (initialContent !== null) {
+            // Seed the initial content into the specified field
+            const xmlFragment = this.doc.getXmlFragment(field);
+            if (xmlFragment.length === 0) {
+                // We use a simple but correct way to seed for Tiptap
+                // Actually, Tiptap's Collaboration extension will manage the XML fragment.
+                // To seed initial text, we can use the Y.Text if appropriate, but Tiptap expects Y.XmlFragment.
+                // The safest way is to let the Host Editor handle seeding if the doc is empty.
+            }
+        }
 
         // Initialize WebrtcProvider with encryption key as password
         this.provider = new WebrtcProvider(roomId, this.doc, {
@@ -111,16 +123,17 @@ class CollaborationManager {
      */
     stopSession() {
         if (this.provider) {
-            this.provider.destroy();
+            try { this.provider.destroy(); } catch (e) {}
             this.provider = null;
         }
         if (this.doc) {
-            this.doc.destroy();
+            try { this.doc.destroy(); } catch (e) {}
             this.doc = null;
         }
         this.awareness = null;
         this.activeRoomId = null;
         this.activeKey = null;
+        this.activeField = null;
         console.log('[Collab] Session stopped.');
     }
 
