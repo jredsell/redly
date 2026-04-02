@@ -5,6 +5,7 @@ import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
 import { buildBacklinkIndex } from '../utils/backlinkHelper';
 import * as syncEngine from '../lib/sync_engine';
+import collabManager from '../lib/collaboration_manager';
 
 const NotesContext = createContext(undefined);
 
@@ -19,6 +20,13 @@ export const NotesProvider = ({ children }) => {
     const [needsPermission, setNeedsPermission] = useState(false);
     const [migrationStatus, setMigrationStatus] = useState(null); // 'migrating', 'complete', or null
     const [isSyncing, setIsSyncing] = useState(false);
+    const [collaboration, setCollaboration] = useState({
+        active: false,
+        roomId: null,
+        key: null,
+        sharedNodeId: null,
+        sharedType: null // 'file', 'folder', or 'workspace'
+    });
 
     const [activeFileId, setActiveFileId] = useState(() => localStorage.getItem('redly_activeFileId') || null);
     const [expandedFolders, setExpandedFolders] = useState(() => {
@@ -137,6 +145,25 @@ export const NotesProvider = ({ children }) => {
             }
         };
         window.addEventListener('focus', handleFocus);
+
+        // Check for collaboration link in URL
+        const params = collabManager.constructor.parseUrlParams();
+        if (params) {
+            collabManager.initSession(params.roomId, params.key);
+            // Default presence for guest
+            collabManager.setPresence({ name: 'Guest', color: '#16a34a', initial: 'G' });
+            
+            setCollaboration({
+                active: true,
+                roomId: params.roomId,
+                key: params.key,
+                sharedNodeId: null, 
+                sharedType: 'joined' 
+            });
+            
+            // Clean up the URL hash but keep the session active in state
+            window.history.replaceState(null, '', window.location.pathname + window.location.search);
+        }
 
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -287,6 +314,29 @@ export const NotesProvider = ({ children }) => {
             throw e; // Re-throw so callers (Sidebar, WelcomeScreen) can handle auth errors
         }
     };
+
+    const startCollaboration = useCallback((nodeId, type) => {
+        const roomId = collabManager.constructor.generateRoomId();
+        const key = collabManager.constructor.generateEncryptionKey();
+        
+        collabManager.initSession(roomId, key);
+        collabManager.setPresence({ name: 'Host', color: '#2563eb', initial: 'H' });
+
+        setCollaboration({
+            active: true,
+            roomId,
+            key,
+            sharedNodeId: nodeId,
+            sharedType: type
+        });
+        
+        return { roomId, key };
+    }, []);
+
+    const stopCollaboration = useCallback(() => {
+        collabManager.stopSession();
+        setCollaboration({ active: false, roomId: null, key: null, sharedNodeId: null, sharedType: null });
+    }, []);
 
     const disconnectWorkspace = async () => {
 
@@ -614,7 +664,8 @@ export const NotesProvider = ({ children }) => {
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode,
         syncPulse, triggerSyncPulse, syncStatus, backlinkIndex,
-        isSyncing, switchWorkspaceToGithub, sync
+        isSyncing, switchWorkspaceToGithub, sync,
+        collaboration, startCollaboration, stopCollaboration
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

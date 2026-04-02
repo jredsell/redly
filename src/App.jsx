@@ -9,7 +9,8 @@ import SyncConflictModal from './components/SyncConflictModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
-import { Menu, Sun, Moon, Bell, CheckCircle, RefreshCw } from 'lucide-react';
+import CollaborationModal from './components/CollaborationModal';
+import { Menu, Sun, Moon, Bell, CheckCircle, RefreshCw, Share2, Activity } from 'lucide-react';
 import RedlyLogo from './components/RedlyLogo';
 import PullToRefresh from './components/PullToRefresh';
 import { requestNotificationPermission } from './utils/notificationManager';
@@ -77,7 +78,13 @@ function NotificationToggle() {
 }
 
 function App() {
-  const { isInitializing, activeFileId, setActiveFileId, workspaceHandle, disconnectWorkspace, notificationSettings, setNotificationSettings, isDarkMode, setIsDarkMode, loadNodes, triggerSyncPulse, storageMode, nodes, selectWorkspace } = useNotes();
+  const { 
+    isInitializing, activeFileId, setActiveFileId, workspaceHandle, 
+    disconnectWorkspace, notificationSettings, setNotificationSettings, 
+    isDarkMode, setIsDarkMode, loadNodes, triggerSyncPulse, 
+    storageMode, nodes, selectWorkspace,
+    collaboration, stopCollaboration
+  } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
@@ -89,6 +96,7 @@ function App() {
   const [syncToasts, setSyncToasts] = useState([]);
   const [syncSuccessModal, setSyncSuccessModal] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
+  const [showCollabModal, setShowCollabModal] = useState(false);
 
   const handleExport = async () => {
     try {
@@ -297,9 +305,14 @@ function App() {
           setShowTasks={() => { setShowTasks(true); setActiveFileId(null); setSidebarOpen(false); }}
           onGoHome={() => { setActiveFileId(null); setShowTasks(false); setSidebarOpen(false); }}
         />
-        <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
         <TrashModal isOpen={trashOpen} onClose={() => setTrashOpen(false)} />
         {syncOpen && <SyncModal onClose={() => setSyncOpen(false)} />}
+        <CollaborationModal 
+          isOpen={showCollabModal} 
+          onClose={() => setShowCollabModal(false)} 
+          collaboration={collaboration}
+          onStop={stopCollaboration}
+        />
 
         {syncConflicts && (
           <SyncConflictModal
@@ -444,9 +457,43 @@ function App() {
               >
                 {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
+
+              {collaboration.active && (
+                <button
+                  className="icon-button collab-pulse-btn"
+                  onClick={() => setShowCollabModal(true)}
+                  title="Collaboration Active - Click for options"
+                  style={{ 
+                    background: 'rgba(37, 99, 235, 0.1)', 
+                    color: 'var(--accent-color)',
+                    borderRadius: '20px',
+                    padding: '4px 12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    fontSize: '12px',
+                    fontWeight: '600'
+                  }}
+                >
+                  <Activity size={16} className="collab-pulse" />
+                  Live
+                </button>
+              )}
+
               <NotificationToggle />
             </div>
           </div>
+
+          <style>{`
+            .collab-pulse {
+              animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            }
+            @keyframes pulse {
+              0% { opacity: 1; }
+              50% { opacity: 0.4; }
+              100% { opacity: 1; }
+            }
+          `}</style>
 
           {showTasks && <GlobalTasks />}
           {!showTasks && activeFileId && <Editor key={activeFileId} fileId={activeFileId} />}

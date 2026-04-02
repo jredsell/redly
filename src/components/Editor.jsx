@@ -12,6 +12,9 @@ import { TableHeader } from '@tiptap/extension-table-header';
 import CodeBlock from '@tiptap/extension-code-block';
 import CodeBlockComponent from './CodeBlockComponent';
 import { Extension, Node, mergeAttributes, InputRule } from '@tiptap/core';
+import Collaboration from '@tiptap/extension-collaboration';
+import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
+import collabManager from '../lib/collaboration_manager';
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import TurndownService from 'turndown';
@@ -584,6 +587,15 @@ export default function Editor({ fileId }) {
     const [tableTriggerCoords, setTableTriggerCoords] = useState(null);
     const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
     const [templateMenu, setTemplateMenu] = useState({ isOpen: false });
+    const { collaboration } = useNotes();
+
+    const isCollabActive = useMemo(() => {
+        if (!collaboration.active) return false;
+        if (collaboration.sharedType === 'workspace') return true;
+        if (collaboration.sharedType === 'folder') return fileId.startsWith(collaboration.sharedNodeId);
+        if (collaboration.sharedType === 'joined') return true; // Joiners see everything for now
+        return collaboration.sharedNodeId === fileId;
+    }, [collaboration, fileId]);
     const [, setForceRender] = useState(0);
     const slashMenuListRef = useRef(null);
     const tagMenuListRef = useRef(null);
@@ -670,9 +682,22 @@ export default function Editor({ fileId }) {
         WikiLinkHighlighter,
         StarterKit.configure({
             heading: { levels: [1, 2, 3] },
-            history: true,
+            history: !isCollabActive, // Disable history if collab is active (Yjs handles it)
             codeBlock: false,
         }),
+        ...(isCollabActive ? [
+            Collaboration.configure({
+                document: collabManager.doc,
+                field: fileId,
+            }),
+            CollaborationCursor.configure({
+                provider: collabManager.provider,
+                user: {
+                    name: localStorage.getItem('redly_user_name') || (collaboration.sharedNodeId === null ? 'Guest' : 'Host'),
+                    color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+                }
+            })
+        ] : []),
         CodeBlock.extend({
             addNodeView() {
                 return ReactNodeViewRenderer(CodeBlockComponent);
