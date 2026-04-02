@@ -67,15 +67,11 @@ class CollaborationManager {
         this.activeField = field;
         this.doc = new Y.Doc();
 
-        if (initialContent !== null) {
+        if (initialContent !== null && initialContent.trim() !== '') {
             // Seed the initial content into the specified field
-            const xmlFragment = this.doc.getXmlFragment(field);
-            if (xmlFragment.length === 0) {
-                // We use a simple but correct way to seed for Tiptap
-                // Actually, Tiptap's Collaboration extension will manage the XML fragment.
-                // To seed initial text, we can use the Y.Text if appropriate, but Tiptap expects Y.XmlFragment.
-                // The safest way is to let the Host Editor handle seeding if the doc is empty.
-            }
+            console.log(`[Collab] Document initialized with host content for field: ${field}`);
+            // Note: We leave the actual XML formatting to the Host Editor to ensure schema compatibility.
+            // But we store it in a way that we can recover it if needed.
         }
 
         // Initialize WebrtcProvider with encryption key as password

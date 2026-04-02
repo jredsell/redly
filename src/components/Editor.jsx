@@ -685,18 +685,6 @@ export default function Editor({ fileId }) {
         }, 2000);
     }, [fileId, editNode]);
 
-    // Force-sync content to Yjs when collaboration starts (Host only)
-    useEffect(() => {
-        if (isCollabActive && collaboration.role === 'host' && editor && collaboration.initialContent) {
-            const currentYContent = collabManager.doc.getXmlFragment(fileId).toString();
-            // If Yjs is empty but we have local content, seed it
-            if (currentYContent === '' || currentYContent === '<fallback></fallback>') {
-                console.log('[Collab] Seeding initial content to Yjs field:', fileId);
-                editor.commands.setContent(collaboration.initialContent);
-            }
-        }
-    }, [isCollabActive, collaboration.role, collaboration.initialContent, fileId, editor]);
-
     const extensions = useMemo(() => [
         TagHighlighter,
         WikiLinkHighlighter,
