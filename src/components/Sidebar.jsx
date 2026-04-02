@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { ChevronRight, ChevronDown, FileText, Folder, Plus, Trash2, FolderPlus, MoreVertical, Edit2, Play, Settings, Menu, Settings2, Moon, Sun, HelpCircle, Activity, X, CheckSquare, ChevronsDown, ChevronsUp } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, Plus, Trash2, FolderPlus, MoreVertical, Edit2, Play, Settings, Menu, Settings2, Moon, Sun, HelpCircle, Activity, X, CheckSquare, ChevronsDown, ChevronsUp, RefreshCw } from 'lucide-react';
 import FileTree from './FileTree';
 import RedlyLogo from './RedlyLogo';
 

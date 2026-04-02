@@ -9,7 +9,7 @@ import SyncConflictModal from './components/SyncConflictModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
-import { Menu, Sun, Moon, Bell, CheckCircle } from 'lucide-react';
+import { Menu, Sun, Moon, Bell, CheckCircle, RefreshCw } from 'lucide-react';
 import RedlyLogo from './components/RedlyLogo';
 import PullToRefresh from './components/PullToRefresh';
 import { requestNotificationPermission } from './utils/notificationManager';

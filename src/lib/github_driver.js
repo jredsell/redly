@@ -220,3 +220,18 @@ export const importNodes = async (nodes) => {
         autoPush: true
     });
 };
+
+export const getTrashNodes = async () => {
+    // Basic implementation: check for .trash folder or return empty
+    return [];
+};
+
+export const restoreNode = async (trashId) => {
+    // Stub implementation
+    return true;
+};
+
+export const emptyTrash = async () => {
+    // Stub implementation
+    return true;
+};
