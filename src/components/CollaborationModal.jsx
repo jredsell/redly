@@ -11,7 +11,8 @@ export default function CollaborationModal({ isOpen, onClose, collaboration, onS
         collaboration.roomId, 
         collaboration.key, 
         collaboration.sharedType, 
-        collaboration.sharedNodeId
+        collaboration.sharedNodeId,
+        collabManager.provider?.signalingUrls?.[0] ?? null
     );
 
     const handleCopy = () => {

@@ -3,13 +3,19 @@ import { WebrtcProvider } from 'y-webrtc';
 import { v4 as uuidv4 } from 'uuid';
 
 // Signaling servers for WebRTC peer discovery.
-// For local development: run `npm run signaling` in a separate terminal (starts on ws://localhost:4444).
-// For production: the official Yjs server is used as fallback.
-// NOTE: All the old Heroku/fly/render public servers are defunct as of 2024+.
+// Development: run `npm run signaling` in a separate terminal (ws://localhost:4444).
+// Production: set VITE_SIGNALING_URL in your .env file or Vite config to your deployed server URL.
+//   e.g. VITE_SIGNALING_URL=wss://redly-signaling.onrender.com
+// See signaling-server/ directory for the deployable server and render.yaml for one-click Render deployment.
 const IS_DEV = import.meta.env.DEV;
-const DEFAULT_SIGNALING = IS_DEV
-    ? ['ws://localhost:4444', 'wss://signaling.yjs.dev']
-    : ['wss://signaling.yjs.dev'];
+const CONFIGURED_URL = import.meta.env.VITE_SIGNALING_URL;
+
+const DEFAULT_SIGNALING = CONFIGURED_URL
+    ? [CONFIGURED_URL]
+    : IS_DEV
+        ? ['ws://localhost:4444']
+        : ['wss://signaling.yjs.dev']; // last-resort public fallback
+
 
 class CollaborationManager {
     constructor() {
@@ -42,12 +48,14 @@ class CollaborationManager {
     }
 
     /**
-     * Formats the collaboration URL
+     * Formats the collaboration URL, embedding the active signaling server so the
+     * guest connects through the same server as the host.
      */
-    static getCollaborationUrl(roomId, key, type, id) {
+    static getCollaborationUrl(roomId, key, type, id, signalingUrl) {
         const baseUrl = window.location.origin + window.location.pathname;
         const encodedId = encodeURIComponent(id || '');
-        return `${baseUrl}#room=${roomId}&key=${key}&type=${type}&id=${encodedId}`;
+        const encodedSignaling = signalingUrl ? encodeURIComponent(signalingUrl) : '';
+        return `${baseUrl}#room=${roomId}&key=${key}&type=${type}&id=${encodedId}${encodedSignaling ? `&sig=${encodedSignaling}` : ''}`;
     }
 
     /**
@@ -56,11 +64,14 @@ class CollaborationManager {
      * @param {string} key  Encryption key (AES password for y-webrtc)
      * @param {string} field  Yjs XML fragment name (= the fileId / nodeId being shared)
      * @param {string|null} initialContent  Markdown content to seed (host only)
+     * @param {string[]|null} signalingUrls  Override signaling servers (guest uses URL from share link)
      */
-    initSession(roomId, key, field, initialContent = null) {
+    initSession(roomId, key, field, initialContent = null, signalingUrls = null) {
         if (this.provider) {
             this.stopSession();
         }
+
+        const signaling = signalingUrls || DEFAULT_SIGNALING;
 
         this.activeRoomId = roomId;
         this.activeKey = key;
@@ -78,7 +89,7 @@ class CollaborationManager {
         // Initialize WebrtcProvider with E2EE password
         this.provider = new WebrtcProvider(roomId, this.doc, {
             password: key,
-            signaling: DEFAULT_SIGNALING,
+            signaling,
             peerOpts: {
                 config: {
                     iceServers: [
@@ -164,11 +175,13 @@ class CollaborationManager {
         if (!hash) return null;
 
         const params = new URLSearchParams(hash);
+        const sigRaw = params.get('sig');
         return {
             roomId: params.get('room'),
             key: params.get('key'),
             type: params.get('type'),
-            id: decodeURIComponent(params.get('id') || '')
+            id: decodeURIComponent(params.get('id') || ''),
+            signalingUrl: sigRaw ? decodeURIComponent(sigRaw) : null,
         };
     }
 }

@@ -650,7 +650,7 @@ export const NotesProvider = ({ children }) => {
             if (collaboration.active && collaboration.roomId === params.roomId) return;
 
             console.log(`[Collab] Auto-joining room: ${params.roomId}`);
-            collabManager.initSession(params.roomId, params.key, params.id || 'joined');
+            collabManager.initSession(params.roomId, params.key, params.id || 'joined', null, params.signalingUrl ? [params.signalingUrl] : null);
             collabManager.setPresence({ name: 'Guest', color: '#16a34a', initial: 'G' });
             
             const sharedType = params.type || 'joined';

@@ -502,7 +502,7 @@ function App() {
           `}</style>
 
           {showTasks && <GlobalTasks />}
-          {!showTasks && activeFileId && <Editor key={activeFileId} fileId={activeFileId} />}
+          {!showTasks && activeFileId && <Editor key={`${activeFileId}-${collaboration.roomId ?? 'local'}`} fileId={activeFileId} />}
           {!showTasks && !activeFileId && <WelcomeScreen openHelp={() => setHelpOpen(true)} />}
         </main>
       </div>

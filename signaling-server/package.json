@@ -1,0 +1,16 @@
+{
+  "name": "redly-signaling-server",
+  "version": "1.0.0",
+  "description": "y-webrtc signaling server for Redly collaboration",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "lib0": "^0.2.98",
+    "ws": "^8.18.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
