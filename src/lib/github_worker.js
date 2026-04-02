@@ -1,6 +1,12 @@
 import git from 'isomorphic-git';
 import http from 'isomorphic-git/http/web';
 import FS from '@isomorphic-git/lightning-fs';
+import { Buffer } from 'buffer';
+
+// isomorphic-git needs Buffer to be available globally in the worker
+if (typeof self !== 'undefined' && !self.Buffer) {
+    self.Buffer = Buffer;
+}
 
 const fs = new FS('redly-github');
 const dir = '/notes'; // Use a dedicated subdirectory to avoid root conflicts
