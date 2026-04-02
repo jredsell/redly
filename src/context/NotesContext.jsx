@@ -26,7 +26,8 @@ export const NotesProvider = ({ children }) => {
         key: null,
         sharedNodeId: null,
         sharedType: null, // 'file', 'folder', or 'workspace'
-        role: null // 'host' or 'guest'
+        role: null, // 'host' or 'guest'
+        initialContent: null
     });
 
     const [activeFileId, setActiveFileId] = useState(() => localStorage.getItem('redly_activeFileId') || null);
@@ -342,7 +343,11 @@ export const NotesProvider = ({ children }) => {
         const roomId = collabManager.constructor.generateRoomId();
         const key = collabManager.constructor.generateEncryptionKey();
         
-        collabManager.initSession(roomId, key);
+        // Find the node to grab initial content if it's a file
+        const node = nodes.find(n => n.id === nodeId);
+        const initialContent = (node && node.type === 'file') ? node.content : null;
+
+        collabManager.initSession(roomId, key, initialContent);
         collabManager.setPresence({ name: 'Host', color: '#2563eb', initial: 'H' });
 
         setCollaboration({
@@ -351,11 +356,12 @@ export const NotesProvider = ({ children }) => {
             key,
             sharedNodeId: nodeId,
             sharedType: type,
-            role: 'host'
+            role: 'host',
+            initialContent
         });
         
         return { roomId, key };
-    }, []);
+    }, [nodes]);
 
     const stopCollaboration = useCallback(() => {
         collabManager.stopSession();

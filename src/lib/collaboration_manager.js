@@ -44,9 +44,10 @@ class CollaborationManager {
      * Initialize a collaboration session
      * @param {string} roomId 
      * @param {string} key 
+     * @param {string} initialContent (Optional, for host seeding)
      * @param {string} signalingUrl 
      */
-    initSession(roomId, key, signalingUrl = 'wss://signaling.yjs.dev') {
+    initSession(roomId, key, initialContent = null, signalingUrl = 'wss://signaling.yjs.dev') {
         if (this.provider) {
             this.stopSession();
         }

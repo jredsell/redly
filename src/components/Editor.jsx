@@ -587,6 +587,7 @@ export default function Editor({ fileId }) {
     const [tableTriggerCoords, setTableTriggerCoords] = useState(null);
     const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
     const [templateMenu, setTemplateMenu] = useState({ isOpen: false });
+    const [manualDismissals, setManualDismissals] = useState({ slash: -1, tag: -1, link: -1 });
     const { collaboration } = useNotes();
 
     const isCollabActive = useMemo(() => {
@@ -929,9 +930,18 @@ export default function Editor({ fileId }) {
         })
     ], []);
 
+    // Get initial content for useEditor
+    const initialEditorContent = useMemo(() => {
+        if (isCollabActive && collaboration.role === 'host' && collaboration.initialContent) {
+            return collaboration.initialContent;
+        }
+        const node = nodes.find(n => n.id === fileId);
+        return node ? node.content : '';
+    }, [isCollabActive, collaboration.role, collaboration.initialContent, fileId, nodes]);
+
     const editor = useEditor({
         extensions,
-        content: '',
+        content: initialEditorContent,
         onUpdate: ({ editor }) => debouncedSave({ content: editor.getHTML() }),
         onTransaction: () => {
             // Force UI to re-read editor.isActive() to eliminate active state delays
@@ -977,7 +987,8 @@ export default function Editor({ fileId }) {
                         return true;
                     }
                     if (event.key === 'Escape') {
-                        setTagMenu(prev => ({ ...prev, isOpen: false }));
+                        setTagMenu(prev => ({ ...prev, isOpen: false, lastClosedIdx: prev.triggerIdx }));
+                        setManualDismissals(prev => ({ ...prev, tag: tagMenu.triggerIdx }));
                         return true;
                     }
                 }
@@ -1021,6 +1032,7 @@ export default function Editor({ fileId }) {
                     }
                     if (event.key === 'Escape') {
                         setLinkMenu(prev => ({ ...prev, isOpen: false }));
+                        setManualDismissals(prev => ({ ...prev, link: linkMenu.triggerIdx }));
                         return true;
                     }
                 }
@@ -1060,6 +1072,7 @@ export default function Editor({ fileId }) {
                     }
                     if (event.key === 'Escape') {
                         setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                        setManualDismissals(prev => ({ ...prev, slash: slashMenu.triggerIdx }));
                         return true;
                     }
                 }
@@ -1205,14 +1218,18 @@ export default function Editor({ fileId }) {
                                     const viewportHeight = window.innerHeight;
                                     const wouldOverflow = coords.bottom + menuHeight > viewportHeight - 20;
 
-                                    setSlashMenu({
-                                        isOpen: true,
-                                        top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
-                                        left: coords.left,
-                                        query: query,
-                                        triggerIdx: triggerIdx,
-                                        selectedIndex: 0
-                                    });
+                                    if (manualDismissals.slash !== triggerIdx) {
+                                        setSlashMenu({
+                                            isOpen: true,
+                                            top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
+                                            left: coords.left,
+                                            query: query,
+                                            triggerIdx: triggerIdx,
+                                            selectedIndex: 0
+                                        });
+                                    } else {
+                                        setSlashMenu(prev => ({ ...prev, isOpen: false }));
+                                    }
                                 } else {
                                     setSlashMenu(prev => ({ ...prev, isOpen: false }));
                                 }
@@ -1232,14 +1249,18 @@ export default function Editor({ fileId }) {
                                     const viewportHeight = window.innerHeight;
                                     const wouldOverflow = coords.bottom + menuHeight > viewportHeight - 20;
 
-                                    setTagMenu({
-                                        isOpen: true,
-                                        top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
-                                        left: coords.left,
-                                        query: query || '',
-                                        triggerIdx: triggerIdx,
-                                        selectedIndex: 0
-                                    });
+                                    if (manualDismissals.tag !== triggerIdx) {
+                                        setTagMenu({
+                                            isOpen: true,
+                                            top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
+                                            left: coords.left,
+                                            query: query || '',
+                                            triggerIdx: triggerIdx,
+                                            selectedIndex: 0
+                                        });
+                                    } else {
+                                        setTagMenu(prev => ({ ...prev, isOpen: false }));
+                                    }
                                 } else {
                                     setTagMenu(prev => ({ ...prev, isOpen: false }));
                                 }
@@ -1259,14 +1280,18 @@ export default function Editor({ fileId }) {
                                     const viewportHeight = window.innerHeight;
                                     const wouldOverflow = coords.bottom + menuHeight > viewportHeight - 20;
 
-                                    setLinkMenu({
-                                        isOpen: true,
-                                        top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
-                                        left: coords.left,
-                                        query: query || '',
-                                        triggerIdx: triggerIdx,
-                                        selectedIndex: 0
-                                    });
+                                    if (manualDismissals.link !== triggerIdx) {
+                                        setLinkMenu({
+                                            isOpen: true,
+                                            top: wouldOverflow ? Math.max(10, coords.top - menuHeight - 10) : coords.bottom + 4,
+                                            left: coords.left,
+                                            query: query || '',
+                                            triggerIdx: triggerIdx,
+                                            selectedIndex: 0
+                                        });
+                                    } else {
+                                        setLinkMenu(prev => ({ ...prev, isOpen: false }));
+                                    }
                                 } else {
                                     setLinkMenu(prev => ({ ...prev, isOpen: false }));
                                 }
@@ -1359,6 +1384,9 @@ export default function Editor({ fileId }) {
                 }
 
                 if (editor) {
+                    // Skip local content loading if collaboration is handling it
+                    if (isCollabActive) return;
+
                     const loadContent = async () => {
                         let content = f.content;
                         // On-demand loading OR force reload if external update
