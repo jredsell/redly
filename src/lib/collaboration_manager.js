@@ -34,9 +34,10 @@ class CollaborationManager {
     /**
      * Formats the collaboration URL
      */
-    static getCollaborationUrl(roomId, key) {
+    static getCollaborationUrl(roomId, key, type, id) {
         const baseUrl = window.location.origin + window.location.pathname;
-        return `${baseUrl}#room=${roomId}&key=${key}`;
+        const encodedId = encodeURIComponent(id || '');
+        return `${baseUrl}#room=${roomId}&key=${key}&type=${type}&id=${encodedId}`;
     }
 
     /**
@@ -114,13 +115,12 @@ class CollaborationManager {
         if (!hash) return null;
 
         const params = new URLSearchParams(hash);
-        const roomId = params.get('room');
-        const key = params.get('key');
-
-        if (roomId && key) {
-            return { roomId, key };
-        }
-        return null;
+        return {
+            roomId: params.get('room'),
+            key: params.get('key'),
+            type: params.get('type'),
+            id: decodeURIComponent(params.get('id') || '')
+        };
     }
 }
 

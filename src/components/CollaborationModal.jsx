@@ -7,7 +7,12 @@ export default function CollaborationModal({ isOpen, onClose, collaboration, onS
 
     if (!isOpen) return null;
 
-    const shareUrl = collabManager.constructor.getCollaborationUrl(collaboration.roomId, collaboration.key);
+    const shareUrl = collabManager.constructor.getCollaborationUrl(
+        collaboration.roomId, 
+        collaboration.key, 
+        collaboration.sharedType, 
+        collaboration.sharedNodeId
+    );
 
     const handleCopy = () => {
         navigator.clipboard.writeText(shareUrl);

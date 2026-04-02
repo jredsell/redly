@@ -247,6 +247,12 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeFileId, showTasks, disconnectWorkspace]);
 
+  useEffect(() => {
+    if (collaboration.active && collaboration.role === 'host') {
+      setShowCollabModal(true);
+    }
+  }, [collaboration.active, collaboration.role]);
+
     if (isInitializing) {
     const { migrationStatus } = useNotes();
     return (

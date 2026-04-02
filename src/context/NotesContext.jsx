@@ -25,7 +25,8 @@ export const NotesProvider = ({ children }) => {
         roomId: null,
         key: null,
         sharedNodeId: null,
-        sharedType: null // 'file', 'folder', or 'workspace'
+        sharedType: null, // 'file', 'folder', or 'workspace'
+        role: null // 'host' or 'guest'
     });
 
     const [activeFileId, setActiveFileId] = useState(() => localStorage.getItem('redly_activeFileId') || null);
@@ -146,20 +147,42 @@ export const NotesProvider = ({ children }) => {
         };
         window.addEventListener('focus', handleFocus);
 
-        // Check for collaboration link in URL
         const params = collabManager.constructor.parseUrlParams();
-        if (params) {
+        if (params && params.roomId && params.key) {
             collabManager.initSession(params.roomId, params.key);
             // Default presence for guest
             collabManager.setPresence({ name: 'Guest', color: '#16a34a', initial: 'G' });
             
+            const sharedType = params.type || 'joined';
+            const sharedId = params.id;
+
             setCollaboration({
                 active: true,
                 roomId: params.roomId,
                 key: params.key,
-                sharedNodeId: null, 
-                sharedType: 'joined' 
+                sharedNodeId: sharedId, 
+                sharedType: sharedType,
+                role: 'guest'
             });
+
+            if (sharedId && (sharedType === 'file' || sharedType === 'note')) {
+                // Check if we have this node. If not, create a virtual placeholder.
+                setNodes(prev => {
+                    const exists = prev.some(n => n.id === sharedId);
+                    if (!exists) {
+                        return [...prev, {
+                            id: sharedId,
+                            name: sharedId.split('/').pop().replace(/\.md$/, ''),
+                            type: 'file',
+                            parentId: null,
+                            content: '' // Content will be populated via Yjs/Tiptap sync
+                        }];
+                    }
+                    return prev;
+                });
+                // Ensure the editor opens the shared file
+                setActiveFileId(sharedId);
+            }
             
             // Clean up the URL hash but keep the session active in state
             window.history.replaceState(null, '', window.location.pathname + window.location.search);
@@ -327,7 +350,8 @@ export const NotesProvider = ({ children }) => {
             roomId,
             key,
             sharedNodeId: nodeId,
-            sharedType: type
+            sharedType: type,
+            role: 'host'
         });
         
         return { roomId, key };
