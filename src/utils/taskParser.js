@@ -21,7 +21,13 @@ export function parseTasksFromNodes(nodes) {
         return path;
     };
 
-    const files = nodes.filter(n => n.type === 'file' && n.content);
+    const files = nodes.filter(n => {
+        if (n.type !== 'file' || !n.content) return false;
+        
+        // Exclude files in hidden dot-folders (e.g., .templates, .sync)
+        const parts = n.id.split('/');
+        return !parts.some(p => p.startsWith('.') && p !== '.');
+    });
 
     files.forEach(file => {
         const breadcrumbPath = getPath(file.id);
