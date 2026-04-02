@@ -128,81 +128,7 @@ export const NotesProvider = ({ children }) => {
             // Otherwise listen for the global custom event or the native event
             window.addEventListener('deferred-prompt-captured', handleDeferredPromptCaptured);
         }
-
-        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-        window.addEventListener('appinstalled', handleAppInstalled);
-
-        // Sync on focus for GitHub/Cloud modes
-        const handleFocus = async () => {
-            if (storageMode === 'github' && !isSyncing) {
-                setIsSyncing(true);
-                try {
-                    await sync();
-                    await loadNodes();
-                } catch (e) {
-                    console.warn('[Sync] Auto-pull on focus failed:', e);
-                } finally {
-                    setIsSyncing(false);
-                }
-            }
-        };
-        window.addEventListener('focus', handleFocus);
-
-        const handleAutoJoin = () => {
-            const params = collabManager.constructor.parseUrlParams();
-            if (params && params.roomId && params.key) {
-                // If already in this room, don't re-join
-                if (collaboration.active && collaboration.roomId === params.roomId) return;
-
-                console.log(`[Collab] Auto-joining room: ${params.roomId}`);
-                collabManager.initSession(params.roomId, params.key);
-                collabManager.setPresence({ name: 'Guest', color: '#16a34a', initial: 'G' });
-                
-                const sharedType = params.type || 'joined';
-                const sharedId = params.id;
-
-                setCollaboration({
-                    active: true,
-                    roomId: params.roomId,
-                    key: params.key,
-                    sharedNodeId: sharedId, 
-                    sharedType: sharedType,
-                    role: 'guest'
-                });
-
-                if (sharedId && (sharedType === 'file' || sharedType === 'note')) {
-                    setNodes(prev => {
-                        const exists = prev.some(n => n.id === sharedId);
-                        if (!exists) {
-                            return [...prev, {
-                                id: sharedId,
-                                name: sharedId.split('/').pop().replace(/\.md$/, ''),
-                                type: 'file',
-                                parentId: null,
-                                content: ''
-                            }];
-                        }
-                        return prev;
-                    });
-                    setActiveFileId(sharedId);
-                }
-                
-                // Keep the hash until we are sure we've joined, or clear it if preferred
-                // window.history.replaceState(null, '', window.location.pathname + window.location.search);
-            }
-        };
-
-        handleAutoJoin();
-        window.addEventListener('hashchange', handleAutoJoin);
-
-        return () => {
-            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-            window.removeEventListener('appinstalled', handleAppInstalled);
-            window.removeEventListener('deferred-prompt-captured', handleDeferredPromptCaptured);
-            window.removeEventListener('focus', handleFocus);
-            window.removeEventListener('hashchange', handleAutoJoin);
-        };
-    }, [collaboration.active, collaboration.roomId, sync, loadNodes, storageMode, isSyncing]);
+    }, []);
 
     const installApp = async () => {
         if (deferredPrompt) {
@@ -689,6 +615,79 @@ export const NotesProvider = ({ children }) => {
             setIsSyncing(false);
         }
     };
+
+    const handleAutoJoin = useCallback(() => {
+        const params = collabManager.constructor.parseUrlParams();
+        if (params && params.roomId && params.key) {
+            // If already in this room, don't re-join
+            if (collaboration.active && collaboration.roomId === params.roomId) return;
+
+            console.log(`[Collab] Auto-joining room: ${params.roomId}`);
+            collabManager.initSession(params.roomId, params.key);
+            collabManager.setPresence({ name: 'Guest', color: '#16a34a', initial: 'G' });
+            
+            const sharedType = params.type || 'joined';
+            const sharedId = params.id;
+
+            setCollaboration({
+                active: true,
+                roomId: params.roomId,
+                key: params.key,
+                sharedNodeId: sharedId, 
+                sharedType: sharedType,
+                role: 'guest',
+                initialContent: null
+            });
+
+            if (sharedId && (sharedType === 'file' || sharedType === 'note')) {
+                setNodes(prev => {
+                    const exists = prev.some(n => n.id === sharedId);
+                    if (!exists) {
+                        return [...prev, {
+                            id: sharedId,
+                            name: (sharedId.split('/').pop() || 'Untitled').replace(/\.md$/, ''),
+                            type: 'file',
+                            parentId: null,
+                            content: ''
+                        }];
+                    }
+                    return prev;
+                });
+                setActiveFileId(sharedId);
+            }
+        }
+    }, [collaboration.active, collaboration.roomId, collabManager]);
+
+    useEffect(() => {
+        window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+        window.addEventListener('appinstalled', handleAppInstalled);
+
+        // Sync on focus for GitHub/Cloud modes
+        const handleFocus = async () => {
+            if (storageMode === 'github' && !isSyncing) {
+                setIsSyncing(true);
+                try {
+                    await sync();
+                    await loadNodes();
+                } catch (e) {
+                    console.warn('[Sync] Auto-pull on focus failed:', e);
+                } finally {
+                    setIsSyncing(false);
+                }
+            }
+        };
+        window.addEventListener('focus', handleFocus);
+
+        handleAutoJoin(); // Run on mount
+        window.addEventListener('hashchange', handleAutoJoin);
+
+        return () => {
+            window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
+            window.removeEventListener('appinstalled', handleAppInstalled);
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('hashchange', handleAutoJoin);
+        };
+    }, [storageMode, isSyncing, handleAutoJoin, sync, loadNodes]);
 
     const value = {
         nodes, tree, trashNodes, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll, openAndExpandFile,
