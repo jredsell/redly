@@ -178,3 +178,40 @@ export const migrateToGithub = async (config) => {
     throw err;
   }
 };
+export const exportSandboxData = async () => {
+  const nodes = await activeDriver.getNodes();
+  const fullNodes = await Promise.all(nodes.map(async node => {
+    if (node.type === 'file') {
+      const content = await activeDriver.getFileContent(node.id);
+      return { ...node, content };
+    }
+    return node;
+  }));
+  return {
+    version: '1.0',
+    timestamp: new Date().toISOString(),
+    nodes: fullNodes
+  };
+};
+
+export const importSandboxData = async (backup) => {
+  if (!backup || !backup.nodes) throw new Error('Invalid backup format');
+
+  // Clear existing nodes in active driver
+  const nodes = await activeDriver.getNodes();
+  for (const node of nodes) {
+    try {
+      await activeDriver.deleteNode(node.id, node.type);
+    } catch (e) {
+      console.warn('Failed to delete node during import cleanup:', node.id);
+    }
+  }
+
+  // Restore from backup
+  // Sort by ID depth to ensure folders are created before files
+  const sortedNodes = [...backup.nodes].sort((a, b) => a.id.split('/').length - b.id.split('/').length);
+
+  for (const node of sortedNodes) {
+    await activeDriver.createNode(node);
+  }
+};
