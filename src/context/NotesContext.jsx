@@ -609,7 +609,7 @@ export const NotesProvider = ({ children }) => {
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode,
         syncPulse, triggerSyncPulse, syncStatus, backlinkIndex,
-        isSyncing, switchWorkspaceToGithub
+        isSyncing, switchWorkspaceToGithub, sync
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;
