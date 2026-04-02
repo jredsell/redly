@@ -2,7 +2,7 @@ import FS from '@isomorphic-git/lightning-fs';
 
 const fs = new FS('redly-github');
 const pfs = fs.promises;
-const dir = '/';
+const dir = '/notes'; // Must match the worker path
 
 /** 
  * GitHub Driver for Redly (Worker-Optimized)
@@ -33,7 +33,7 @@ const getWorker = () => {
         if (!promise) return;
         
         if (type === 'SUCCESS') promise.resolve();
-        else promise.reject(new Error(error));
+        else promise.reject(new Error(error || 'Action failed'));
         
         pendingPromises.delete(id);
     };
@@ -57,7 +57,7 @@ export const setConfig = (config) => {
 
 export const init = async () => {
     try {
-        await pfs.stat('/.git');
+        await pfs.stat(`${dir}/.git`);
         return true;
     } catch (e) {
         return false; 
@@ -97,44 +97,53 @@ export const sync = async () => {
 };
 
 // --- Redly File System API Implementation (Main Thread) ---
-// We keep these in the main thread for instant UI response time.
 
 export const getNodes = async () => {
     const nodes = [];
     async function scan(currentDir) {
-        const files = await pfs.readdir(currentDir);
+        let files = [];
+        try {
+            files = await pfs.readdir(currentDir);
+        } catch (e) {
+            return;
+        }
+
         for (const name of files) {
             if (name === '.git') continue;
             const path = (currentDir === '/' ? '' : currentDir) + '/' + name;
             const stat = await pfs.lstat(path);
-            const id = path.substring(1); 
+            
+            // id is relative to the dir root for the app
+            let id = path;
+            if (path.startsWith(dir)) {
+                id = path.substring(dir.length + 1); // Remove '/notes/'
+            }
 
             if (stat.isDirectory()) {
-                nodes.push({ id, name, type: 'folder', parentId: currentDir === '/' ? null : currentDir.substring(1) });
+                nodes.push({ id, name, type: 'folder', parentId: currentDir === dir ? null : currentDir.substring(dir.length + 1) });
                 await scan(path);
             } else if (name.endsWith('.md') || name.endsWith('.json')) {
-                nodes.push({ id, name, type: 'file', parentId: currentDir === '/' ? null : currentDir.substring(1) });
+                nodes.push({ id, name, type: 'file', parentId: currentDir === dir ? null : currentDir.substring(dir.length + 1) });
             }
         }
     }
-    await scan('/');
+    await scan(dir);
     return nodes;
 };
 
 export const getFileContent = async (id) => {
-    const content = await pfs.readFile('/' + id, 'utf8');
+    const content = await pfs.readFile(`${dir}/${id}`, 'utf8');
     return content;
 };
 
 export const createNode = async (node) => {
-    const path = '/' + node.id;
+    const path = `${dir}/${node.id}`;
     if (node.type === 'folder') {
         await pfs.mkdir(path);
     } else {
         await pfs.writeFile(path, node.content || '');
     }
     
-    // Asynchronously commit and push via worker (Don't await it to keep UI fast!)
     sendRequest('COMMIT', {
         filepath: node.id,
         message: `Create ${node.name}`,
@@ -145,11 +154,10 @@ export const createNode = async (node) => {
 };
 
 export const updateNode = async (id, updates) => {
-    const path = '/' + id;
+    const path = `${dir}/${id}`;
     if (updates.content !== undefined) {
         await pfs.writeFile(path, updates.content);
         
-        // Asynchronously commit and push via worker
         sendRequest('COMMIT', {
             filepath: id,
             message: `Update ${id}`,
@@ -161,14 +169,13 @@ export const updateNode = async (id, updates) => {
 };
 
 export const deleteNode = async (id, type) => {
-    const path = '/' + id;
+    const path = `${dir}/${id}`;
     if (type === 'folder') {
         await pfs.rmdir(path, { recursive: true });
     } else {
         await pfs.unlink(path);
     }
     
-    // Asynchronously commit and push via worker
     sendRequest('COMMIT', {
         filepath: id,
         message: `Delete ${id}`,
