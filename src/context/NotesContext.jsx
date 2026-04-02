@@ -17,6 +17,7 @@ export const NotesProvider = ({ children }) => {
     const [isInitializing, setIsInitializing] = useState(true);
     const [syncStatus, setSyncStatus] = useState(syncEngine.getSyncStatus());
     const [needsPermission, setNeedsPermission] = useState(false);
+    const [migrationStatus, setMigrationStatus] = useState(null); // 'migrating', 'complete', or null
 
     const [activeFileId, setActiveFileId] = useState(() => localStorage.getItem('redly_activeFileId') || null);
     const [expandedFolders, setExpandedFolders] = useState(() => {
@@ -154,6 +155,13 @@ export const NotesProvider = ({ children }) => {
     useEffect(() => {
         const init = async () => {
             try {
+                // Perform one-time migration check from legacy storage
+                const { migrateFromLegacy } = await import('../lib/storage_migration');
+                setMigrationStatus('migrating');
+                const wasMigrated = await migrateFromLegacy();
+                if (wasMigrated) setMigrationStatus('complete');
+                else setMigrationStatus(null);
+
                 const status = await loadSavedWorkspace();
                 if (status === true) {
                     setWorkspaceHandle(true);

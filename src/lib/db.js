@@ -134,6 +134,11 @@ export const exportSandboxData = async () => {
 };
 
 export const importSandboxData = async (backup) => {
+  if (!currentMode) {
+    const handle = await navigator.storage.getDirectory();
+    localDriver.setRootHandle(handle);
+    currentMode = 'sandbox';
+  }
   if (currentMode !== 'sandbox') throw new Error('Import only supported for Sandbox storage');
   if (!backup || !backup.nodes) throw new Error('Invalid backup format');
 

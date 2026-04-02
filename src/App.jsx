@@ -239,10 +239,25 @@ function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [activeFileId, showTasks, disconnectWorkspace]);
 
-  if (isInitializing) {
+    if (isInitializing) {
+    const { migrationStatus } = useNotes();
     return (
       <div className="app-container" style={{ alignItems: 'center', justifyContent: 'center' }}>
-        <p style={{ color: 'var(--text-tertiary)' }}>Loading Redly...</p>
+        <div style={{ textAlign: 'center' }}>
+          {migrationStatus === 'migrating' ? (
+            <>
+              <RefreshCw className="spin" size={32} style={{ color: 'var(--accent-color)', marginBottom: '16px' }} />
+              <h2 style={{ fontSize: '20px', margin: '0 0 8px 0', color: 'var(--text-primary)' }}>Migrating Data...</h2>
+              <p style={{ margin: 0, color: 'var(--text-secondary)' }}>Moving your notes to the new storage system. Please wait.</p>
+              <style>{`
+                @keyframes spin { 100% { transform: rotate(360deg); } }
+                .spin { animation: spin 2s linear infinite; }
+              `}</style>
+            </>
+          ) : (
+            <p style={{ color: 'var(--text-tertiary)' }}>Loading Redly...</p>
+          )}
+        </div>
       </div>
     );
   }
