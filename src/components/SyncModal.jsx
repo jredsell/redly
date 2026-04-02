@@ -6,7 +6,7 @@ import * as syncEngine from '../lib/sync_engine';
 import { useNotes } from '../context/NotesContext';
 
 export default function SyncModal({ onClose }) {
-    const { storageMode, isSyncing, switchWorkspaceToGithub, sync } = useNotes();
+    const { storageMode, isSyncing, switchWorkspaceToGithub, sync, disconnectWorkspace } = useNotes();
     const [activeTab, setActiveTab] = useState(storageMode === 'github' ? 'cloud' : 'p2p');
     const [copied, setCopied] = useState(false);
     const [remoteId, setRemoteId] = useState('');
@@ -247,6 +247,13 @@ export default function SyncModal({ onClose }) {
                                     >
                                         <RefreshCw size={16} className={isSyncing ? 'spin' : ''} />
                                         Force Cloud Pull
+                                    </button>
+                                    <button 
+                                        onClick={disconnectWorkspace} 
+                                        className="secondary-btn" 
+                                        style={{ width: '100%', marginTop: '12px', justifyContent: 'center', background: 'transparent', border: '1px solid var(--danger-color)', color: 'var(--danger-color)' }}
+                                    >
+                                        Disconnect & Log Out
                                     </button>
                                     {ghStatus && <p style={{ fontSize: '12px', color: 'var(--accent-color)', marginTop: '8px' }}>{ghStatus}</p>}
                                 </div>
