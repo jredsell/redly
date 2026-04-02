@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell, LayoutList, Search } from 'lucide-react';
+import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell, LayoutList, Search, Github } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 
 import { exportSandboxToZip, importZipToSandbox, migrateLocalToSandbox, migrateSandboxToLocal } from '../lib/migration';
@@ -16,6 +16,7 @@ export default function HelpModal({ isOpen, onClose }) {
     const getStorageInfo = () => {
         if (storageMode === 'local') return { name: 'Local Storage', icon: <HardDrive size={18} aria-hidden="true" />, detail: 'Mapped to your computer' };
         if (storageMode === 'sandbox') return { name: 'Browser Storage', icon: <Box size={18} aria-hidden="true" />, detail: 'Private Vault' };
+        if (storageMode === 'github') return { name: 'GitHub Cloud', icon: <Github size={18} aria-hidden="true" />, detail: 'Syncing to repository' };
         return { name: 'Unknown', icon: <Box size={18} aria-hidden="true" />, detail: 'Not connected' };
     };
 

@@ -343,7 +343,6 @@ export default function WelcomeScreen({ openHelp }) {
                     </button>
 
                     <button onClick={() => setShowGithubModal(true)} className="storage-option-btn" aria-label="Select Cloud Sync: Instant GitHub repo sync">
-                        <div className="badge-cloud" style={{ marginBottom: '8px' }}>Beta</div>
                         <Github size={24} style={{ color: '#24292f', marginBottom: '12px' }} aria-hidden="true" />
                         <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Cloud Sync (GitHub)</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Instant, versioned sync to your own GitHub repository. Accessible everywhere.</p>
@@ -363,6 +362,12 @@ export default function WelcomeScreen({ openHelp }) {
                     )}
                 </div>
                 <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
+                <GitHubSetupModal 
+                    isOpen={showGithubModal} 
+                    onClose={() => setShowGithubModal(false)} 
+                    onConnect={handleGithubConnect} 
+                    isDarkMode={isDarkMode} 
+                />
             </div>
         );
     }
@@ -431,6 +436,12 @@ export default function WelcomeScreen({ openHelp }) {
             )}
 
             <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
+            <GitHubSetupModal 
+                isOpen={showGithubModal} 
+                onClose={() => setShowGithubModal(false)} 
+                onConnect={handleGithubConnect} 
+                isDarkMode={isDarkMode} 
+            />
         </div>
     );
 }
