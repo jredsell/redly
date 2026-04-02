@@ -20,6 +20,7 @@ export default function SyncModal({ onClose }) {
     const [ghToken, setGhToken] = useState('');
     const [ghOwner, setGhOwner] = useState('');
     const [ghRepo, setGhRepo] = useState('');
+    const [showGhToken, setShowGhToken] = useState(false);
     const [shouldMigrate, setShouldMigrate] = useState(true);
     const [ghStatus, setGhStatus] = useState('');
 
@@ -98,9 +99,9 @@ export default function SyncModal({ onClose }) {
         setGhStatus('Initializing...');
         try {
             await switchWorkspaceToGithub({
-                token: ghToken,
-                owner: ghOwner,
-                repo: ghRepo
+                token: ghToken.trim(),
+                owner: ghOwner.trim(),
+                repo: ghRepo.trim()
             }, shouldMigrate);
             setGhStatus('Connected Successfully!');
         } catch (err) {
@@ -264,7 +265,24 @@ export default function SyncModal({ onClose }) {
                                     <form onSubmit={handleGithubConnect} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                                         <div>
                                             <label style={{ display: 'block', fontSize: '11px', fontWeight: '700', marginBottom: '6px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Token</label>
-                                            <input type="password" value={ghToken} onChange={e => setGhToken(e.target.value)} placeholder="ghp_xxxxxxxxxxxx" className="search-input" style={{ width: '100%', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }} required />
+                                            <div style={{ position: 'relative' }}>
+                                                <input 
+                                                    type={showGhToken ? "text" : "password"} 
+                                                    value={ghToken} 
+                                                    onChange={e => setGhToken(e.target.value)} 
+                                                    placeholder="ghp_xxxxxxxxxxxx" 
+                                                    className="search-input" 
+                                                    style={{ width: '100%', background: 'var(--bg-secondary)', color: 'var(--text-primary)', paddingRight: '45px' }} 
+                                                    required 
+                                                />
+                                                <button 
+                                                    type="button"
+                                                    onClick={() => setShowGhToken(!showGhToken)}
+                                                    style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', color: 'var(--accent-color)', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                                                >
+                                                  {showGhToken ? 'HIDE' : 'SHOW'}
+                                                </button>
+                                            </div>
                                         </div>
                                         <div style={{ display: 'flex', gap: '12px' }}>
                                             <div style={{ flex: 1 }}>
