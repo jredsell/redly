@@ -701,8 +701,12 @@ export default function Editor({ fileId }) {
             CollaborationCursor.configure({
                 provider: collabManager.provider,
                 user: {
-                    name: localStorage.getItem('redly_user_name') || (collaboration.sharedNodeId === null ? 'Guest' : 'Host'),
-                    color: '#' + Math.floor(Math.random() * 16777215).toString(16),
+                    name: localStorage.getItem('redly_user_name') || (collaboration.role === 'host' ? 'Host' : 'Guest'),
+                    color: (() => {
+                        const bytes = new Uint8Array(3);
+                        crypto.getRandomValues(bytes);
+                        return '#' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
+                    })(),
                 }
             })
         ] : []),

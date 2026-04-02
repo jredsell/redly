@@ -322,9 +322,13 @@ export const NotesProvider = ({ children }) => {
                 setActiveFileId(null);
             }
         }
-    }, [collaboration.role, collaboration.sharedNodeId, activeFileId, collabManager]);
+    }, [collaboration.role, collaboration.sharedNodeId, activeFileId]);
 
     const disconnectWorkspace = async () => {
+        // Stop any active collaboration session first to avoid lingering WebRTC connections
+        if (collabManager.provider) {
+            collabManager.stopSession();
+        }
 
         try {
             await clearWorkspaceHandle();

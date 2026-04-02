@@ -2,6 +2,15 @@ import * as Y from 'yjs';
 import { WebrtcProvider } from 'y-webrtc';
 import { v4 as uuidv4 } from 'uuid';
 
+// Signaling servers for WebRTC peer discovery.
+// For local development: run `npm run signaling` in a separate terminal (starts on ws://localhost:4444).
+// For production: the official Yjs server is used as fallback.
+// NOTE: All the old Heroku/fly/render public servers are defunct as of 2024+.
+const IS_DEV = import.meta.env.DEV;
+const DEFAULT_SIGNALING = IS_DEV
+    ? ['ws://localhost:4444', 'wss://signaling.yjs.dev']
+    : ['wss://signaling.yjs.dev'];
+
 class CollaborationManager {
     constructor() {
         this.doc = null;
@@ -11,7 +20,6 @@ class CollaborationManager {
         this.activeKey = null;
         this.activeField = null;
         this.pendingInitialContent = null; // Markdown string — Editor will convert & seed
-        this.onUpdateCallback = null;
     }
 
     /**
@@ -45,24 +53,14 @@ class CollaborationManager {
     /**
      * Initialize a collaboration session
      * @param {string} roomId 
-     * @param {string} key 
-     * @param {string} initialContent (Optional, for host seeding)
-     * @param {string} signalingUrl 
+     * @param {string} key  Encryption key (AES password for y-webrtc)
+     * @param {string} field  Yjs XML fragment name (= the fileId / nodeId being shared)
+     * @param {string|null} initialContent  Markdown content to seed (host only)
      */
-    initSession(roomId, key, field, initialContent = null, signalingUrl = null) {
+    initSession(roomId, key, field, initialContent = null) {
         if (this.provider) {
             this.stopSession();
         }
-
-        // Use multiple signaling servers for redundancy
-        const DEFAULT_SIGNALING = [
-            'wss://signaling.yjs.dev',
-            'wss://y-webrtc-signaling-eu.herokuapp.com',
-            'wss://y-webrtc-signaling-us.herokuapp.com',
-            'wss://y-webrtc.fly.dev',
-            'wss://y-webrtc.onrender.com'
-        ];
-        const signaling = signalingUrl ? [signalingUrl] : DEFAULT_SIGNALING;
 
         this.activeRoomId = roomId;
         this.activeKey = key;
@@ -77,10 +75,10 @@ class CollaborationManager {
             this.pendingInitialContent = null;
         }
 
-        // Initialize WebrtcProvider with encryption key as password
+        // Initialize WebrtcProvider with E2EE password
         this.provider = new WebrtcProvider(roomId, this.doc, {
             password: key,
-            signaling: signaling,
+            signaling: DEFAULT_SIGNALING,
             peerOpts: {
                 config: {
                     iceServers: [
