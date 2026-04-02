@@ -1,12 +1,20 @@
 import { setHandle, getHandle, clearHandles } from './idb_store';
 import * as localDriver from './local_driver';
+import * as githubDriver from './github_driver';
 
 export { getHandle };
 let currentMode = null;
+let activeDriver = localDriver;
+
+const setDriver = (mode) => {
+  currentMode = mode;
+  if (mode === 'github') activeDriver = githubDriver;
+  else activeDriver = localDriver;
+};
 
 export const initWorkspace = async (mode, options = {}) => {
   try {
-    currentMode = mode;
+    setDriver(mode);
     if (mode === 'sandbox') {
       const handle = await navigator.storage.getDirectory();
       localDriver.setRootHandle(handle);
@@ -16,6 +24,10 @@ export const initWorkspace = async (mode, options = {}) => {
       localDriver.setRootHandle(handle);
       await setHandle('workspace_mode', 'local');
       await setHandle('local_root', handle);
+    } else if (mode === 'github') {
+      await githubDriver.cloneRepo(options.config);
+      await setHandle('workspace_mode', 'github');
+      await setHandle('github_config', options.config);
     }
     return true;
   } catch (err) {
@@ -26,7 +38,7 @@ export const initWorkspace = async (mode, options = {}) => {
 
 export const loadSavedWorkspace = async () => {
   const mode = await getHandle('workspace_mode');
-  currentMode = mode;
+  setDriver(mode);
   if (mode === 'sandbox') {
     localDriver.setRootHandle(await navigator.storage.getDirectory());
     return true;
@@ -40,6 +52,13 @@ export const loadSavedWorkspace = async () => {
       } else {
         return 'requires_permission';
       }
+    }
+  } else if (mode === 'github') {
+    const config = await getHandle('github_config');
+    if (config) {
+      githubDriver.setConfig(config);
+      await githubDriver.init();
+      return true;
     }
   }
   return false;
@@ -60,35 +79,40 @@ export const clearWorkspaceHandle = async () => {
 };
 
 export const getNodes = async () => {
-  return localDriver.getNodes();
+  return activeDriver.getNodes();
 };
 
 export const getFileContent = async (id) => {
-  return localDriver.getFileContent(id);
+  return activeDriver.getFileContent(id);
 };
 
 export const createNode = async (node) => {
-  return localDriver.createNode(node);
+  return activeDriver.createNode(node);
 };
 
 export const updateNode = async (id, updates, oldNode) => {
-  return localDriver.updateNode(id, updates, oldNode);
+  return activeDriver.updateNode(id, updates, oldNode);
 };
 
 export const deleteNode = async (id, type) => {
-  return localDriver.deleteNode(id, type);
+  return activeDriver.deleteNode(id, type);
 };
 
 export const getTrashNodes = async () => {
-  return localDriver.getTrashNodes();
+  return activeDriver.getTrashNodes();
 };
 
 export const restoreNode = async (trashId) => {
-  return localDriver.restoreNode(trashId);
+  return activeDriver.restoreNode(trashId);
 };
 
 export const emptyTrash = async () => {
-  return localDriver.emptyTrash();
+  return activeDriver.emptyTrash();
+};
+
+export const sync = async () => {
+  if (activeDriver.sync) return activeDriver.sync();
+  return true;
 };
 
 export const buildTree = (nodes) => {

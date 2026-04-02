@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getTrashNodes, restoreNode, emptyTrash } from '../lib/db';
+import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getTrashNodes, restoreNode, emptyTrash, sync } from '../lib/db';
 import * as localDriver from '../lib/local_driver';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
@@ -18,6 +18,7 @@ export const NotesProvider = ({ children }) => {
     const [syncStatus, setSyncStatus] = useState(syncEngine.getSyncStatus());
     const [needsPermission, setNeedsPermission] = useState(false);
     const [migrationStatus, setMigrationStatus] = useState(null); // 'migrating', 'complete', or null
+    const [isSyncing, setIsSyncing] = useState(false);
 
     const [activeFileId, setActiveFileId] = useState(() => localStorage.getItem('redly_activeFileId') || null);
     const [expandedFolders, setExpandedFolders] = useState(() => {
@@ -121,10 +122,27 @@ export const NotesProvider = ({ children }) => {
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
         window.addEventListener('appinstalled', handleAppInstalled);
 
+        // Sync on focus for GitHub/Cloud modes
+        const handleFocus = async () => {
+            if (storageMode === 'github' && !isSyncing) {
+                setIsSyncing(true);
+                try {
+                    await sync();
+                    await loadNodes();
+                } catch (e) {
+                    console.warn('[Sync] Auto-pull on focus failed:', e);
+                } finally {
+                    setIsSyncing(false);
+                }
+            }
+        };
+        window.addEventListener('focus', handleFocus);
+
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
             window.removeEventListener('appinstalled', handleAppInstalled);
             window.removeEventListener('deferred-prompt-captured', handleDeferredPromptCaptured);
+            window.removeEventListener('focus', handleFocus);
         };
     }, []);
 
@@ -249,9 +267,16 @@ export const NotesProvider = ({ children }) => {
             setWorkspaceHandle(true);
             const nodes = await getNodes();
             setNodes(nodes);
-            await localDriver.auditSyncJournal(nodes);
+            if (mode !== 'github') await localDriver.auditSyncJournal(nodes);
             setTrashNodes(await getTrashNodes());
             syncEngine.broadcastSync();
+
+            if (mode === 'github') {
+                setIsSyncing(true);
+                await sync();
+                await loadNodes();
+                setIsSyncing(false);
+            }
         } catch (e) {
             console.error("Workspace selection error", e);
             throw e; // Re-throw so callers (Sidebar, WelcomeScreen) can handle auth errors
@@ -562,7 +587,8 @@ export const NotesProvider = ({ children }) => {
         showInstallModal, setShowInstallModal,
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode,
-        syncPulse, triggerSyncPulse, syncStatus, backlinkIndex
+        syncPulse, triggerSyncPulse, syncStatus, backlinkIndex,
+        isSyncing
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

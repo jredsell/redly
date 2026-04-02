@@ -9,7 +9,8 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
         tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll,
         editNode, isInitializing, globalAddingState, setGlobalAddingState,
         lastInteractedNodeId, setLastInteractedNodeId, expandedFolders,
-        toggleFolder, disconnectWorkspace, isDarkMode, syncStatus
+        toggleFolder, disconnectWorkspace, isDarkMode, syncStatus,
+        storageMode, isSyncing
     } = useNotes();
 
     const [newName, setNewName] = useState('');
@@ -245,15 +246,30 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                     aria-label="Open Sync Center"
                     style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                        background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
+                        background: isSyncing ? 'rgba(37, 99, 235, 0.05)' : 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
+                        color: isSyncing ? 'var(--accent-color)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px',
+                        transition: 'all 0.3s ease'
                     }}
                 >
-                    <Activity
-                        size={16}
-                        aria-hidden="true"
-                        style={{ color: syncStatus === 'error' ? 'var(--danger-color)' : (syncStatus === 'connected' ? 'var(--success-color)' : 'var(--text-tertiary)') }}
-                    /> Sync
+                    {storageMode === 'github' ? (
+                        <>
+                            <RefreshCw 
+                                size={14} 
+                                className={isSyncing ? 'spin' : ''} 
+                                style={{ color: 'var(--accent-color)', animation: isSyncing ? 'spin 2s linear infinite' : 'none' }} 
+                            />
+                            {isSyncing ? 'Syncing...' : 'GitHub'}
+                        </>
+                    ) : (
+                        <>
+                            <Activity
+                                size={16}
+                                aria-hidden="true"
+                                style={{ color: syncStatus === 'error' ? 'var(--danger-color)' : (syncStatus === 'connected' ? 'var(--success-color)' : 'var(--text-tertiary)') }}
+                            /> 
+                            Sync
+                        </>
+                    )}
                 </button>
 
                 <button

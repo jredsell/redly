@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, HardDrive, ShieldCheck, Box, Unlock, Monitor, Share, PlusSquare, MoreVertical, X } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, HardDrive, ShieldCheck, Box, Unlock, Monitor, Share, PlusSquare, MoreVertical, X, Github, Cloud, RefreshCw } from 'lucide-react';
 import RedlyLogo from './RedlyLogo';
 
 const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
@@ -101,6 +101,86 @@ const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
     );
 };
 
+const GitHubSetupModal = ({ isOpen, onClose, onConnect, isDarkMode }) => {
+    const [token, setToken] = React.useState('');
+    const [repo, setRepo] = React.useState('');
+    const [owner, setOwner] = React.useState('');
+    const [isConnecting, setIsConnecting] = React.useState(false);
+
+    if (!isOpen) return null;
+
+    const handleConnect = async (e) => {
+        e.preventDefault();
+        setIsConnecting(true);
+        try {
+            await onConnect({ token, repo, owner });
+        } catch (err) {
+            alert("Failed to connect: " + err.message);
+        } finally {
+            setIsConnecting(false);
+        }
+    };
+
+    return (
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+                    <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>Connect GitHub</h2>
+                    <button onClick={onClose} className="icon-button">
+                        <X size={20} />
+                    </button>
+                </div>
+
+                <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    <div>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>GitHub Personal Access Token</label>
+                        <input 
+                            type="password" 
+                            value={token} 
+                            onChange={e => setToken(e.target.value)}
+                            placeholder="ghp_xxxxxxxxxxxx"
+                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                            required
+                        />
+                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
+                            Needs <code>repo</code> scope. Generate one in GitHub Settings &gt; Developer settings.
+                        </p>
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '16px' }}>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Username / Org</label>
+                            <input 
+                                type="text" 
+                                value={owner} 
+                                onChange={e => setOwner(e.target.value)}
+                                placeholder="octocat"
+                                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                                required
+                            />
+                        </div>
+                        <div style={{ flex: 1 }}>
+                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Repository Name</label>
+                            <input 
+                                type="text" 
+                                value={repo} 
+                                onChange={e => setRepo(e.target.value)}
+                                placeholder="my-notes"
+                                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
+                                required
+                            />
+                        </div>
+                    </div>
+
+                    <button type="submit" disabled={isConnecting} className="primary-action-btn" style={{ width: '100%', justifyContent: 'center' }}>
+                        {isConnecting ? <RefreshCw className="spin" size={20} /> : <Github size={20} />}
+                        {isConnecting ? 'Cloning Repository...' : 'Connect Workspace'}
+                    </button>
+                </form>
+            </div>
+        </div>
+    );
+};
 const renderLogo = (size = 80) => (
     <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
         <RedlyLogo size={size} showText={true} style={{ maxWidth: '320px' }} />
@@ -178,6 +258,7 @@ const SHARED_STYLES = `
 
 export default function WelcomeScreen({ openHelp }) {
     const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable, isDarkMode, showInstallModal, setShowInstallModal } = useNotes();
+    const [showGithubModal, setShowGithubModal] = React.useState(false);
     const recentFiles = nodes
         .filter(n => n.type === 'file')
         .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
@@ -198,9 +279,11 @@ export default function WelcomeScreen({ openHelp }) {
         selectWorkspace('local');
     };
 
-    const handleSandboxClick = async () => {
-        selectWorkspace('sandbox');
+    const handleGithubConnect = async (config) => {
+        await selectWorkspace('github', { config });
+        setShowGithubModal(false);
     };
+
     if (needsPermission) {
         return (
             <div className="welcome-container">
@@ -251,10 +334,17 @@ export default function WelcomeScreen({ openHelp }) {
                     Your private, offline-first Markdown knowledge base.
                 </p>
                 <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
-                    <button onClick={() => selectWorkspace('sandbox')} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
+                    <button onClick={handleSandboxClick} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
                         <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} aria-hidden="true" />
                         <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Browser Storage</h3>
                         <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Store notes in a hidden, secure browser sandbox. Fast and zero-config.</p>
+                    </button>
+
+                    <button onClick={() => setShowGithubModal(true)} className="storage-option-btn" aria-label="Select Cloud Sync: Instant GitHub repo sync">
+                        <div className="badge-cloud" style={{ marginBottom: '8px' }}>Beta</div>
+                        <Github size={24} style={{ color: '#24292f', marginBottom: '12px' }} aria-hidden="true" />
+                        <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Cloud Sync (GitHub)</h3>
+                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, lineHeight: '1.4' }}>Instant, versioned sync to your own GitHub repository. Accessible everywhere.</p>
                     </button>
 
                     {!isMobile && (

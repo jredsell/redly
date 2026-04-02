@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@hello-pangea/dnd": "^18.0.1",
+    "@isomorphic-git/lightning-fs": "^4.6.2",
     "@tiptap/core": "^2.27.2",
     "@tiptap/extension-code-block": "^2.27.2",
     "@tiptap/extension-link": "^2.27.2",
@@ -30,6 +31,7 @@
     "clsx": "^2.1.1",
     "html5-qrcode": "^2.3.8",
     "idb": "^8.0.3",
+    "isomorphic-git": "^1.37.4",
     "jszip": "^3.10.1",
     "lucide-react": "^0.575.0",
     "markdown-it": "^14.1.1",
