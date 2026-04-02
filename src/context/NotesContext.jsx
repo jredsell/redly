@@ -99,27 +99,27 @@ export const NotesProvider = ({ children }) => {
         return () => clearTimeout(timeoutId);
     }, [nodes, workspaceHandle]);
 
+    const handleBeforeInstallPrompt = useCallback((e) => {
+        e.preventDefault();
+        setDeferredPrompt(e);
+    }, []);
+
+    const handleAppInstalled = useCallback(() => {
+        setIsPwaInstalled(true);
+        localStorage.setItem('redly_pwa_installed', 'true');
+        setDeferredPrompt(null);
+    }, []);
+
+    const handleDeferredPromptCaptured = useCallback(() => {
+        setDeferredPrompt(window.__DEFERRED_PROMPT__);
+    }, []);
+
     useEffect(() => {
         // If the PWA is opened in standalone mode, auto-detect it's installed
         if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone) {
             setIsPwaInstalled(true);
             localStorage.setItem('redly_pwa_installed', 'true');
         }
-
-        const handleBeforeInstallPrompt = (e) => {
-            e.preventDefault();
-            setDeferredPrompt(e);
-        };
-
-        const handleAppInstalled = () => {
-            setIsPwaInstalled(true);
-            localStorage.setItem('redly_pwa_installed', 'true');
-            setDeferredPrompt(null);
-        };
-
-        const handleDeferredPromptCaptured = () => {
-            setDeferredPrompt(window.__DEFERRED_PROMPT__);
-        };
 
         // Check if the global interceptor already caught it
         if (window.__DEFERRED_PROMPT__) {
@@ -128,7 +128,7 @@ export const NotesProvider = ({ children }) => {
             // Otherwise listen for the global custom event or the native event
             window.addEventListener('deferred-prompt-captured', handleDeferredPromptCaptured);
         }
-    }, []);
+    }, [handleDeferredPromptCaptured]);
 
     const installApp = async () => {
         if (deferredPrompt) {
