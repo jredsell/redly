@@ -935,12 +935,16 @@ export default function Editor({ fileId }) {
             }
 
         })
-    ], []);
+    ], [isCollabActive]);
 
     // Get initial content for useEditor
     const initialEditorContent = useMemo(() => {
         if (isCollabActive && collaboration.role === 'host' && collaboration.initialContent) {
-            return collaboration.initialContent;
+            // Host: convert Markdown -> HTML before passing to TipTap
+            // (node.content is stored as Markdown; TipTap's content prop expects HTML)
+            const preparedContent = (collaboration.initialContent || '')
+                .replace(/^(\s*-\s*\[[ xX]\])(\S)/gm, '$1 $2');
+            return md.render(preparedContent);
         }
         const node = nodes.find(n => n.id === fileId);
         return node ? node.content : '';
@@ -1391,8 +1395,14 @@ export default function Editor({ fileId }) {
                 }
 
                 if (editor) {
-                    // Skip local content loading if collaboration is handling it
-                    if (isCollabActive) return;
+                    // Guests: Yjs handles all content sync — never load from local storage
+                    if (isCollabActive && collaboration.role === 'guest') return;
+
+                    // Host: on initial load, the TipTap Collaboration extension seeds the
+                    // Yjs doc via the `content` prop passed to useEditor (see initialEditorContent).
+                    // After that first seed we must NOT call setContent() again or we'll
+                    // overwrite Yjs-synced changes from the guest.
+                    if (isCollabActive && collaboration.role === 'host' && !isInitialLoad) return;
 
                     const loadContent = async () => {
                         let content = f.content;

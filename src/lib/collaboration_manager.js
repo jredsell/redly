@@ -9,6 +9,8 @@ class CollaborationManager {
         this.awareness = null;
         this.activeRoomId = null;
         this.activeKey = null;
+        this.activeField = null;
+        this.pendingInitialContent = null; // Markdown string — Editor will convert & seed
         this.onUpdateCallback = null;
     }
 
@@ -67,11 +69,12 @@ class CollaborationManager {
         this.activeField = field;
         this.doc = new Y.Doc();
 
-        if (initialContent !== null && initialContent.trim() !== '') {
-            // Seed the initial content into the specified field
-            console.log(`[Collab] Document initialized with host content for field: ${field}`);
-            // Note: We leave the actual XML formatting to the Host Editor to ensure schema compatibility.
-            // But we store it in a way that we can recover it if needed.
+        if (initialContent !== null && initialContent !== undefined) {
+            // Store for the Editor to retrieve — it will convert Markdown→HTML and seed the Yjs doc
+            this.pendingInitialContent = initialContent;
+            console.log(`[Collab] Host initial content stored (${initialContent.length} chars) for field: ${field}`);
+        } else {
+            this.pendingInitialContent = null;
         }
 
         // Initialize WebrtcProvider with encryption key as password
@@ -136,7 +139,23 @@ class CollaborationManager {
         this.activeRoomId = null;
         this.activeKey = null;
         this.activeField = null;
+        this.pendingInitialContent = null;
         console.log('[Collab] Session stopped.');
+    }
+
+    /**
+     * Returns true if the shared Yjs XML fragment for the given field has no content yet.
+     * The Host Editor calls this to decide whether to seed the document.
+     * @param {string} field
+     */
+    isFieldEmpty(field) {
+        if (!this.doc) return true;
+        try {
+            const fragment = this.doc.getXmlFragment(field);
+            return fragment.length === 0;
+        } catch (e) {
+            return true;
+        }
     }
 
     /**

@@ -272,13 +272,24 @@ export const NotesProvider = ({ children }) => {
         }
     };
 
-    const startCollaboration = useCallback((nodeId, type) => {
+    const startCollaboration = useCallback(async (nodeId, type) => {
         const roomId = collabManager.constructor.generateRoomId();
         const key = collabManager.constructor.generateEncryptionKey();
         
         // Find the node to grab initial content if it's a file
         const node = nodes.find(n => n.id === nodeId);
-        const initialContent = (node && node.type === 'file') ? node.content : null;
+        let initialContent = (node && node.type === 'file') ? node.content : null;
+
+        // Guard: nodes are lazy-loaded — content may be undefined even if the node exists
+        if (node && node.type === 'file' && initialContent === undefined) {
+            try {
+                console.log('[Collab] Content not yet loaded, fetching from storage...');
+                initialContent = await getFileContent(nodeId);
+            } catch (e) {
+                console.warn('[Collab] Could not pre-load content for collaboration session:', e);
+                initialContent = '';
+            }
+        }
 
         // Pass nodeId as the field name
         collabManager.initSession(roomId, key, nodeId, initialContent);
@@ -295,7 +306,7 @@ export const NotesProvider = ({ children }) => {
         });
         
         return { roomId, key };
-    }, [nodes]);
+    }, [nodes, getFileContent]);
 
     const stopCollaboration = useCallback(() => {
         const role = collaboration.role;
