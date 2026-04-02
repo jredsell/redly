@@ -73,6 +73,14 @@ class CollaborationManager {
         this.awareness = this.provider.awareness;
 
         console.log(`[Collab] Session initialized. Room: ${roomId}`);
+        
+        this.provider.on('status', event => {
+            console.log(`[Collab] Connection status: ${event.status}`); // 'connected' or 'disconnected'
+        });
+
+        this.provider.on('synced', synced => {
+            console.log(`[Collab] Document synced: ${synced}`);
+        });
 
         return {
             doc: this.doc,

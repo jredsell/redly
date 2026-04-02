@@ -597,6 +597,13 @@ export default function Editor({ fileId }) {
         if (collaboration.sharedType === 'joined') return true; // Joiners see everything for now
         return collaboration.sharedNodeId === fileId;
     }, [collaboration, fileId]);
+
+    useEffect(() => {
+        if (isCollabActive) {
+            console.log(`[Collab] Active. Role: ${collaboration.role}, Field: ${fileId}`);
+        }
+    }, [isCollabActive, collaboration.role, fileId]);
+
     const [, setForceRender] = useState(0);
     const slashMenuListRef = useRef(null);
     const tagMenuListRef = useRef(null);
