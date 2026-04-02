@@ -198,6 +198,11 @@ export const NotesProvider = ({ children }) => {
                     await localDriver.auditSyncJournal(nodes);
                     setTrashNodes(await getTrashNodes());
                     syncEngine.broadcastSync();
+
+                    if (mode === 'github') {
+                        setIsSyncing(true);
+                        sync().then(() => loadNodes()).finally(() => setIsSyncing(false));
+                    }
                 } else if (status === 'requires_permission') {
                     setNeedsPermission(true);
                 }

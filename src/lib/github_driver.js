@@ -222,7 +222,7 @@ export const deleteNode = async (id, type) => {
         await pfs.unlink(path);
     }
     
-    sendRequest('COMMIT', {
+    sendRequest('DELETE', {
         filepath: id,
         message: `Delete ${id}`,
         token: githubConfig.token,

@@ -123,6 +123,32 @@ self.onmessage = async ({ data }) => {
                 break;
             }
 
+            case 'DELETE': {
+                const { filepath, message, token, corsProxy, autoPush } = payload;
+                try {
+                    await git.remove({ fs, dir, filepath });
+                } catch (e) {
+                    console.warn('[Worker] Git remove failed (file might already be untracked):', e);
+                }
+                
+                await git.commit({
+                    fs, dir,
+                    message: message || `Delete ${filepath}`,
+                    author: { name: 'Redly User', email: 'user@redly.app' }
+                });
+                
+                if (autoPush) {
+                    await git.push({
+                        fs, http, dir,
+                        remote: 'origin',
+                        corsProxy: corsProxy || defaultProxy,
+                        onAuth: () => ({ username: token })
+                    });
+                }
+                self.postMessage({ id, type: 'SUCCESS' });
+                break;
+            }
+
             default:
                 self.postMessage({ id, type: 'ERROR', error: 'Unknown action type' });
         }
