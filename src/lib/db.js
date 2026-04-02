@@ -159,12 +159,8 @@ export const migrateToGithub = async (config) => {
   setDriver('github');
   
   try {
-    // 4. Import nodes into GitHub driver
-    // Sort by depth to ensure parent folders are created first
-    const sortedNodes = [...fullNodes].sort((a, b) => a.id.split('/').length - b.id.split('/').length);
-    for (const node of sortedNodes) {
-      await githubDriver.createNode(node);
-    }
+    // 4. Import nodes into GitHub driver using optimized batch method
+    await githubDriver.importNodes(fullNodes);
 
     // 5. Finalize the move
     await setHandle('workspace_mode', 'github');

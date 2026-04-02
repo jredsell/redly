@@ -46,7 +46,15 @@ const sendRequest = (type, payload = {}) => {
     const worker = getWorker();
     
     return new Promise((resolve, reject) => {
-        pendingPromises.set(id, { resolve, reject });
+        const timeout = setTimeout(() => {
+            pendingPromises.delete(id);
+            reject(new Error(`Timeout: ${type} request took too long`));
+        }, 300000); // 5 minute timeout for Git operations
+
+        pendingPromises.set(id, { 
+            resolve: (val) => { clearTimeout(timeout); resolve(val); }, 
+            reject: (err) => { clearTimeout(timeout); reject(err); } 
+        });
         worker.postMessage({ id, type, payload });
     });
 };
@@ -183,4 +191,32 @@ export const deleteNode = async (id, type) => {
         corsProxy: githubConfig.corsProxy,
         autoPush: true
     }).catch(err => console.error('[GitHub Sync] Delete Failed:', err));
+};
+
+export const importNodes = async (nodes) => {
+    // 1. Write all nodes to filesystem (no Git yet)
+    // Sort to ensure folders are created before their children
+    const sortedNodes = [...nodes].sort((a, b) => a.id.split('/').length - b.id.split('/').length);
+
+    for (const node of sortedNodes) {
+        const path = `${dir}/${node.id}`;
+        try {
+            if (node.type === 'folder') {
+                await pfs.mkdir(path).catch(() => {}); // Ignore if exists
+            } else {
+                await pfs.writeFile(path, node.content || '');
+            }
+        } catch (e) {
+            console.warn('[GitHub Driver] Failed to write node during import:', node.id, e);
+        }
+    }
+
+    // 2. Perform a single batch commit and push
+    return sendRequest('COMMIT', {
+        filepath: '.',
+        message: 'Initial migration to GitHub',
+        token: githubConfig.token,
+        corsProxy: githubConfig.corsProxy,
+        autoPush: true
+    });
 };

@@ -15,31 +15,26 @@ self.onmessage = async ({ data }) => {
                 const { url, token, corsProxy } = payload;
                 
                 // 1. Wipe the specific notes directory if it exists
-                try {
-                    const files = await fs.promises.readdir(dir);
-                    for (const f of files) {
-                        const path = `${dir}/${f}`;
-                        const stat = await fs.promises.lstat(path);
-                        if (stat.isDirectory()) {
-                            // Simple recursive delete for subfolders
-                            const deleteDir = async (p) => {
-                                const children = await fs.promises.readdir(p);
-                                for (const c of children) {
-                                    const cp = `${p}/${c}`;
-                                    if ((await fs.promises.lstat(cp)).isDirectory()) await deleteDir(cp);
-                                    else await fs.promises.unlink(cp);
-                                }
-                                await fs.promises.rmdir(p);
-                            };
-                            await deleteDir(path);
-                        } else {
-                            await fs.promises.unlink(path);
+                const wipe = async (p) => {
+                    try {
+                        const files = await fs.promises.readdir(p);
+                        for (const f of files) {
+                            const cp = `${p}/${f}`;
+                            const stat = await fs.promises.lstat(cp);
+                            if (stat.isDirectory()) {
+                                await wipe(cp);
+                                await fs.promises.rmdir(cp);
+                            } else {
+                                await fs.promises.unlink(cp);
+                            }
                         }
+                    } catch (e) {
+                        // Directory doesn't exist, ignore
                     }
-                } catch (e) {
-                    // Directory probably doesn't exist yet, create it
-                    await fs.promises.mkdir(dir);
-                }
+                };
+                
+                await wipe(dir);
+                try { await fs.promises.mkdir(dir); } catch (e) {}
                 
                 await git.clone({
                     fs, http, dir, url,
