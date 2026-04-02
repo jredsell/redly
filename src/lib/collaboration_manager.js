@@ -47,10 +47,18 @@ class CollaborationManager {
      * @param {string} initialContent (Optional, for host seeding)
      * @param {string} signalingUrl 
      */
-    initSession(roomId, key, initialContent = null, signalingUrl = 'wss://signaling.yjs.dev') {
+    initSession(roomId, key, initialContent = null, signalingUrl = null) {
         if (this.provider) {
             this.stopSession();
         }
+
+        // Use multiple signaling servers for redundancy
+        const DEFAULT_SIGNALING = [
+            'wss://signaling.yjs.dev',
+            'wss://y-webrtc-signaling-eu.herokuapp.com',
+            'wss://y-webrtc-signaling-us.herokuapp.com'
+        ];
+        const signaling = signalingUrl ? [signalingUrl] : DEFAULT_SIGNALING;
 
         this.activeRoomId = roomId;
         this.activeKey = key;
@@ -59,7 +67,7 @@ class CollaborationManager {
         // Initialize WebrtcProvider with encryption key as password
         this.provider = new WebrtcProvider(roomId, this.doc, {
             password: key,
-            signaling: [signalingUrl],
+            signaling: signaling,
             peerOpts: {
                 config: {
                     iceServers: [
@@ -75,7 +83,7 @@ class CollaborationManager {
         console.log(`[Collab] Session initialized. Room: ${roomId}`);
         
         this.provider.on('status', event => {
-            console.log(`[Collab] Connection status: ${event.status}`); // 'connected' or 'disconnected'
+            console.log(`[Collab] Connection status:`, event.status || event); // Fix for undefined status
         });
 
         this.provider.on('synced', synced => {
