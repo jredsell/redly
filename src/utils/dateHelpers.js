@@ -82,40 +82,77 @@ export const parseDateString = (input) => {
         const isoMatch = dateStrWithoutTime.match(/\b(\d{4})-(\d{2})-(\d{2})\b/);
         if (isoMatch) {
             hasDate = true;
-            dateObj.setFullYear(parseInt(isoMatch[1], 10));
-            dateObj.setMonth(parseInt(isoMatch[2], 10) - 1);
-            dateObj.setDate(parseInt(isoMatch[3], 10));
+            const y = parseInt(isoMatch[1], 10);
+            const m = parseInt(isoMatch[2], 10) - 1;
+            const d = parseInt(isoMatch[3], 10);
+            // Use setFullYear(y, m, d) to avoid overflow issues
+            dateObj.setFullYear(y, m, d);
         } else {
-            // DD/MM or DD/MM/YYYY or DD/MM/YY
-            const dateMatch = dateStrWithoutTime.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
-            if (dateMatch) {
+            // Natural Language Month Names (e.g., "14th April 2026", "April 14")
+            const monthNames = ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+            const monthShortNames = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
+
+            const monthPattern = `(${monthNames.join('|')}|${monthShortNames.join('|')})`;
+            const dayPattern = `(\\d{1,2})(?:st|nd|rd|th)?`;
+            const yearPattern = `(?:(?:\\s+|,\\s*)(\\d{2,4}))?`;
+
+            // Case 1: "14th April 2026" or "14 April"
+            const naturalMatch1 = dateStrWithoutTime.match(new RegExp(`\\b${dayPattern}\\s+${monthPattern}${yearPattern}\\b`, 'i'));
+            // Case 2: "April 14th 2026" or "April 14"
+            const naturalMatch2 = dateStrWithoutTime.match(new RegExp(`\\b${monthPattern}\\s+${dayPattern}${yearPattern}\\b`, 'i'));
+
+            if (naturalMatch1 || naturalMatch2) {
                 hasDate = true;
-                const dStr = parseInt(dateMatch[1], 10);
-                const mStr = parseInt(dateMatch[2], 10) - 1;
-                dateObj.setMonth(mStr);
-                dateObj.setDate(dStr);
-                if (dateMatch[3]) {
-                    let y = parseInt(dateMatch[3], 10);
+                const match = naturalMatch1 || naturalMatch2;
+                const mName = (naturalMatch1 ? match[2] : match[1]).toLowerCase();
+                let mIndex = monthNames.indexOf(mName);
+                if (mIndex === -1) mIndex = monthShortNames.indexOf(mName);
+
+                const dStr = parseInt(naturalMatch1 ? match[1] : match[2], 10);
+                const yStr = (naturalMatch1 ? match[3] : match[3]);
+
+                let y = dateObj.getFullYear();
+                if (yStr) {
+                    y = parseInt(yStr, 10);
                     if (y < 100) y += 2000;
-                    dateObj.setFullYear(y);
                 }
+
+                // Reset date to 1 first to avoid overflow when switching to a shorter month
+                dateObj.setDate(1);
+                dateObj.setFullYear(y, mIndex, dStr);
             } else {
-                // Days of week
-                const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-                let nextIndex = -1;
-                for (let i = 0; i < days.length; i++) {
-                    if (dateStrWithoutTime.includes(days[i])) {
-                        nextIndex = i;
-                        break;
-                    }
-                }
-                if (nextIndex !== -1) {
+                // DD/MM or DD/MM/YYYY or DD/MM/YY (UK Format)
+                const dateMatch = dateStrWithoutTime.match(/\b(\d{1,2})[\/-](\d{1,2})(?:[\/-](\d{2,4}))?\b/);
+                if (dateMatch) {
                     hasDate = true;
-                    const isNext = dateStrWithoutTime.includes('next');
-                    let dayDiff = nextIndex - dateObj.getDay();
-                    if (dayDiff <= 0) dayDiff += 7; // Always jump to future
-                    if (isNext) dayDiff += 7; // jump to week after
-                    dateObj.setDate(dateObj.getDate() + dayDiff);
+                    const dStr = parseInt(dateMatch[1], 10);
+                    const mStr = parseInt(dateMatch[2], 10) - 1;
+                    let y = dateObj.getFullYear();
+                    if (dateMatch[3]) {
+                        y = parseInt(dateMatch[3], 10);
+                        if (y < 100) y += 2000;
+                    }
+                    // Reset date to 1 first to avoid overflow when switching to a shorter month
+                    dateObj.setDate(1);
+                    dateObj.setFullYear(y, mStr, dStr);
+                } else {
+                    // Days of week
+                    const days = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+                    let nextIndex = -1;
+                    for (let i = 0; i < days.length; i++) {
+                        if (dateStrWithoutTime.includes(days[i])) {
+                            nextIndex = i;
+                            break;
+                        }
+                    }
+                    if (nextIndex !== -1) {
+                        hasDate = true;
+                        const isNext = dateStrWithoutTime.includes('next');
+                        let dayDiff = nextIndex - dateObj.getDay();
+                        if (dayDiff <= 0) dayDiff += 7; // Always jump to future
+                        if (isNext) dayDiff += 7; // jump to week after
+                        dateObj.setDate(dateObj.getDate() + dayDiff);
+                    }
                 }
             }
         }
