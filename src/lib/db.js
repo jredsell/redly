@@ -139,48 +139,42 @@ export const buildTree = (nodes) => {
   return roots;
 };
 
-// Backup and Restore for Sandbox
-export const exportSandboxData = async () => {
-  if (currentMode !== 'sandbox') throw new Error('Export only supported for Sandbox storage');
-  const nodes = await localDriver.getNodes();
+export const migrateToGithub = async (config) => {
+  // 1. Export all data from current driver
+  const nodes = await activeDriver.getNodes();
   const fullNodes = await Promise.all(nodes.map(async node => {
     if (node.type === 'file') {
-      const content = await localDriver.getFileContent(node.id);
+      const content = await activeDriver.getFileContent(node.id);
       return { ...node, content };
     }
     return node;
   }));
-  return {
-    version: '1.0',
-    timestamp: new Date().toISOString(),
-    nodes: fullNodes
-  };
-};
 
-export const importSandboxData = async (backup) => {
-  if (!currentMode) {
-    const handle = await navigator.storage.getDirectory();
-    localDriver.setRootHandle(handle);
-    currentMode = 'sandbox';
-  }
-  if (currentMode !== 'sandbox') throw new Error('Import only supported for Sandbox storage');
-  if (!backup || !backup.nodes) throw new Error('Invalid backup format');
-
-  // Clear existing sandbox
-  const nodes = await localDriver.getNodes();
-  for (const node of nodes) {
-    try {
-      await localDriver.deleteNode(node.id, node.type);
-    } catch (e) {
-      console.warn('Failed to delete node during import cleanup:', node.id);
+  // 2. Initialize GitHub workspace (this will clone/init)
+  await githubDriver.cloneRepo(config);
+  
+  // 3. Temporarily set activeDriver to github to perform the import
+  const oldDriver = activeDriver;
+  const oldMode = currentMode;
+  setDriver('github');
+  
+  try {
+    // 4. Import nodes into GitHub driver
+    // Sort by depth to ensure parent folders are created first
+    const sortedNodes = [...fullNodes].sort((a, b) => a.id.split('/').length - b.id.split('/').length);
+    for (const node of sortedNodes) {
+      await githubDriver.createNode(node);
     }
-  }
 
-  // Restore from backup
-  // Sort by ID depth to ensure folders are created before files
-  const sortedNodes = [...backup.nodes].sort((a, b) => a.id.split('/').length - b.id.split('/').length);
-
-  for (const node of sortedNodes) {
-    await localDriver.createNode(node);
+    // 5. Finalize the move
+    await setHandle('workspace_mode', 'github');
+    await setHandle('github_config', config);
+    return true;
+  } catch (err) {
+    // If migration fails, revert to old driver
+    console.error('Migration to GitHub failed:', err);
+    activeDriver = oldDriver;
+    currentMode = oldMode;
+    throw err;
   }
 };

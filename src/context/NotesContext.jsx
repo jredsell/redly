@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getTrashNodes, restoreNode, emptyTrash, sync } from '../lib/db';
+import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getTrashNodes, restoreNode, emptyTrash, sync, migrateToGithub } from '../lib/db';
 import * as localDriver from '../lib/local_driver';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
@@ -577,6 +577,27 @@ export const NotesProvider = ({ children }) => {
         setNodes(updatedNodes);
     };
 
+    const switchWorkspaceToGithub = async (config, shouldMigrate = false) => {
+        setIsSyncing(true);
+        try {
+            if (shouldMigrate) {
+                await migrateToGithub(config);
+            } else {
+                await initWorkspace('github', { config });
+            }
+            setStorageMode('github');
+            setWorkspaceHandle(true);
+            await loadNodes();
+            setTrashNodes(await getTrashNodes());
+            syncEngine.broadcastSync();
+        } catch (e) {
+            console.error('[NotesContext] GitHub Migration/Switch Failed:', e);
+            throw e;
+        } finally {
+            setIsSyncing(false);
+        }
+    };
+
     const value = {
         nodes, tree, trashNodes, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll, openAndExpandFile,
         addNode, editNode, removeNode, restoreNodeList, emptyTrashList, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
@@ -588,7 +609,7 @@ export const NotesProvider = ({ children }) => {
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode,
         syncPulse, triggerSyncPulse, syncStatus, backlinkIndex,
-        isSyncing
+        isSyncing, switchWorkspaceToGithub
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;
