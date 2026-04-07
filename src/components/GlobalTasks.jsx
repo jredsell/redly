@@ -440,7 +440,7 @@ export default function GlobalTasks() {
 
                     return (
                         <div key={idx} style={{ 
-                            flex: 1, minWidth: '150px', background: 'var(--bg-primary)', 
+                            flex: 1, minWidth: '120px', background: 'var(--bg-primary)', 
                             display: 'flex', flexDirection: 'column'
                         }}>
                             <div style={{ 
@@ -713,8 +713,16 @@ export default function GlobalTasks() {
                 )}
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: viewMode === 'kanban' ? '0 24px' : '0 24px 24px 24px', display: 'flex', flexDirection: 'column' }}>
-                <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '24px' }}>
+            <div style={{ flex: 1, overflowY: 'auto', padding: (viewMode === 'kanban' || (viewMode === 'calendar' && calendarView !== 'day')) ? '0 24px' : '0 24px 24px 24px', display: 'flex', flexDirection: 'column' }}>
+                <div style={{ 
+                    maxWidth: (viewMode === 'kanban' || (viewMode === 'calendar' && calendarView !== 'day')) ? '100%' : '800px', 
+                    margin: '0 auto', 
+                    paddingTop: '24px',
+                    width: '100%',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    flex: 1
+                }}>
 
                     {isLoading ? (
                         <div style={{ textAlign: 'center', padding: '48px', color: 'var(--text-tertiary)' }}>
@@ -759,7 +767,7 @@ export default function GlobalTasks() {
                             )}
                         </div>
                     ) : viewMode === 'calendar' ? (
-                        <div style={{ maxWidth: calendarView === 'day' ? '800px' : '1200px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                        <div style={{ margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
                             {calendarView === 'month' && <CalendarMonthView />}
                             {calendarView === 'week' && <CalendarWeekView />}
                             {calendarView === 'day' && <CalendarDayView />}
