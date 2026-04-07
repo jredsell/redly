@@ -311,6 +311,7 @@ function App() {
           setShowTasks={() => { setShowTasks(true); setActiveFileId(null); setSidebarOpen(false); }}
           onGoHome={() => { setActiveFileId(null); setShowTasks(false); setSidebarOpen(false); }}
         />
+        <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
         <TrashModal isOpen={trashOpen} onClose={() => setTrashOpen(false)} />
         {syncOpen && <SyncModal onClose={() => setSyncOpen(false)} />}
         <CollaborationModal 
