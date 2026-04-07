@@ -4,6 +4,9 @@ import './index.css'
 import App from './App.jsx'
 import { NotesProvider } from './context/NotesContext.jsx'
 import { registerSW } from 'virtual:pwa-register'
+import { Buffer } from 'buffer'
+
+window.Buffer = window.Buffer || Buffer;
 
 // Global intercept for the PWA install prompt.
 // This ensures we catch the event before React hydration finishes.

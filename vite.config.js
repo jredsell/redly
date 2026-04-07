@@ -4,6 +4,10 @@ import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
   base: '/redly/',
+  define: {
+    global: 'globalThis',
+    'process.env': {}
+  },
   plugins: [
     react(),
     VitePWA({
