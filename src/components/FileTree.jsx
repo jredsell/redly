@@ -262,13 +262,13 @@ export default function FileTree({ node, depth }) {
                                     <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} aria-hidden="true"></div>
                                 </>
                             )}
-                            <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { 
+                            {/* <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { 
                                 e.stopPropagation(); 
                                 startCollaboration(node.id, node.type);
                                 setShowMenu(false);
                             }} aria-label={`Collaborate on ${node.name}`}>
                                 <Share2 size={14} aria-hidden="true" /> Collaborate
-                            </button>
+                            </button> */}
                             <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { e.stopPropagation(); setIsEditing(true); setShowMenu(false); }} aria-label={`Rename ${node.name}`}>
                                 <Edit2 size={14} aria-hidden="true" /> Rename
                             </button>

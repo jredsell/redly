@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { CheckSquare, Square, Folder, FileText, ChevronRight, LayoutList, Columns, Tag } from 'lucide-react';
+import { CheckSquare, Square, Folder, FileText, ChevronRight, LayoutList, Columns, Tag, Calendar, ChevronLeft } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNotes } from '../context/NotesContext';
 import { parseTasksFromNodes } from '../utils/taskParser';
@@ -9,7 +9,9 @@ import InlineDateInput from './InlineDateInput';
 export default function GlobalTasks() {
     const { nodes, openAndExpandFile, editNode, ensureAllContentsLoaded } = useNotes();
     const [isLoading, setIsLoading] = useState(true);
-    const [viewMode, setViewMode] = useState('list'); // 'list' or 'kanban'
+    const [viewMode, setViewMode] = useState('list'); // 'list', 'kanban', or 'calendar'
+    const [calendarView, setCalendarView] = useState('month'); // 'day', 'week', 'month'
+    const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedTagFilter, setSelectedTagFilter] = useState('');
     const [tagFilterQuery, setTagFilterQuery] = useState('');
     const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
@@ -340,6 +342,171 @@ export default function GlobalTasks() {
         </div>
     );
 
+    const CalendarMonthView = () => {
+        const startOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+        const endOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
+        
+        // Adjust to Monday start
+        let startDay = startOfMonth.getDay(); // Sun=0, Mon=1...
+        const daysToSubtract = startDay === 0 ? 6 : startDay - 1;
+        const calendarStart = new Date(startOfMonth);
+        calendarStart.setDate(calendarStart.getDate() - daysToSubtract);
+
+        const days = [];
+        const iterDate = new Date(calendarStart);
+        // Show 6 weeks fixed grid
+        for (let i = 0; i < 42; i++) {
+            days.push(new Date(iterDate));
+            iterDate.setDate(iterDate.getDate() + 1);
+        }
+
+        return (
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', textAlign: 'center', fontWeight: 'bold', fontSize: '12px', color: 'var(--text-tertiary)', paddingBottom: '8px', borderBottom: '1px solid var(--border-color)' }}>
+                    {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(d => <div key={d}>{d}</div>)}
+                </div>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gridTemplateRows: 'repeat(6, 1fr)', flex: 1, minHeight: '500px' }}>
+                    {days.map((day, idx) => {
+                        const isToday = day.toDateString() === new Date().toDateString();
+                        const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+                        const dateTasks = filteredTasks.filter(t => t.date && t.date.toDateString() === day.toDateString());
+
+                        return (
+                            <div key={idx} style={{ 
+                                borderRight: '1px solid var(--border-color)', 
+                                borderBottom: '1px solid var(--border-color)',
+                                padding: '8px',
+                                background: !isCurrentMonth ? 'var(--bg-secondary)' : 'transparent',
+                                opacity: !isCurrentMonth ? 0.5 : 1,
+                                display: 'flex', flexDirection: 'column', gap: '4px',
+                                minHeight: '80px'
+                            }}>
+                                <div style={{ 
+                                    fontSize: '12px', fontWeight: isToday ? 'bold' : 'normal',
+                                    color: isToday ? 'var(--accent-color)' : 'var(--text-secondary)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    width: '24px', height: '24px', borderRadius: '50%',
+                                    background: isToday ? 'var(--bg-accent)' : 'transparent'
+                                }}>
+                                    {day.getDate()}
+                                </div>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', overflowY: 'auto' }}>
+                                    {dateTasks.map(task => (
+                                        <div 
+                                            key={task.id} 
+                                            onClick={() => openAndExpandFile(task.fileId)}
+                                            style={{ 
+                                                fontSize: '10px', padding: '2px 6px', borderRadius: '4px',
+                                                background: task.checked ? 'var(--bg-secondary)' : (task.date ? `${getDateColor(task.date, task.hasTime)}22` : 'var(--bg-accent)'),
+                                                color: task.checked ? 'var(--text-tertiary)' : (task.date ? getDateColor(task.date, task.hasTime) : 'var(--accent-color)'),
+                                                border: task.checked ? '1px solid var(--border-color)' : `1px solid ${task.date ? getDateColor(task.date, task.hasTime) : 'var(--border-color)'}`,
+                                                whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                                                textDecoration: task.checked ? 'line-through' : 'none',
+                                                cursor: 'pointer'
+                                            }}
+                                            title={task.text}
+                                        >
+                                            {task.text || 'Untitled'}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
+    };
+
+    const CalendarWeekView = () => {
+        // Find Monday of the current week
+        const startOfWeek = new Date(currentDate);
+        const day = startOfWeek.getDay();
+        const diff = startOfWeek.getDate() - day + (day === 0 ? -6 : 1); 
+        startOfWeek.setDate(diff);
+
+        const days = [];
+        for (let i = 0; i < 7; i++) {
+            const d = new Date(startOfWeek);
+            d.setDate(d.getDate() + i);
+            days.push(d);
+        }
+
+        return (
+            <div style={{ flex: 1, display: 'flex', gap: '1px', background: 'var(--border-color)', height: '100%', overflowX: 'auto' }}>
+                {days.map((day, idx) => {
+                    const isToday = day.toDateString() === new Date().toDateString();
+                    const dateTasks = filteredTasks.filter(t => t.date && t.date.toDateString() === day.toDateString());
+
+                    return (
+                        <div key={idx} style={{ 
+                            flex: 1, minWidth: '150px', background: 'var(--bg-primary)', 
+                            display: 'flex', flexDirection: 'column'
+                        }}>
+                            <div style={{ 
+                                padding: '12px', borderBottom: '1px solid var(--border-color)',
+                                textAlign: 'center', background: 'var(--bg-secondary)'
+                            }}>
+                                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>
+                                    {day.toLocaleDateString('en-US', { weekday: 'short' })}
+                                </div>
+                                <div style={{ 
+                                    fontSize: '18px', fontWeight: 'bold', 
+                                    color: isToday ? 'var(--accent-color)' : 'var(--text-primary)'
+                                }}>
+                                    {day.getDate()}
+                                </div>
+                            </div>
+                            <div style={{ flex: 1, padding: '12px', display: 'flex', flexDirection: 'column', gap: '8px', overflowY: 'auto' }}>
+                                {dateTasks.map(task => (
+                                    <div 
+                                        key={task.id} 
+                                        onClick={() => openAndExpandFile(task.fileId)}
+                                        style={{ 
+                                            padding: '8px', borderRadius: '6px',
+                                            background: task.checked ? 'var(--bg-secondary)' : (task.date ? `${getDateColor(task.date, task.hasTime)}22` : 'var(--bg-accent)'),
+                                            color: task.checked ? 'var(--text-tertiary)' : (task.date ? getDateColor(task.date, task.hasTime) : 'var(--accent-color)'),
+                                            border: task.checked ? '1px solid var(--border-color)' : `1px solid ${task.date ? getDateColor(task.date, task.hasTime) : 'var(--border-color)'}`,
+                                            cursor: 'pointer', fontSize: '12px'
+                                        }}
+                                    >
+                                        <div style={{ fontWeight: '600', textDecoration: task.checked ? 'line-through' : 'none' }}>
+                                            {task.text || 'Untitled'}
+                                        </div>
+                                        <div style={{ fontSize: '10px', color: 'var(--text-tertiary)', marginTop: '4px' }}>
+                                            {task.path.slice(-1)[0]}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+        );
+    };
+
+    const CalendarDayView = () => {
+        const dateTasks = filteredTasks.filter(t => t.date && t.date.toDateString() === currentDate.toDateString());
+        
+        return (
+            <div style={{ flex: 1, padding: '24px', maxWidth: '600px', margin: '0 auto', width: '100%' }}>
+                <h2 style={{ fontSize: '18px', marginBottom: '24px', color: 'var(--text-primary)' }}>
+                    {currentDate.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })}
+                </h2>
+                {dateTasks.length === 0 ? (
+                    <div style={{ color: 'var(--text-tertiary)', textAlign: 'center', padding: '48px' }}>
+                        No tasks scheduled for this day.
+                    </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {dateTasks.map(task => <TaskItem key={task.id} task={task} />)}
+                    </div>
+                )}
+            </div>
+        );
+    };
+
     return (
         <div style={{ height: '100%', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-primary)' }}>
             <div style={{ padding: '24px', borderBottom: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '16px', flexShrink: 0 }}>
@@ -454,9 +621,96 @@ export default function GlobalTasks() {
                             >
                                 <Columns size={16} /> Board
                             </button>
+                            <button
+                                onClick={() => setViewMode('calendar')}
+                                style={{
+                                    display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', borderRadius: '4px', border: 'none', cursor: 'pointer',
+                                    fontSize: '13px', fontWeight: 'bold', transition: 'all 0.2s',
+                                    background: viewMode === 'calendar' ? 'var(--bg-accent)' : 'transparent',
+                                    color: viewMode === 'calendar' ? 'var(--accent-color)' : 'var(--text-secondary)'
+                                }}
+                            >
+                                <Calendar size={16} /> Calendar
+                            </button>
                         </div>
                     </div>
                 </div>
+
+                {viewMode === 'calendar' && (
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', flexWrap: 'wrap', marginTop: '12px', paddingTop: '12px', borderTop: '1px solid var(--border-color)' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                                <button
+                                    onClick={() => setCalendarView('day')}
+                                    style={{
+                                        padding: '4px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+                                        background: calendarView === 'day' ? 'var(--bg-primary)' : 'transparent',
+                                        color: calendarView === 'day' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                                        boxShadow: calendarView === 'day' ? 'var(--shadow-sm)' : 'none'
+                                    }}
+                                >Day</button>
+                                <button
+                                    onClick={() => setCalendarView('week')}
+                                    style={{
+                                        padding: '4px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+                                        background: calendarView === 'week' ? 'var(--bg-primary)' : 'transparent',
+                                        color: calendarView === 'week' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                                        boxShadow: calendarView === 'week' ? 'var(--shadow-sm)' : 'none'
+                                    }}
+                                >Week</button>
+                                <button
+                                    onClick={() => setCalendarView('month')}
+                                    style={{
+                                        padding: '4px 10px', borderRadius: '4px', border: 'none', cursor: 'pointer', fontSize: '12px', fontWeight: '600',
+                                        background: calendarView === 'month' ? 'var(--bg-primary)' : 'transparent',
+                                        color: calendarView === 'month' ? 'var(--accent-color)' : 'var(--text-secondary)',
+                                        boxShadow: calendarView === 'month' ? 'var(--shadow-sm)' : 'none'
+                                    }}
+                                >Month</button>
+                            </div>
+
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                <button 
+                                    className="icon-button" 
+                                    onClick={() => {
+                                        const next = new Date(currentDate);
+                                        if (calendarView === 'month') next.setMonth(next.getMonth() - 1);
+                                        else if (calendarView === 'week') next.setDate(next.getDate() - 7);
+                                        else next.setDate(next.getDate() - 1);
+                                        setCurrentDate(next);
+                                    }}
+                                    style={{ padding: '4px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+                                >
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <span style={{ fontSize: '14px', fontWeight: '600', minWidth: '120px', textAlign: 'center' }}>
+                                    {calendarView === 'month' ? currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' }) : 
+                                     calendarView === 'week' ? `Week of ${new Date(currentDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` :
+                                     currentDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                </span>
+                                <button 
+                                    className="icon-button" 
+                                    onClick={() => {
+                                        const next = new Date(currentDate);
+                                        if (calendarView === 'month') next.setMonth(next.getMonth() + 1);
+                                        else if (calendarView === 'week') next.setDate(next.getDate() + 7);
+                                        else next.setDate(next.getDate() + 1);
+                                        setCurrentDate(next);
+                                    }}
+                                    style={{ padding: '4px', background: 'var(--bg-secondary)', border: '1px solid var(--border-color)' }}
+                                >
+                                    <ChevronRight size={16} />
+                                </button>
+                                <button 
+                                    style={{ fontSize: '12px', padding: '4px 8px', borderRadius: '4px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-secondary)', cursor: 'pointer' }}
+                                    onClick={() => setCurrentDate(new Date())}
+                                >
+                                    Today
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             <div style={{ flex: 1, overflowY: 'auto', padding: viewMode === 'kanban' ? '0 24px' : '0 24px 24px 24px', display: 'flex', flexDirection: 'column' }}>
@@ -483,7 +737,7 @@ export default function GlobalTasks() {
                             <p style={{ fontSize: '13px' }}>Type `/` in any note and select "Todo List" to create one.</p>
                         </div>
                     ) : viewMode === 'list' ? (
-                        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '24px' }}>
+                        <div style={{ maxWidth: '800px', margin: '0 auto', paddingTop: '12px' }}>
                             <div style={{ marginBottom: '32px' }}>
                                 <h3 style={{ fontSize: '14px', textTransform: 'uppercase', letterSpacing: '1px', color: 'var(--accent-color)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '0' }}>
                                     Pending Actions ({pendingTasks.length})
@@ -503,6 +757,12 @@ export default function GlobalTasks() {
                                     </div>
                                 </div>
                             )}
+                        </div>
+                    ) : viewMode === 'calendar' ? (
+                        <div style={{ maxWidth: calendarView === 'day' ? '800px' : '1200px', margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', height: '100%' }}>
+                            {calendarView === 'month' && <CalendarMonthView />}
+                            {calendarView === 'week' && <CalendarWeekView />}
+                            {calendarView === 'day' && <CalendarDayView />}
                         </div>
                     ) : (
                         <DragDropContext onDragEnd={onDragEnd}>

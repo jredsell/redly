@@ -12,9 +12,7 @@ const CONFIGURED_URL = import.meta.env.VITE_SIGNALING_URL;
 
 const DEFAULT_SIGNALING = CONFIGURED_URL
     ? [CONFIGURED_URL]
-    : IS_DEV
-        ? ['ws://localhost:4444']
-        : ['wss://signaling.yjs.dev']; // last-resort public fallback
+    : ['ws://localhost:4444', 'wss://signaling.yjs.dev']; // Try local server first, public as last resort
 
 
 class CollaborationManager {

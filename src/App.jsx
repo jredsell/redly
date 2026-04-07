@@ -465,7 +465,7 @@ function App() {
                 {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
 
-              {collaboration.active && (
+              {/* {collaboration.active && (
                 <button
                   className="icon-button collab-pulse-btn"
                   onClick={() => setShowCollabModal(true)}
@@ -485,7 +485,7 @@ function App() {
                   <Activity size={16} className="collab-pulse" />
                   Live
                 </button>
-              )}
+              )} */}
 
               <NotificationToggle />
             </div>

@@ -646,6 +646,10 @@ export default function Editor({ fileId }) {
     }, [nodes]);
 
     const debouncedSave = useCallback((updates) => {
+        if (isCollabActive && collaboration.role === 'guest') {
+            return;
+        }
+
         isTypingRef.current = true;
 
         // Merge new updates into the pending buffer
@@ -683,7 +687,7 @@ export default function Editor({ fileId }) {
         typingTimeoutRef.current = setTimeout(() => {
             isTypingRef.current = false;
         }, 2000);
-    }, [fileId, editNode]);
+    }, [fileId, editNode, isCollabActive, collaboration.role]);
 
     const extensions = useMemo(() => [
         TagHighlighter,
