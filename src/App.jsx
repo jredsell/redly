@@ -10,7 +10,7 @@ import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
 import CollaborationModal from './components/CollaborationModal';
-import { Menu, Sun, Moon, Bell, CheckCircle, RefreshCw, Share2, Activity } from 'lucide-react';
+import { Menu, Sun, Moon, Bell, CheckCircle, RefreshCw, Share2, Activity, PanelLeft } from 'lucide-react';
 import RedlyLogo from './components/RedlyLogo';
 import PullToRefresh from './components/PullToRefresh';
 import { requestNotificationPermission } from './utils/notificationManager';
@@ -86,6 +86,19 @@ function App() {
     collaboration, stopCollaboration
   } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarWidth, setSidebarWidth] = useState(() => {
+    const saved = localStorage.getItem('redly_sidebar_width');
+    return saved ? parseInt(saved, 10) : 260;
+  });
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(() => {
+    return localStorage.getItem('redly_sidebar_collapsed') === 'true';
+  });
+
+  useEffect(() => {
+    localStorage.setItem('redly_sidebar_width', sidebarWidth);
+    localStorage.setItem('redly_sidebar_collapsed', isSidebarCollapsed);
+  }, [sidebarWidth, isSidebarCollapsed]);
+
   const [helpOpen, setHelpOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
   const [syncOpen, setSyncOpen] = useState(false);
@@ -296,7 +309,7 @@ function App() {
 
   return (
     <PullToRefresh>
-      <div className="app-container">
+      <div className="app-container" style={{ '--sidebar-width': isSidebarCollapsed ? '0px' : `${sidebarWidth}px` }}>
         <div
           className={`sidebar-overlay ${sidebarOpen ? 'open' : ''}`}
           onClick={() => setSidebarOpen(false)}
@@ -305,6 +318,10 @@ function App() {
         <Sidebar
           isOpen={sidebarOpen}
           onClose={() => setSidebarOpen(false)}
+          isSidebarCollapsed={isSidebarCollapsed}
+          setIsSidebarCollapsed={setIsSidebarCollapsed}
+          sidebarWidth={sidebarWidth}
+          setSidebarWidth={setSidebarWidth}
           onOpenHelp={() => setHelpOpen(true)}
           onOpenTrash={() => setTrashOpen(true)}
           onOpenSync={() => setSyncOpen(true)}
@@ -439,6 +456,15 @@ function App() {
               >
                 <Menu size={20} />
               </button>
+              {isSidebarCollapsed && (
+                <button
+                  className="icon-button desktop-menu-btn"
+                  onClick={() => setIsSidebarCollapsed(false)}
+                  title="Show Sidebar"
+                >
+                  <PanelLeft size={20} />
+                </button>
+              )}
               <div
                 className="mobile-logo"
                 style={{ display: 'none', cursor: 'pointer' }}
@@ -449,6 +475,7 @@ function App() {
               <style>{`
               @media (max-width: 768px) {
                 .mobile-menu-btn { display: flex !important; }
+                .desktop-menu-btn { display: none !important; }
                 .mobile-logo { display: block !important; }
               }
             `}</style>

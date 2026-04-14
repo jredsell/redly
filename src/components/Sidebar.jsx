@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { ChevronRight, ChevronDown, FileText, Folder, Plus, Trash2, FolderPlus, MoreVertical, Edit2, Play, Settings, Menu, Settings2, Moon, Sun, HelpCircle, Activity, X, CheckSquare, ChevronsDown, ChevronsUp, RefreshCw } from 'lucide-react';
+import { ChevronRight, ChevronDown, FileText, Folder, Plus, Trash2, FolderPlus, MoreVertical, Edit2, Play, Settings, Menu, Settings2, Moon, Sun, HelpCircle, Activity, X, CheckSquare, ChevronsDown, ChevronsUp, RefreshCw, PanelLeftClose } from 'lucide-react';
 import FileTree from './FileTree';
 import RedlyLogo from './RedlyLogo';
 
-export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOpenSync, setShowTasks, onGoHome }) {
+export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOpenSync, setShowTasks, onGoHome, isSidebarCollapsed, setIsSidebarCollapsed, sidebarWidth, setSidebarWidth }) {
     const {
         tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll,
         editNode, isInitializing, globalAddingState, setGlobalAddingState,
@@ -122,9 +122,27 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleNewItem, getVisibleNodes, lastInteractedNodeId, expandedFolders, toggleFolder, setActiveFileId, setLastInteractedNodeId]);
+    const handleMouseDown = useCallback((e) => {
+        e.preventDefault();
+        const handleMouseMove = (mouseMoveEvent) => {
+            if (isSidebarCollapsed) setIsSidebarCollapsed(false);
+            const newWidth = mouseMoveEvent.clientX;
+            setSidebarWidth(Math.max(260, newWidth)); // Enforce 260px minimum width
+        };
+        const handleMouseUp = () => {
+            document.removeEventListener('mousemove', handleMouseMove);
+            document.removeEventListener('mouseup', handleMouseUp);
+            document.body.style.cursor = 'default';
+        };
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+        document.body.style.cursor = 'col-resize';
+    }, [isSidebarCollapsed, setIsSidebarCollapsed, setSidebarWidth]);
 
     return (
-        <aside className={`sidebar ${isOpen ? 'open' : ''} `} role="navigation" aria-label="Main Navigation">
+        <aside className={`sidebar ${isOpen ? 'open' : ''} ${isSidebarCollapsed ? 'collapsed' : ''}`} role="navigation" aria-label="Main Navigation">
+            {!isSidebarCollapsed && (
+                <>
             <div className="sidebar-header" style={{ padding: '16px', flexDirection: 'column', alignItems: 'stretch', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
@@ -154,6 +172,9 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                         </button>
                         <button className="icon-button" onClick={() => handleNewItem('folder')} title="New Folder (Alt+F)" aria-label="Create New Folder">
                             <FolderPlus size={16} aria-hidden="true" />
+                        </button>
+                        <button className="icon-button hide-sidebar-btn" onClick={() => setIsSidebarCollapsed(true)} title="Hide Sidebar" aria-label="Hide Sidebar" style={{ marginLeft: '4px' }}>
+                            <PanelLeftClose size={16} aria-hidden="true" />
                         </button>
                         {isOpen && (
                             <React.Fragment>
@@ -298,6 +319,9 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                     <Trash2 size={16} aria-hidden="true" /> Trash
                 </button>
             </div>
+            </>
+            )}
+            <div className="sidebar-resize-handle" onMouseDown={handleMouseDown} onDoubleClick={() => setIsSidebarCollapsed(!isSidebarCollapsed)} title="Drag to resize, double-click to toggle"></div>
         </aside>
     );
 }
