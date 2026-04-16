@@ -115,19 +115,6 @@ For a distraction-free environment, install Redly as a **PWA**:
 <table style="min-width: 50px;"><colgroup><col style="min-width: 25px;"><col style="min-width: 25px;"></colgroup><tbody><tr><th colspan="1" rowspan="1"><p>Action</p></th><th colspan="1" rowspan="1"><p>Shortcut</p></th></tr><tr><td colspan="1" rowspan="1"><p>Global Search</p></td><td colspan="1" rowspan="1"><p><code>Alt + K</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>New Note</p></td><td colspan="1" rowspan="1"><p><code>Alt + N</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>New Folder</p></td><td colspan="1" rowspan="1"><p><code>Alt + F</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Go Home</p></td><td colspan="1" rowspan="1"><p><code>Alt + H</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Focus Sidebar</p></td><td colspan="1" rowspan="1"><p><code>Alt + S</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Focus Editor</p></td><td colspan="1" rowspan="1"><p><code>Alt + E</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Enter Note</p></td><td colspan="1" rowspan="1"><p><code>→</code> (Right Arrow)</p></td></tr><tr><td colspan="1" rowspan="1"><p>Global Tasks</p></td><td colspan="1" rowspan="1"><p><code>Alt + T</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Toggle Kanban / List</p></td><td colspan="1" rowspan="1"><p><code>Alt + V</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Filter Tags (Tasks View)</p></td><td colspan="1" rowspan="1"><p><code>Alt + G</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Change Workspace</p></td><td colspan="1" rowspan="1"><p><code>Alt + W</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Help &amp; Guide</p></td><td colspan="1" rowspan="1"><p><code>Alt + /</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Rename Selection (Folder/File)</p></td><td colspan="1" rowspan="1"><p><code>F2</code></p></td></tr><tr><td colspan="1" rowspan="1"><p>Delete Selection</p></td><td colspan="1" rowspan="1"><p><code>Delete</code></p></td></tr></tbody></table>
 
 ---
-## Developer Setup
-These commands are only required if you want to modify the source code or build the project from scratch.
-```
-1. Install dependencies
-npm install
-
-2. Run development server
-npm run dev
-
-3. Build for production (outputs to /dist)
-npm run build
-```
----
 ## License
 
 Copyright © 2026 Jonathan Redsell. **All Rights Reserved.** Unauthorized use, copying, or distribution is strictly prohibited.
