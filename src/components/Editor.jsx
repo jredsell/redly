@@ -1383,7 +1383,7 @@ export default function Editor({ fileId }) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = \`\${localTitle || 'Note'}.docx\`;
+            a.download = `${localTitle || 'Note'}.docx`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
