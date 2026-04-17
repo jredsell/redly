@@ -104,7 +104,7 @@ export default function FileTree({ node, depth }) {
         const fileDownload = document.createElement("a");
         document.body.appendChild(fileDownload);
         fileDownload.href = source;
-        fileDownload.download = `${node.name}.doc`;
+        fileDownload.download = `${node.name.replace(/\.md$/i, '')}.doc`;
         fileDownload.click();
         document.body.removeChild(fileDownload);
     };
