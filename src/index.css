@@ -861,3 +861,36 @@ body {
 ::-webkit-scrollbar-corner {
   background: transparent;
 }
+
+/* Print Styles */
+@media print {
+  .sidebar,
+  .app-toolbar,
+  .editor-header-bar,
+  .table-trigger-btn,
+  .custom-bubble-menu,
+  .kanban-board {
+    display: none !important;
+  }
+  
+  .app-container,
+  .main-area,
+  .editor-body,
+  .editor-pane {
+    height: auto !important;
+    overflow: visible !important;
+    background: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  
+  body {
+    background-color: white !important;
+    color: black !important;
+  }
+  
+  .editor-link {
+    color: black !important;
+    text-decoration: underline !important;
+  }
+}

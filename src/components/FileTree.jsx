@@ -105,7 +105,11 @@ export default function FileTree({ node, depth }) {
     const handleDragOver = (e) => {
         e.preventDefault();
         e.stopPropagation();
-        e.dataTransfer.dropEffect = 'move';
+        if (e.dataTransfer.types.includes('Files')) {
+            e.dataTransfer.dropEffect = 'copy';
+        } else {
+            e.dataTransfer.dropEffect = 'move';
+        }
         if (isFolder) {
             e.currentTarget.classList.add('drag-over');
         }
@@ -123,6 +127,52 @@ export default function FileTree({ node, depth }) {
         e.stopPropagation();
         if (isFolder) {
             e.currentTarget.classList.remove('drag-over');
+        }
+
+        // External File Drop
+        if (e.dataTransfer.items && Array.from(e.dataTransfer.items).some(item => item.kind === 'file')) {
+            const items = Array.from(e.dataTransfer.items).filter(item => item.kind === 'file');
+            const targetParentId = isFolder ? node.id : node.parentId;
+            
+            const processEntry = async (entry, currentParentId) => {
+                if (entry.isFile) {
+                    if (entry.name.endsWith('.md') || entry.name.endsWith('.txt')) {
+                        const file = await new Promise((resolve, reject) => entry.file(resolve, reject));
+                        const text = await file.text();
+                        let baseName = entry.name;
+                        if (baseName.endsWith('.md')) baseName = baseName.slice(0, -3);
+                        else if (baseName.endsWith('.txt')) baseName = baseName.slice(0, -4);
+                        await addNode(baseName, 'file', currentParentId, false, text);
+                    }
+                } else if (entry.isDirectory) {
+                    const folderNode = await addNode(entry.name, 'folder', currentParentId, false);
+                    if (folderNode) {
+                        const dirReader = entry.createReader();
+                        const readEntries = async () => {
+                            let allEntries = [];
+                            const readBatch = async () => {
+                                const entries = await new Promise((resolve, reject) => dirReader.readEntries(resolve, reject));
+                                if (entries.length > 0) {
+                                    allEntries = allEntries.concat(entries);
+                                    await readBatch();
+                                }
+                            };
+                            await readBatch();
+                            for (const child of allEntries) {
+                                await processEntry(child, folderNode.id);
+                            }
+                        };
+                        await readEntries();
+                    }
+                }
+            };
+            
+            for (const item of items) {
+                const entry = item.webkitGetAsEntry();
+                if (entry) await processEntry(entry, targetParentId);
+            }
+            if (isFolder && !isExpanded) toggleFolder(node.id);
+            return;
         }
 
         const draggedId = e.dataTransfer.getData('text/plain');

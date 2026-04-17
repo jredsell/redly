@@ -33,6 +33,7 @@
     "@tiptap/starter-kit": "^2.27.2",
     "buffer": "^6.0.3",
     "clsx": "^2.1.1",
+    "html-to-docx": "^1.8.0",
     "html5-qrcode": "^2.3.8",
     "idb": "^8.0.3",
     "isomorphic-git": "^1.37.4",

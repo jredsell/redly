@@ -133,7 +133,28 @@ export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') 
         for await (const entry of dirHandle.values()) {
             const nodePath = currentPath ? `${currentPath}/${entry.name}` : entry.name;
 
-            if (entry.kind === 'file' && (!entry.name.includes('.') || entry.name.endsWith('.md'))) {
+            if (entry.kind === 'file' && entry.name.toLowerCase().endsWith('.txt')) {
+                try {
+                    const file = await entry.getFile();
+                    const mdName = entry.name.slice(0, -4) + '.md';
+                    const newHandle = await dirHandle.getFileHandle(mdName, { create: true });
+                    const writable = await newHandle.createWritable();
+                    await writable.write(await file.arrayBuffer());
+                    await writable.close();
+                    await dirHandle.removeEntry(entry.name);
+                    
+                    const mdNodePath = currentPath ? `${currentPath}/${mdName}` : mdName;
+                    nodes.push({
+                        id: mdNodePath,
+                        name: mdName.slice(0, -3),
+                        type: 'file',
+                        parentId: currentPath || null,
+                        updatedAt: file.lastModified
+                    });
+                } catch (e) {
+                    console.warn(`[local_driver] Could not convert ${entry.name} to .md automatically`, e);
+                }
+            } else if (entry.kind === 'file' && (!entry.name.includes('.') || entry.name.endsWith('.md'))) {
                 const file = await entry.getFile();
                 nodes.push({
                     id: nodePath,
