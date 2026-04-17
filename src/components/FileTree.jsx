@@ -3,15 +3,19 @@ import { useNotes } from '../context/NotesContext';
 import {
     Folder, FolderOpen, FileText,
     MoreVertical, Edit2, Trash2,
-    Plus, FolderPlus, Share2, Activity
+    Plus, FolderPlus, Share2, Activity, Printer
 } from 'lucide-react';
+
+import markdownit from 'markdown-it';
+import taskLists from 'markdown-it-task-lists';
+const md = markdownit({ html: true, linkify: true, typographer: true }).use(taskLists, { label: false });
 
 export default function FileTree({ node, depth }) {
     const { 
         activeFileId, setActiveFileId, expandedFolders, toggleFolder, 
         removeNode, editNode, addNode, globalAddingState, setGlobalAddingState, 
         setLastInteractedNodeId, lastInteractedNodeId,
-        collaboration, startCollaboration
+        collaboration, startCollaboration, getFileContent
     } = useNotes();
     const [showMenu, setShowMenu] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -69,6 +73,40 @@ export default function FileTree({ node, depth }) {
     const cancelDelete = (e) => {
         e.stopPropagation();
         setShowDeleteConfirm(false);
+    };
+
+    const handleExportPDF = async (e) => {
+        e.stopPropagation();
+        setShowMenu(false);
+        if (activeFileId !== node.id) {
+             setActiveFileId(node.id);
+             setTimeout(() => window.print(), 200); 
+        } else {
+             window.print();
+        }
+    };
+
+    const handleExportWord = async (e) => {
+        e.stopPropagation();
+        setShowMenu(false);
+        
+        let content = node.content;
+        if (content === undefined) {
+            content = await getFileContent(node.id);
+        }
+        
+        const html = md.render(content || '');
+        const header = "<html xmlns:o='urn:schemas-microsoft-com:office:office' xmlns:w='urn:schemas-microsoft-com:office:word' xmlns='http://www.w3.org/TR/REC-html40'><head><meta charset='utf-8'><title>Export</title></head><body>";
+        const footer = "</body></html>";
+        const sourceHTML = header + `<h1>${node.name}</h1>` + html + footer;
+
+        const source = 'data:application/vnd.ms-word;charset=utf-8,' + encodeURIComponent(sourceHTML);
+        const fileDownload = document.createElement("a");
+        document.body.appendChild(fileDownload);
+        fileDownload.href = source;
+        fileDownload.download = `${node.name}.doc`;
+        fileDownload.click();
+        document.body.removeChild(fileDownload);
     };
 
     const handleRename = (e) => {
@@ -308,6 +346,17 @@ export default function FileTree({ node, depth }) {
                                     </button>
                                     <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => startAdding(e, 'folder')} aria-label="Create New Folder in this folder">
                                         <FolderPlus size={14} aria-hidden="true" /> New Folder
+                                    </button>
+                                    <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} aria-hidden="true"></div>
+                                </>
+                            )}
+                            {!isFolder && (
+                                <>
+                                    <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={handleExportPDF} aria-label={`Export PDF`}>
+                                        <Printer size={14} aria-hidden="true" /> Export PDF
+                                    </button>
+                                    <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={handleExportWord} aria-label={`Export Word`}>
+                                        <FileText size={14} aria-hidden="true" /> Export Word
                                     </button>
                                     <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} aria-hidden="true"></div>
                                 </>

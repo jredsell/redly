@@ -29,7 +29,7 @@ import { parseDateString } from '../utils/dateHelpers';
 import {
     Trash, Bold, Italic, Strikethrough, Code, Heading1, Heading2, Heading3,
     List, ListOrdered, Quote, CheckSquare, Link as LinkIcon, ExternalLink,
-    Table as TableIcon, PlusSquare, MinusSquare, Columns, Rows, MoreHorizontal, LayoutTemplate, Printer, FileText
+    Table as TableIcon, PlusSquare, MinusSquare, Columns, Rows, MoreHorizontal, LayoutTemplate
 } from 'lucide-react';
 
 import TemplateModal from './TemplateModal';
@@ -1347,53 +1347,6 @@ export default function Editor({ fileId }) {
         debouncedSave({ name: newName });
     }, [debouncedSave]);
 
-    const handleExportWord = useCallback(async () => {
-        if (!editor) return;
-        try {
-            const htmlToDocx = (await import('html-to-docx')).default;
-            const htmlString = `
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <meta charset="utf-8">
-                    <title>${localTitle || 'Export'}</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; }
-                        h1 { font-size: 24pt; }
-                        h2 { font-size: 18pt; }
-                        h3 { font-size: 14pt; }
-                        p { font-size: 11pt; }
-                        table { border-collapse: collapse; width: 100%; }
-                        th, td { border: 1px solid black; padding: 4px; }
-                        ul.task-list { list-style: none; padding-left: 0; }
-                    </style>
-                </head>
-                <body>
-                    <h1>${localTitle || 'Untitled Note'}</h1>
-                    ${editor.getHTML()}
-                </body>
-                </html>
-            `;
-            const fileBuffer = await htmlToDocx(htmlString, null, {
-                table: { row: { cantSplit: true } },
-                footer: true,
-                pageNumber: true
-            });
-            const blob = new Blob([fileBuffer], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `${localTitle || 'Note'}.docx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        } catch (error) {
-            console.error('Failed to export to word:', error);
-            alert('Failed to export to Word document.');
-        }
-    }, [editor, localTitle]);
-
     const handleKeyDown = useCallback((e) => {
         // Keyboard handling is now done inside editorProps.handleKeyDown
     }, []);
@@ -1538,23 +1491,6 @@ export default function Editor({ fileId }) {
                             return `${words} words / ${textLength} chars`;
                         })()}
                     </span>
-                    <button
-                        className="icon-button"
-                        onClick={() => window.print()}
-                        title="Export as PDF"
-                        style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                        <Printer size={18} />
-                    </button>
-                    <button
-                        className="icon-button"
-                        onClick={handleExportWord}
-                        title="Export as Word (.docx)"
-                        style={{ color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}
-                    >
-                        <FileText size={18} />
-                    </button>
-                    <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', margin: '0 4px' }} />
                     <button
                         className="icon-button"
                         onClick={() => setTemplateMenu({ isOpen: true, selectedIndex: 0 })}
