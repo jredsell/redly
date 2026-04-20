@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, HardDrive, ShieldCheck, Box, Unlock, Monitor, Share, PlusSquare, MoreVertical, X, Github, Cloud, RefreshCw } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, HardDrive, ShieldCheck, Box, Unlock, Monitor, Share, PlusSquare, MoreVertical, X, Github, Cloud, RefreshCw, Heart } from 'lucide-react';
 import RedlyLogo from './RedlyLogo';
 
 const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
@@ -309,28 +309,36 @@ export default function WelcomeScreen({ openHelp }) {
                 <style>{SHARED_STYLES}</style>
                 {renderLogo()}
 
-                {isInstallable && (
-                    <button
-                        onClick={installApp}
-                        className="primary-action-btn"
-                        style={{
-                            marginBottom: '40px',
-                            fontSize: '15px',
-                            padding: '14px 28px',
-                            justifyContent: 'center',
-                            width: '100%',
-                            maxWidth: '320px',
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--accent-color)',
-                            border: '1px solid var(--border-color)',
-                            boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                        }}
-                        aria-label="Install Redly App"
-                    >
-                        <ShieldCheck size={20} />
-                        <span>Install Redly App</span>
-                    </button>
-                )}
+                <div style={{ display: 'flex', gap: '16px', marginBottom: '40px', width: '100%', maxWidth: '1000px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                    {isInstallable && (
+                        <button
+                            onClick={installApp}
+                            className="primary-action-btn"
+                            style={{
+                                fontSize: '15px',
+                                padding: '14px 28px',
+                                justifyContent: 'center',
+                                width: '100%',
+                                maxWidth: '320px',
+                                background: 'var(--bg-secondary)',
+                                color: 'var(--accent-color)',
+                                border: '1px solid var(--border-color)',
+                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+                            }}
+                            aria-label="Install Redly App"
+                        >
+                            <ShieldCheck size={20} />
+                            <span>Install Redly App</span>
+                        </button>
+                    )}
+                    <a href="https://github.com/sponsors/jredsell" target="_blank" rel="noopener noreferrer" className="primary-action-btn" style={{
+                        fontSize: '15px', padding: '14px 28px', justifyContent: 'center', background: 'transparent',
+                        color: '#ec4899', border: '1px solid #ec4899', boxShadow: 'none', height: 'auto', textDecoration: 'none',
+                        width: '100%', maxWidth: '320px', gap: '8px'
+                    }}>
+                        <Heart size={20} /> Support Redly
+                    </a>
+                </div>
 
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '48px', maxWidth: '550px', lineHeight: '1.5' }}>
                     Your private, offline-first Markdown knowledge base.
@@ -379,26 +387,33 @@ export default function WelcomeScreen({ openHelp }) {
 
             <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '800', letterSpacing: '-0.5px', textAlign: 'center' }}>What's next?</h1>
 
-            {isInstallable && (
-                <button
-                    onClick={installApp}
-                    className="primary-action-btn"
-                    style={{
-                        marginBottom: '32px',
-                        fontSize: '14px',
-                        padding: '10px 20px',
-                        justifyContent: 'center',
-                        background: 'var(--bg-secondary)',
-                        color: 'var(--accent-color)',
-                        border: '1px solid var(--border-color)',
-                        boxShadow: 'none',
-                        height: 'auto'
-                    }}
-                >
-                    <ShieldCheck size={18} />
-                    <span>Install Redly App</span>
-                </button>
-            )}
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', justifyContent: 'center', width: '100%', flexWrap: 'wrap' }}>
+                {isInstallable && (
+                    <button
+                        onClick={installApp}
+                        className="primary-action-btn"
+                        style={{
+                            fontSize: '14px',
+                            padding: '10px 20px',
+                            justifyContent: 'center',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--accent-color)',
+                            border: '1px solid var(--border-color)',
+                            boxShadow: 'none',
+                            height: 'auto'
+                        }}
+                    >
+                        <ShieldCheck size={18} />
+                        <span>Install Redly App</span>
+                    </button>
+                )}
+                <a href="https://github.com/sponsors/jredsell" target="_blank" rel="noopener noreferrer" className="primary-action-btn" style={{
+                    fontSize: '14px', padding: '10px 20px', justifyContent: 'center', background: 'transparent',
+                    color: '#ec4899', border: '1px solid #ec4899', boxShadow: 'none', height: 'auto', textDecoration: 'none', gap: '8px'
+                }}>
+                    <Heart size={18} /> Support Redly
+                </a>
+            </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', width: '100%', maxWidth: '600px', marginBottom: '48px' }}>
                 <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card" aria-label="Create a New Note">

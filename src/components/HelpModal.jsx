@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell, LayoutList, Search, Github } from 'lucide-react';
+import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell, LayoutList, Search, Github, Heart } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 
 import { exportSandboxToZip, importZipToSandbox, migrateLocalToSandbox, migrateSandboxToLocal } from '../lib/migration';
@@ -393,7 +393,12 @@ export default function HelpModal({ isOpen, onClose }) {
                     </p>
                 </div>
 
-                <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                <div style={{ marginTop: '24px', textAlign: 'center', display: 'flex', justifyContent: 'center', gap: '16px' }}>
+                    <a href="https://github.com/sponsors/jredsell" target="_blank" rel="noopener noreferrer" style={{
+                        background: 'transparent', color: '#ec4899', border: '1px solid #ec4899', padding: '10px 24px',
+                        borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95em',
+                        display: 'flex', alignItems: 'center', gap: '8px', textDecoration: 'none'
+                    }}><Heart size={16} /> Sponsor Redly</a>
                     <button onClick={onClose} style={{
                         background: 'var(--accent-color)', color: 'white', border: 'none', padding: '10px 32px',
                         borderRadius: '4px', cursor: 'pointer', fontWeight: 600, fontSize: '0.95em',

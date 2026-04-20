@@ -153,6 +153,9 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                             role="button"
                             aria-label="Redly Home"
                         >
+                            <a href="https://github.com/sponsors/jredsell" target="_blank" rel="noopener noreferrer" className="icon-button" title="Sponsor Redly" aria-label="Sponsor on GitHub" style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', color: 'inherit', textDecoration: 'none' }} onClick={(e) => e.stopPropagation()}>
+                                <Heart size={15} style={{ color: '#ec4899' }} aria-hidden="true" />
+                            </a>
                             <RedlyLogo size={28} showText={false} />
                         </div>
                     </div>
@@ -173,9 +176,6 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                         <button className="icon-button" onClick={() => handleNewItem('folder')} title="New Folder (Alt+F)" aria-label="Create New Folder">
                             <FolderPlus size={16} aria-hidden="true" />
                         </button>
-                        <a href="https://github.com/sponsors/jredsell" target="_blank" rel="noopener noreferrer" className="icon-button" title="Sponsor Redly" aria-label="Sponsor on GitHub" style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', color: 'inherit', textDecoration: 'none' }}>
-                            <Heart size={15} style={{ color: '#ec4899' }} aria-hidden="true" />
-                        </a>
                         <button className="icon-button hide-sidebar-btn" onClick={() => setIsSidebarCollapsed(true)} title="Hide Sidebar" aria-label="Hide Sidebar" style={{ marginLeft: '4px' }}>
                             <PanelLeftClose size={16} aria-hidden="true" />
                         </button>
