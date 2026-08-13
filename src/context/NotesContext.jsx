@@ -385,14 +385,15 @@ export const NotesProvider = ({ children }) => {
         if (!workspaceHandle) return;
         const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim();
         const extension = type === 'file' ? '.md' : '';
-        const idPath = parentId ? `${parentId}/${safeName}${extension}` : `${safeName}${extension}`;
+        const separator = parentId ? (parentId.includes('::') ? '/' : '::') : '';
+        const idPath = parentId ? `${parentId}${separator}${safeName}${extension}` : `${safeName}${extension}`;
 
         let existingNode = nodes.find(n => n.id === idPath);
         let finalIdPath = idPath;
         let counter = 1;
 
         while (existingNode) {
-            finalIdPath = `${idPath} (${counter})`;
+            finalIdPath = parentId ? `${parentId}${separator}${safeName} (${counter})${extension}` : `${safeName} (${counter})${extension}`;
             existingNode = nodes.find(n => n.id === finalIdPath);
             counter++;
         }
@@ -440,7 +441,8 @@ export const NotesProvider = ({ children }) => {
         }
         if (!workspaceHandle) return;
         const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim();
-        const idPath = parentId ? `${parentId}/${safeName}` : `${safeName}`;
+        const separator = parentId ? (parentId.includes('::') ? '/' : '::') : '';
+        const idPath = parentId ? `${parentId}${separator}${safeName}` : `${safeName}`;
 
         let existingNode = nodes.find(n => n.id === idPath);
         let finalIdPath = idPath;
@@ -450,14 +452,16 @@ export const NotesProvider = ({ children }) => {
             const parts = safeName.split('.');
             const ext = parts.length > 1 ? `.${parts.pop()}` : '';
             const base = parts.join('.');
-            finalIdPath = parentId ? `${parentId}/${base} (${counter})${ext}` : `${base} (${counter})${ext}`;
+            finalIdPath = parentId ? `${parentId}${separator}${base} (${counter})${ext}` : `${base} (${counter})${ext}`;
             existingNode = nodes.find(n => n.id === finalIdPath);
             counter++;
         }
 
+        const finalName = separator ? finalIdPath.split(separator).pop() : finalIdPath;
+
         const newNode = {
             id: finalIdPath,
-            name: finalIdPath.split('/').pop(),
+            name: finalName,
             type: 'binary',
             parentId,
             content: binaryData

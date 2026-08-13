@@ -229,7 +229,20 @@ export const deleteNode = async (workspaceId, id, type) => {
     const dir = `/notes/${workspaceId}`;
     const path = `${dir}/${id}`;
     if (type === 'folder') {
-        await pfs.rmdir(path, { recursive: true });
+        const deleteRecursive = async (dirPath) => {
+            const files = await pfs.readdir(dirPath).catch(() => []);
+            for (const file of files) {
+                const fullPath = `${dirPath}/${file}`;
+                const stats = await pfs.stat(fullPath);
+                if (stats.isDirectory()) {
+                    await deleteRecursive(fullPath);
+                } else {
+                    await pfs.unlink(fullPath);
+                }
+            }
+            await pfs.rmdir(dirPath);
+        };
+        await deleteRecursive(path);
     } else {
         await pfs.unlink(path);
     }

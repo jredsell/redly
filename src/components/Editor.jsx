@@ -802,7 +802,9 @@ export default function Editor({ fileId }) {
                                             const reader = new FileReader();
                                             reader.onload = async (e) => {
                                                 const buffer = e.target.result;
-                                                const parentId = fileId.includes('/') ? fileId.substring(0, fileId.lastIndexOf('/')) : null;
+                                                const parentId = fileId.includes('/') 
+                                                    ? fileId.substring(0, fileId.lastIndexOf('/')) 
+                                                    : (fileId.includes('::') ? fileId.substring(0, fileId.indexOf('::')) : null);
                                                 const newNode = await addBinaryNode(file.name, parentId, buffer);
                                                 if (newNode) {
                                                     const blob = new Blob([buffer], { type: file.type });
