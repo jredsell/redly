@@ -1060,7 +1060,7 @@ export default function Editor({ fileId }) {
             }
 
         })
-    ], [isCollabActive]);
+    ], []);
 
     // Get initial content for useEditor
     const initialEditorContent = useMemo(() => {
