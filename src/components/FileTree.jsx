@@ -16,7 +16,7 @@ export default function FileTree({ node, depth }) {
         activeFileId, setActiveFileId, expandedFolders, toggleFolder, 
         removeNode, editNode, addNode, globalAddingState, setGlobalAddingState, 
         setLastInteractedNodeId, lastInteractedNodeId,
-        collaboration, startCollaboration, getFileContent,
+        getFileContent,
         disconnectWorkspaceById
     } = useNotes();
     const [showMenu, setShowMenu] = useState(false);
@@ -32,7 +32,6 @@ export default function FileTree({ node, depth }) {
     const isAddingMode = (globalAddingState.parentId === node.id) ? globalAddingState.type : null;
     const isExpanded = expandedFolders.has(node.id);
     const isActive = activeFileId === node.id;
-    const isShared = collaboration.active && collaboration.sharedNodeId === node.id;
 
     useEffect(() => {
         const handleClickOutside = (e) => {
@@ -367,13 +366,7 @@ export default function FileTree({ node, depth }) {
                                     <div style={{ height: '1px', background: 'var(--border-color)', margin: '4px 0' }} aria-hidden="true"></div>
                                 </>
                             )}
-                            {/* <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { 
-                                e.stopPropagation(); 
-                                startCollaboration(node.id, node.type);
-                                setShowMenu(false);
-                            }} aria-label={`Collaborate on ${node.name}`}>
-                                <Share2 size={14} aria-hidden="true" /> Collaborate
-                            </button> */}
+
                             {!node.isWorkspaceRoot ? (
                                 <>
                                     <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { e.stopPropagation(); setIsEditing(true); setShowMenu(false); }} aria-label={`Rename ${node.name}`}>
