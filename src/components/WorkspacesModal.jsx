@@ -134,7 +134,7 @@ export default function WorkspacesModal({ onClose }) {
                     </h3>
                     
                     <div style={{ display: 'flex', gap: '16px', flexDirection: 'column' }}>
-                        <button onClick={handleSandboxClick} className="storage-option-btn" style={{ textAlign: 'left', padding: '16px', background: 'var(--bg-secondary)', width: '100%' }}>
+                        <button onClick={handleSandboxClick} className="storage-option-btn" style={{ textAlign: 'left', padding: '16px', background: 'var(--bg-secondary)', width: '100%', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                 <Box size={20} style={{ color: 'var(--color-future)' }} />
                                 <h3 style={{ fontWeight: '700', fontSize: '15px', margin: 0 }}>Browser Storage</h3>
@@ -142,7 +142,7 @@ export default function WorkspacesModal({ onClose }) {
                             <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', margin: 0, paddingLeft: '32px' }}>Store notes in a hidden, secure browser sandbox. Fast and zero-config.</p>
                         </button>
 
-                        <button onClick={() => setShowGithubModal(true)} className="storage-option-btn" style={{ textAlign: 'left', padding: '16px', background: 'var(--bg-secondary)', width: '100%' }}>
+                        <button onClick={() => setShowGithubModal(true)} className="storage-option-btn" style={{ textAlign: 'left', padding: '16px', background: 'var(--bg-secondary)', width: '100%', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                 <Github size={20} style={{ color: '#24292f' }} />
                                 <h3 style={{ fontWeight: '700', fontSize: '15px', margin: 0 }}>Cloud Sync (GitHub)</h3>
@@ -151,7 +151,7 @@ export default function WorkspacesModal({ onClose }) {
                         </button>
 
                         {!isMobile && (
-                            <button onClick={handleLocalStorageClick} className="storage-option-btn" style={{ textAlign: 'left', padding: '16px', background: 'var(--bg-secondary)', width: '100%', opacity: !isFileSystemSupported ? 0.7 : 1 }}>
+                            <button onClick={handleLocalStorageClick} className="storage-option-btn" style={{ textAlign: 'left', padding: '16px', background: 'var(--bg-secondary)', width: '100%', opacity: !isFileSystemSupported ? 0.7 : 1, border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-primary)', cursor: 'pointer' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
                                     <HardDrive size={20} style={{ color: 'var(--accent-color)' }} />
                                     <h3 style={{ fontWeight: '700', fontSize: '15px', margin: 0 }}>
