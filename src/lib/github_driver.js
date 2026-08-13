@@ -2,20 +2,13 @@ import FS from '@isomorphic-git/lightning-fs';
 
 const fs = new FS('redly-github');
 const pfs = fs.promises;
-const dir = '/notes'; // Must match the worker path
 
 /** 
  * GitHub Driver for Redly (Worker-Optimized)
  * Bridges the Redly UI with a background Git Worker for a lag-free experience.
  */
 
-let githubConfig = {
-    token: null,
-    repo: null,
-    owner: null,
-    branch: 'main',
-    corsProxy: 'https://cors.isomorphic-git.org'
-};
+const githubConfigs = new Map();
 
 let worker = null;
 const pendingPromises = new Map();
@@ -59,55 +52,66 @@ const sendRequest = (type, payload = {}) => {
     });
 };
 
-export const setConfig = (config) => {
-    githubConfig = { ...githubConfig, ...config };
+export const setConfig = (workspaceId, config) => {
+    const existing = githubConfigs.get(workspaceId) || {
+        branch: 'main',
+        corsProxy: 'https://cors.isomorphic-git.org'
+    };
+    githubConfigs.set(workspaceId, { ...existing, ...config });
 };
 
-export const init = async () => {
+export const init = async (workspaceId) => {
     try {
-        await pfs.stat(`${dir}/.git`);
+        await pfs.stat(`/notes/${workspaceId}/.git`);
         return true;
     } catch (e) {
         return false; 
     }
 };
 
-export const cloneRepo = async (config) => {
-    githubConfig = { ...githubConfig, ...config };
-    const url = `https://github.com/${config.owner}/${config.repo}.git`;
+export const cloneRepo = async (workspaceId, config) => {
+    setConfig(workspaceId, config);
+    const resolvedConfig = githubConfigs.get(workspaceId);
+    const url = `https://github.com/${resolvedConfig.owner}/${resolvedConfig.repo}.git`;
     
     return sendRequest('CLONE', {
+        workspaceId,
         url,
-        token: config.token,
-        corsProxy: githubConfig.corsProxy
+        token: resolvedConfig.token,
+        corsProxy: resolvedConfig.corsProxy
     });
 };
 
-export const pull = async () => {
-    if (!githubConfig.token) return;
+export const pull = async (workspaceId) => {
+    const config = githubConfigs.get(workspaceId);
+    if (!config || !config.token) return;
     return sendRequest('PULL', {
-        token: githubConfig.token,
-        corsProxy: githubConfig.corsProxy
+        workspaceId,
+        token: config.token,
+        corsProxy: config.corsProxy
     });
 };
 
-export const push = async () => {
-    if (!githubConfig.token) return;
+export const push = async (workspaceId) => {
+    const config = githubConfigs.get(workspaceId);
+    if (!config || !config.token) return;
     return sendRequest('PUSH', {
-        token: githubConfig.token,
-        corsProxy: githubConfig.corsProxy
+        workspaceId,
+        token: config.token,
+        corsProxy: config.corsProxy
     });
 };
 
-export const sync = async () => {
-    await pull();
+export const sync = async (workspaceId) => {
+    await pull(workspaceId);
     return true; 
 };
 
 // --- Redly File System API Implementation (Main Thread) ---
 
-export const getNodes = async () => {
+export const getNodes = async (workspaceId) => {
     const nodes = [];
+    const dir = `/notes/${workspaceId}`;
     async function scan(currentDir) {
         let files = [];
         try {
@@ -124,13 +128,13 @@ export const getNodes = async () => {
             // id is relative to the dir root for the app
             let id = path;
             if (path.startsWith(dir)) {
-                id = path.substring(dir.length + 1); // Remove '/notes/'
+                id = path.substring(dir.length + 1); // Remove '/notes/workspaceId/'
             }
 
             if (stat.isDirectory()) {
                 nodes.push({ id, name, type: 'folder', parentId: currentDir === dir ? null : currentDir.substring(dir.length + 1) });
                 await scan(path);
-            } else if (name.endsWith('.md') || name.endsWith('.json')) {
+            } else if (name.endsWith('.md') || name.endsWith('.json') || name.includes('.')) {
                 nodes.push({ id, name, type: 'file', parentId: currentDir === dir ? null : currentDir.substring(dir.length + 1) });
             }
         }
@@ -139,12 +143,13 @@ export const getNodes = async () => {
     return nodes;
 };
 
-export const getFileContent = async (id) => {
-    const content = await pfs.readFile(`${dir}/${id}`, 'utf8');
+export const getFileContent = async (workspaceId, id) => {
+    const content = await pfs.readFile(`/notes/${workspaceId}/${id}`, 'utf8');
     return content;
 };
 
-export const createNode = async (node) => {
+export const createNode = async (workspaceId, node) => {
+    const dir = `/notes/${workspaceId}`;
     const path = `${dir}/${node.id}`;
     if (node.type === 'folder') {
         await pfs.mkdir(path);
@@ -152,27 +157,32 @@ export const createNode = async (node) => {
         await pfs.writeFile(path, node.content || '');
     }
     
+    const config = githubConfigs.get(workspaceId);
     sendRequest('COMMIT', {
+        workspaceId,
         filepath: node.id,
         message: `Create ${node.name}`,
-        token: githubConfig.token,
-        corsProxy: githubConfig.corsProxy,
+        token: config.token,
+        corsProxy: config.corsProxy,
         autoPush: true
     }).catch(err => console.error('[GitHub Sync] Create Failed:', err));
 };
 
-export const updateNode = async (id, updates, oldNode) => {
+export const updateNode = async (workspaceId, id, updates, oldNode) => {
+    const dir = `/notes/${workspaceId}`;
     const oldPath = `${dir}/${id}`;
+    const config = githubConfigs.get(workspaceId);
     
     // 1. Handle Content Translation
     if (updates.content !== undefined) {
         await pfs.writeFile(oldPath, updates.content);
         
         sendRequest('COMMIT', {
+            workspaceId,
             filepath: id,
             message: `Update ${id}`,
-            token: githubConfig.token,
-            corsProxy: githubConfig.corsProxy,
+            token: config.token,
+            corsProxy: config.corsProxy,
             autoPush: true
         }).catch(err => console.error('[GitHub Sync] Update Failed:', err));
     }
@@ -185,7 +195,7 @@ export const updateNode = async (id, updates, oldNode) => {
         // Construct new ID (same logic as local_driver)
         let newId = id;
         if (oldNode.type === 'file') {
-            const fileName = `${newName}.md`;
+            const fileName = newName.includes('.') ? newName : `${newName}.md`;
             newId = newParentId ? `${newParentId}/${fileName}` : fileName;
         } else {
             newId = newParentId ? `${newParentId}/${newName}` : newName;
@@ -202,11 +212,12 @@ export const updateNode = async (id, updates, oldNode) => {
         await pfs.rename(oldPath, newPath);
 
         sendRequest('RENAME', {
+            workspaceId,
             oldPath: id,
             newPath: newId,
             message: `Rename ${oldNode.name} to ${newName}`,
-            token: githubConfig.token,
-            corsProxy: githubConfig.corsProxy,
+            token: config.token,
+            corsProxy: config.corsProxy,
             autoPush: true
         }).catch(err => console.error('[GitHub Sync] Rename Failed:', err));
 
@@ -214,7 +225,8 @@ export const updateNode = async (id, updates, oldNode) => {
     }
 };
 
-export const deleteNode = async (id, type) => {
+export const deleteNode = async (workspaceId, id, type) => {
+    const dir = `/notes/${workspaceId}`;
     const path = `${dir}/${id}`;
     if (type === 'folder') {
         await pfs.rmdir(path, { recursive: true });
@@ -222,16 +234,19 @@ export const deleteNode = async (id, type) => {
         await pfs.unlink(path);
     }
     
+    const config = githubConfigs.get(workspaceId);
     sendRequest('DELETE', {
+        workspaceId,
         filepath: id,
         message: `Delete ${id}`,
-        token: githubConfig.token,
-        corsProxy: githubConfig.corsProxy,
+        token: config.token,
+        corsProxy: config.corsProxy,
         autoPush: true
     }).catch(err => console.error('[GitHub Sync] Delete Failed:', err));
 };
 
-export const importNodes = async (nodes) => {
+export const importNodes = async (workspaceId, nodes) => {
+    const dir = `/notes/${workspaceId}`;
     // 1. Write all nodes to filesystem (no Git yet)
     // Sort to ensure folders are created before their children
     const sortedNodes = [...nodes].sort((a, b) => a.id.split('/').length - b.id.split('/').length);
@@ -249,27 +264,26 @@ export const importNodes = async (nodes) => {
         }
     }
 
+    const config = githubConfigs.get(workspaceId);
     // 2. Perform a single batch commit and push
     return sendRequest('COMMIT', {
+        workspaceId,
         filepath: '.',
         message: 'Initial migration to GitHub',
-        token: githubConfig.token,
-        corsProxy: githubConfig.corsProxy,
+        token: config.token,
+        corsProxy: config.corsProxy,
         autoPush: true
     });
 };
 
-export const getTrashNodes = async () => {
-    // Basic implementation: check for .trash folder or return empty
+export const getTrashNodes = async (workspaceId) => {
     return [];
 };
 
-export const restoreNode = async (trashId) => {
-    // Stub implementation
+export const restoreNode = async (workspaceId, trashId) => {
     return true;
 };
 
-export const emptyTrash = async () => {
-    // Stub implementation
+export const emptyTrash = async (workspaceId) => {
     return true;
 };

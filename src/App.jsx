@@ -9,7 +9,7 @@ import SyncConflictModal from './components/SyncConflictModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
 import GlobalSearch from './components/GlobalSearch';
-import CollaborationModal from './components/CollaborationModal';
+
 import { Menu, Sun, Moon, Bell, CheckCircle, RefreshCw, Share2, Activity, PanelLeft } from 'lucide-react';
 import RedlyLogo from './components/RedlyLogo';
 import PullToRefresh from './components/PullToRefresh';
@@ -80,10 +80,9 @@ function NotificationToggle() {
 function App() {
   const { 
     isInitializing, activeFileId, setActiveFileId, workspaceHandle, 
-    disconnectWorkspace, notificationSettings, setNotificationSettings, 
+    notificationSettings, setNotificationSettings,
     isDarkMode, setIsDarkMode, loadNodes, triggerSyncPulse, 
-    storageMode, nodes, selectWorkspace,
-    collaboration, stopCollaboration
+    storageMode, nodes
   } = useNotes();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(() => {
@@ -109,7 +108,7 @@ function App() {
   const [syncToasts, setSyncToasts] = useState([]);
   const [syncSuccessModal, setSyncSuccessModal] = useState(false);
   const [showTasks, setShowTasks] = useState(false);
-  const [showCollabModal, setShowCollabModal] = useState(false);
+
 
   const handleExport = async () => {
     try {
@@ -258,13 +257,7 @@ function App() {
       setShowTasks(false);
     }
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [activeFileId, showTasks, disconnectWorkspace]);
-
-  useEffect(() => {
-    if (collaboration.active && collaboration.role === 'host') {
-      setShowCollabModal(true);
-    }
-  }, [collaboration.active, collaboration.role]);
+  }, [activeFileId, showTasks]);
 
     if (isInitializing) {
     const { migrationStatus } = useNotes();
@@ -331,12 +324,6 @@ function App() {
         <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
         <TrashModal isOpen={trashOpen} onClose={() => setTrashOpen(false)} />
         {syncOpen && <SyncModal onClose={() => setSyncOpen(false)} />}
-        <CollaborationModal 
-          isOpen={showCollabModal} 
-          onClose={() => setShowCollabModal(false)} 
-          collaboration={collaboration}
-          onStop={stopCollaboration}
-        />
 
         {syncConflicts && (
           <SyncConflictModal
@@ -492,27 +479,7 @@ function App() {
                 {isDarkMode ? <Sun size={20} /> : <Moon size={20} />}
               </button>
 
-              {/* {collaboration.active && (
-                <button
-                  className="icon-button collab-pulse-btn"
-                  onClick={() => setShowCollabModal(true)}
-                  title="Collaboration Active - Click for options"
-                  style={{ 
-                    background: 'rgba(37, 99, 235, 0.1)', 
-                    color: 'var(--accent-color)',
-                    borderRadius: '20px',
-                    padding: '4px 12px',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    fontSize: '12px',
-                    fontWeight: '600'
-                  }}
-                >
-                  <Activity size={16} className="collab-pulse" />
-                  Live
-                </button>
-              )} */}
+
 
               <NotificationToggle />
             </div>
@@ -530,7 +497,7 @@ function App() {
           `}</style>
 
           {showTasks && <GlobalTasks />}
-          {!showTasks && activeFileId && <Editor key={`${activeFileId}-${collaboration.roomId ?? 'local'}`} fileId={activeFileId} />}
+          {!showTasks && activeFileId && <Editor key={activeFileId} fileId={activeFileId} />}
           {!showTasks && !activeFileId && <WelcomeScreen openHelp={() => setHelpOpen(true)} />}
         </main>
       </div>

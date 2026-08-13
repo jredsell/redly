@@ -257,7 +257,7 @@ const SHARED_STYLES = `
 `;
 
 export default function WelcomeScreen({ openHelp }) {
-    const { addNode, nodes, setActiveFileId, workspaceHandle, selectWorkspace, needsPermission, grantLocalPermission, installApp, isInstallable, isDarkMode, showInstallModal, setShowInstallModal } = useNotes();
+    const { addNode, nodes, setActiveFileId, workspaceHandle, addWorkspaceInstance, needsPermission, grantLocalPermission, installApp, isInstallable, isDarkMode, showInstallModal, setShowInstallModal } = useNotes();
     const [showGithubModal, setShowGithubModal] = React.useState(false);
     const recentFiles = nodes
         .filter(n => n.type === 'file')
@@ -276,13 +276,13 @@ export default function WelcomeScreen({ openHelp }) {
             return;
         }
 
-        selectWorkspace('local');
+        addWorkspaceInstance('local');
     };
 
-    const handleSandboxClick = () => selectWorkspace('sandbox');
+    const handleSandboxClick = () => addWorkspaceInstance('sandbox');
 
     const handleGithubConnect = async (config) => {
-        await selectWorkspace('github', { config });
+        await addWorkspaceInstance('github', { config });
         setShowGithubModal(false);
     };
 

@@ -3,7 +3,8 @@ import { useNotes } from '../context/NotesContext';
 import {
     Folder, FolderOpen, FileText,
     MoreVertical, Edit2, Trash2,
-    Plus, FolderPlus, Share2, Activity, Printer
+    Plus, FolderPlus, Share2, Activity, Printer,
+    HardDrive, Github, Box, Unplug
 } from 'lucide-react';
 
 import markdownit from 'markdown-it';
@@ -15,7 +16,8 @@ export default function FileTree({ node, depth }) {
         activeFileId, setActiveFileId, expandedFolders, toggleFolder, 
         removeNode, editNode, addNode, globalAddingState, setGlobalAddingState, 
         setLastInteractedNodeId, lastInteractedNodeId,
-        collaboration, startCollaboration, getFileContent
+        collaboration, startCollaboration, getFileContent,
+        disconnectWorkspaceById
     } = useNotes();
     const [showMenu, setShowMenu] = useState(false);
     const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
@@ -284,7 +286,11 @@ export default function FileTree({ node, depth }) {
             >
                 <div className="tree-item-content">
                     <span className="icon-color" style={{ color: isFolder ? 'var(--accent-color)' : 'var(--text-tertiary)', display: 'flex' }} aria-hidden="true">
-                        {isFolder ? (isExpanded ? <FolderOpen size={16} /> : <Folder size={16} />) : <FileText size={16} />}
+                        {node.isWorkspaceRoot ? (
+                            node.workspaceType === 'local' ? <HardDrive size={16} /> :
+                            node.workspaceType === 'github' ? <Github size={16} /> :
+                            <Box size={16} />
+                        ) : isFolder ? (isExpanded ? <FolderOpen size={16} /> : <Folder size={16} />) : <FileText size={16} />}
                     </span>
 
                     {isEditing ? (
@@ -368,12 +374,25 @@ export default function FileTree({ node, depth }) {
                             }} aria-label={`Collaborate on ${node.name}`}>
                                 <Share2 size={14} aria-hidden="true" /> Collaborate
                             </button> */}
-                            <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { e.stopPropagation(); setIsEditing(true); setShowMenu(false); }} aria-label={`Rename ${node.name}`}>
-                                <Edit2 size={14} aria-hidden="true" /> Rename
-                            </button>
-                            <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px', color: 'var(--danger-color)' }} onClick={handleDelete} aria-label={`Delete ${node.name}`}>
-                                <Trash2 size={14} aria-hidden="true" /> Delete
-                            </button>
+                            {!node.isWorkspaceRoot ? (
+                                <>
+                                    <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px' }} onClick={(e) => { e.stopPropagation(); setIsEditing(true); setShowMenu(false); }} aria-label={`Rename ${node.name}`}>
+                                        <Edit2 size={14} aria-hidden="true" /> Rename
+                                    </button>
+                                    <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px', color: 'var(--danger-color)' }} onClick={handleDelete} aria-label={`Delete ${node.name}`}>
+                                        <Trash2 size={14} aria-hidden="true" /> Delete
+                                    </button>
+                                </>
+                            ) : (
+                                <button className="icon-button" style={{ justifyContent: 'flex-start', width: '100%', gap: '8px', fontSize: '13px', padding: '6px 8px', color: 'var(--danger-color)' }} onClick={(e) => {
+                                    e.stopPropagation();
+                                    if(window.confirm(`Disconnect workspace "${node.name}"?`)) {
+                                        disconnectWorkspaceById(node.id);
+                                    }
+                                }} aria-label={`Disconnect ${node.name}`}>
+                                    <Unplug size={14} aria-hidden="true" /> Disconnect
+                                </button>
+                            )}
                         </div>
                     )}
                 </div>

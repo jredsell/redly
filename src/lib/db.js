@@ -1,117 +1,315 @@
-import { setHandle, getHandle, clearHandles } from './idb_store';
+import * as idbStore from './idb_store';
 import * as localDriver from './local_driver';
 import * as githubDriver from './github_driver';
 
-export { getHandle };
-let currentMode = null;
-let activeDriver = localDriver;
+export { getHandle } from './idb_store';
 
-const setDriver = (mode) => {
-  currentMode = mode;
-  if (mode === 'github') activeDriver = githubDriver;
-  else activeDriver = localDriver;
+const getDriver = (type) => {
+  return type === 'github' ? githubDriver : localDriver;
+};
+
+// --- Workspace Initialization & Management ---
+
+// Backward compatibility: migrate old single workspace to multi-workspace array
+export const migrateLegacyWorkspace = async () => {
+  const mode = await idbStore.getHandle('workspace_mode');
+  if (mode) {
+    const workspaces = await idbStore.getWorkspaces();
+    if (workspaces.length === 0) {
+      if (mode === 'sandbox') {
+        await idbStore.addWorkspace({ id: 'sandbox_1', type: 'sandbox', name: 'Sandbox' });
+      } else if (mode === 'local') {
+        const handle = await idbStore.getHandle('local_root');
+        if (handle) {
+          await idbStore.addWorkspace({ id: 'local_1', type: 'local', name: 'Local Folder', handle });
+        }
+      } else if (mode === 'github') {
+        const config = await idbStore.getHandle('github_config');
+        if (config) {
+          await idbStore.addWorkspace({ id: 'github_1', type: 'github', name: `${config.owner}/${config.repo}`, config });
+        }
+      }
+    }
+    // Clear legacy single flags to avoid re-migration
+    await idbStore.clearHandles(); 
+    // Re-save workspaces since clearHandles wiped everything
+    const newWorkspaces = await idbStore.getWorkspaces();
+    if(newWorkspaces.length === 0 && workspaces.length > 0) {
+       await idbStore.saveWorkspaces(workspaces);
+    }
+  }
 };
 
 export const initWorkspace = async (mode, options = {}) => {
   try {
-    setDriver(mode);
+    const timestamp = Date.now();
+    let workspaceConfig = null;
+
     if (mode === 'sandbox') {
       const handle = await navigator.storage.getDirectory();
-      localDriver.setRootHandle(handle);
-      await setHandle('workspace_mode', 'sandbox');
+      const id = `sandbox_${timestamp}`;
+      workspaceConfig = { id, type: 'sandbox', name: 'Sandbox' };
+      localDriver.setRootHandle(id, handle);
     } else if (mode === 'local') {
       const handle = options.handle || await window.showDirectoryPicker({ mode: 'readwrite' });
-      localDriver.setRootHandle(handle);
-      await setHandle('workspace_mode', 'local');
-      await setHandle('local_root', handle);
+      const id = `local_${timestamp}`;
+      workspaceConfig = { id, type: 'local', name: handle.name, handle };
+      localDriver.setRootHandle(id, handle);
     } else if (mode === 'github') {
-      await githubDriver.cloneRepo(options.config);
-      await setHandle('workspace_mode', 'github');
-      await setHandle('github_config', options.config);
+      const id = `github_${timestamp}`;
+      workspaceConfig = { id, type: 'github', name: `${options.config.owner}/${options.config.repo}`, config: options.config };
+      await githubDriver.cloneRepo(id, options.config);
     }
-    return true;
+
+    if (workspaceConfig) {
+      await idbStore.addWorkspace(workspaceConfig);
+    }
+    return workspaceConfig;
   } catch (err) {
-    console.error('Initialisation failed:', err);
+    console.error('Workspace initialization failed:', err);
     throw err;
   }
 };
 
-export const loadSavedWorkspace = async () => {
-  const mode = await getHandle('workspace_mode');
-  setDriver(mode);
-  if (mode === 'sandbox') {
-    localDriver.setRootHandle(await navigator.storage.getDirectory());
-    return true;
-  } else if (mode === 'local') {
-    const handle = await getHandle('local_root');
-    if (handle) {
-      const perm = await handle.queryPermission({ mode: 'readwrite' });
-      if (perm === 'granted') {
-        localDriver.setRootHandle(handle);
-        return true;
-      } else {
-        return 'requires_permission';
+export const loadSavedWorkspaces = async () => {
+  await migrateLegacyWorkspace();
+  const workspaces = await idbStore.getWorkspaces();
+  
+  if (workspaces.length === 0) return false;
+
+  for (const ws of workspaces) {
+    if (ws.type === 'sandbox') {
+      localDriver.setRootHandle(ws.id, await navigator.storage.getDirectory());
+    } else if (ws.type === 'local') {
+      if (ws.handle) {
+        const perm = await ws.handle.queryPermission({ mode: 'readwrite' });
+        if (perm === 'granted') {
+          localDriver.setRootHandle(ws.id, ws.handle);
+        } else {
+          // Requires permission, could be requested later by UI
+          localDriver.setRootHandle(ws.id, ws.handle);
+        }
       }
-    }
-  } else if (mode === 'github') {
-    const config = await getHandle('github_config');
-    if (config) {
-      githubDriver.setConfig(config);
-      await githubDriver.init();
-      return true;
+    } else if (ws.type === 'github') {
+      githubDriver.setConfig(ws.id, ws.config);
+      await githubDriver.init(ws.id);
     }
   }
-  return false;
+  return true;
 };
 
-export const requestLocalPermission = async () => {
-  const handle = await getHandle('local_root');
-  if (handle && (await handle.requestPermission({ mode: 'readwrite' })) === 'granted') {
-    localDriver.setRootHandle(handle);
-    return true;
+export const disconnectWorkspace = async (workspaceId) => {
+    await idbStore.removeWorkspace(workspaceId);
+};
+
+export const clearAllWorkspaces = async () => {
+  await idbStore.clearHandles();
+};
+
+export const getWorkspaces = async () => {
+  return await idbStore.getWorkspaces();
+};
+
+// --- ID Routing & Namespacing ---
+
+const parseId = (globalId) => {
+  if (!globalId) return { workspaceId: null, relativeId: null };
+  const parts = globalId.split('::');
+  if (parts.length === 1) {
+    return { workspaceId: globalId, relativeId: null };
   }
-  return false;
+  const workspaceId = parts[0];
+  const relativeId = parts.slice(1).join('::');
+  return { workspaceId, relativeId };
 };
 
-export const clearWorkspaceHandle = async () => {
-  await clearHandles();
-  currentMode = null;
+const mapToGlobal = (workspaceId, relativeNode) => {
+  if (!relativeNode) return null;
+  const parentId = relativeNode.parentId ? `${workspaceId}::${relativeNode.parentId}` : workspaceId;
+  return {
+    ...relativeNode,
+    id: `${workspaceId}::${relativeNode.id}`,
+    parentId
+  };
 };
+
+const mapToRelative = (globalNode) => {
+  if (!globalNode) return null;
+  const { relativeId } = parseId(globalNode.id);
+  const { relativeId: relativeParentId } = parseId(globalNode.parentId);
+  return {
+    ...globalNode,
+    id: relativeId,
+    parentId: relativeParentId
+  };
+};
+
+// --- Global File System API ---
 
 export const getNodes = async () => {
-  return activeDriver.getNodes();
+  const allNodes = [];
+  const workspaces = await idbStore.getWorkspaces();
+
+  for (const ws of workspaces) {
+    allNodes.push({
+      id: ws.id,
+      name: ws.name || ws.id,
+      type: 'folder',
+      parentId: null,
+      isWorkspaceRoot: true,
+      workspaceType: ws.type
+    });
+
+    const driver = getDriver(ws.type);
+    try {
+      const nodes = await driver.getNodes(ws.id);
+      for (const node of nodes) {
+        allNodes.push(mapToGlobal(ws.id, node));
+      }
+    } catch (e) {
+      console.error(`Failed to get nodes for workspace ${ws.id}`, e);
+    }
+  }
+  return allNodes;
 };
 
-export const getFileContent = async (id) => {
-  return activeDriver.getFileContent(id);
+export const getFileContent = async (globalId) => {
+  const { workspaceId, relativeId } = parseId(globalId);
+  const workspaces = await idbStore.getWorkspaces();
+  const ws = workspaces.find(w => w.id === workspaceId);
+  if (!ws) throw new Error("Workspace not found");
+  
+  const driver = getDriver(ws.type);
+  return driver.getFileContent(workspaceId, relativeId);
 };
 
-export const createNode = async (node) => {
-  return activeDriver.createNode(node);
+export const getFileBlob = async (globalId) => {
+  const { workspaceId, relativeId } = parseId(globalId);
+  const workspaces = await idbStore.getWorkspaces();
+  const ws = workspaces.find(w => w.id === workspaceId);
+  if (!ws) throw new Error("Workspace not found");
+  
+  const driver = getDriver(ws.type);
+  if (driver.getFileBlob) {
+    return driver.getFileBlob(workspaceId, relativeId);
+  }
 };
 
-export const updateNode = async (id, updates, oldNode) => {
-  return activeDriver.updateNode(id, updates, oldNode);
+export const createNode = async (globalNode) => {
+  const { workspaceId, relativeId: relativeParentId } = parseId(globalNode.parentId);
+  const workspaces = await idbStore.getWorkspaces();
+  const ws = workspaces.find(w => w.id === workspaceId);
+  if (!ws) throw new Error("Workspace not found for creation");
+
+  const driver = getDriver(ws.type);
+  const relativeNode = { ...globalNode, parentId: relativeParentId };
+  
+  const created = await driver.createNode(workspaceId, relativeNode);
+  return mapToGlobal(workspaceId, created);
 };
 
-export const deleteNode = async (id, type) => {
-  return activeDriver.deleteNode(id, type);
+export const updateNode = async (globalId, updates, oldGlobalNode) => {
+  const { workspaceId, relativeId } = parseId(globalId);
+  
+  if (oldGlobalNode.isWorkspaceRoot) {
+    if (updates.name) {
+      const workspaces = await idbStore.getWorkspaces();
+      const wsIndex = workspaces.findIndex(w => w.id === workspaceId);
+      if (wsIndex !== -1) {
+        workspaces[wsIndex].name = updates.name;
+        await idbStore.saveWorkspaces(workspaces);
+      }
+    }
+    return { ...oldGlobalNode, ...updates };
+  }
+
+  const workspaces = await idbStore.getWorkspaces();
+  const ws = workspaces.find(w => w.id === workspaceId);
+  if (!ws) throw new Error("Workspace not found for update");
+
+  const driver = getDriver(ws.type);
+  const relativeUpdates = mapToRelative({ ...updates, id: globalId, parentId: updates.parentId || oldGlobalNode.parentId });
+  delete relativeUpdates.id;
+  
+  const oldRelativeNode = mapToRelative(oldGlobalNode);
+
+  const updated = await driver.updateNode(workspaceId, relativeId, relativeUpdates, oldRelativeNode);
+  return mapToGlobal(workspaceId, updated);
+};
+
+export const deleteNode = async (globalId, type) => {
+  const { workspaceId, relativeId } = parseId(globalId);
+  
+  if (!relativeId) {
+    // Attempting to delete a workspace root
+    await disconnectWorkspace(workspaceId);
+    return;
+  }
+
+  const workspaces = await idbStore.getWorkspaces();
+  const ws = workspaces.find(w => w.id === workspaceId);
+  if (!ws) throw new Error("Workspace not found for deletion");
+
+  const driver = getDriver(ws.type);
+  return driver.deleteNode(workspaceId, relativeId, type);
 };
 
 export const getTrashNodes = async () => {
-  return activeDriver.getTrashNodes();
+  const allTrash = [];
+  const workspaces = await idbStore.getWorkspaces();
+  for (const ws of workspaces) {
+    const driver = getDriver(ws.type);
+    if (driver.getTrashNodes) {
+      try {
+        const trash = await driver.getTrashNodes(ws.id);
+        for (const item of trash) {
+          allTrash.push({
+            ...item,
+            globalTrashId: `${ws.id}::${item.trashId}`,
+            originalGlobalId: `${ws.id}::${item.originalId}`,
+            workspaceId: ws.id
+          });
+        }
+      } catch (e) {}
+    }
+  }
+  return allTrash;
 };
 
-export const restoreNode = async (trashId) => {
-  return activeDriver.restoreNode(trashId);
+export const restoreNode = async (globalTrashId) => {
+  const { workspaceId, relativeId: trashId } = parseId(globalTrashId);
+  const workspaces = await idbStore.getWorkspaces();
+  const ws = workspaces.find(w => w.id === workspaceId);
+  if (!ws) return;
+
+  const driver = getDriver(ws.type);
+  if (driver.restoreNode) {
+    return driver.restoreNode(workspaceId, trashId);
+  }
 };
 
 export const emptyTrash = async () => {
-  return activeDriver.emptyTrash();
+  const workspaces = await idbStore.getWorkspaces();
+  for (const ws of workspaces) {
+    const driver = getDriver(ws.type);
+    if (driver.emptyTrash) {
+      await driver.emptyTrash(ws.id);
+    }
+  }
 };
 
 export const sync = async () => {
-  if (activeDriver.sync) return activeDriver.sync();
+  const workspaces = await idbStore.getWorkspaces();
+  for (const ws of workspaces) {
+    const driver = getDriver(ws.type);
+    if (driver.sync) {
+      try {
+        await driver.sync(ws.id);
+      } catch (e) {
+        console.error(`Sync failed for ${ws.id}`, e);
+      }
+    }
+  }
   return true;
 };
 
@@ -139,75 +337,7 @@ export const buildTree = (nodes) => {
   return roots;
 };
 
-export const migrateToGithub = async (config) => {
-  // 1. Export all data from current driver
-  const nodes = await activeDriver.getNodes();
-  const fullNodes = await Promise.all(nodes.map(async node => {
-    if (node.type === 'file') {
-      const content = await activeDriver.getFileContent(node.id);
-      return { ...node, content };
-    }
-    return node;
-  }));
-
-  // 2. Initialize GitHub workspace (this will clone/init)
-  await githubDriver.cloneRepo(config);
-  
-  // 3. Temporarily set activeDriver to github to perform the import
-  const oldDriver = activeDriver;
-  const oldMode = currentMode;
-  setDriver('github');
-  
-  try {
-    // 4. Import nodes into GitHub driver using optimized batch method
-    await githubDriver.importNodes(fullNodes);
-
-    // 5. Finalize the move
-    await setHandle('workspace_mode', 'github');
-    await setHandle('github_config', config);
-    return true;
-  } catch (err) {
-    // If migration fails, revert to old driver
-    console.error('Migration to GitHub failed:', err);
-    activeDriver = oldDriver;
-    currentMode = oldMode;
-    throw err;
-  }
-};
-export const exportSandboxData = async () => {
-  const nodes = await activeDriver.getNodes();
-  const fullNodes = await Promise.all(nodes.map(async node => {
-    if (node.type === 'file') {
-      const content = await activeDriver.getFileContent(node.id);
-      return { ...node, content };
-    }
-    return node;
-  }));
-  return {
-    version: '1.0',
-    timestamp: new Date().toISOString(),
-    nodes: fullNodes
-  };
-};
-
-export const importSandboxData = async (backup) => {
-  if (!backup || !backup.nodes) throw new Error('Invalid backup format');
-
-  // Clear existing nodes in active driver
-  const nodes = await activeDriver.getNodes();
-  for (const node of nodes) {
-    try {
-      await activeDriver.deleteNode(node.id, node.type);
-    } catch (e) {
-      console.warn('Failed to delete node during import cleanup:', node.id);
-    }
-  }
-
-  // Restore from backup
-  // Sort by ID depth to ensure folders are created before files
-  const sortedNodes = [...backup.nodes].sort((a, b) => a.id.split('/').length - b.id.split('/').length);
-
-  for (const node of sortedNodes) {
-    await activeDriver.createNode(node);
-  }
-};
+// --- Not supported with multi-workspace yet, just stubs ---
+export const migrateToGithub = async () => { throw new Error("Use Add Workspace instead"); };
+export const exportSandboxData = async () => { throw new Error("Not implemented for multi-workspace"); };
+export const importSandboxData = async () => { throw new Error("Not implemented for multi-workspace"); };

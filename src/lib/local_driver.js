@@ -1,6 +1,6 @@
 // --- Driver for OPFS and Native File System API ---
 
-let currentRootHandle = null;
+const rootHandles = new Map();
 let operationLock = Promise.resolve();
 
 async function withLock(fn) {
@@ -26,10 +26,11 @@ async function withRetry(fn, retries = 3, delay = 50) {
 }
 
 // Global Sync Journal logging (Run inside withLock!)
-async function _logSyncAction(action, nodeId, type) {
+async function _logSyncAction(workspaceId, action, nodeId, type) {
     try {
-        if (!currentRootHandle) return;
-        const syncHandle = await currentRootHandle.getDirectoryHandle('.sync', { create: true });
+        const rootHandle = rootHandles.get(workspaceId);
+        if (!rootHandle) return;
+        const syncHandle = await rootHandle.getDirectoryHandle('.sync', { create: true });
 
         let journal = {};
         try {
@@ -54,10 +55,11 @@ async function _logSyncAction(action, nodeId, type) {
     }
 }
 
-export const getSyncJournal = async () => {
+export const getSyncJournal = async (workspaceId) => {
     try {
-        if (!currentRootHandle) return {};
-        const syncHandle = await currentRootHandle.getDirectoryHandle('.sync');
+        const rootHandle = rootHandles.get(workspaceId);
+        if (!rootHandle) return {};
+        const syncHandle = await rootHandle.getDirectoryHandle('.sync');
         const fileHandle = await syncHandle.getFileHandle('journal.json');
         const file = await fileHandle.getFile();
         const text = await file.text();
@@ -82,11 +84,12 @@ export const getSyncJournal = async () => {
     }
 };
 
-export const auditSyncJournal = async (nodes) => {
+export const auditSyncJournal = async (workspaceId, nodes) => {
     try {
-        if (!currentRootHandle) return;
+        const rootHandle = rootHandles.get(workspaceId);
+        if (!rootHandle) return;
 
-        const journal = await getSyncJournal();
+        const journal = await getSyncJournal(workspaceId);
         let changed = false;
 
         for (const node of nodes) {
@@ -101,33 +104,35 @@ export const auditSyncJournal = async (nodes) => {
         }
 
         if (changed) {
-            const syncHandle = await currentRootHandle.getDirectoryHandle('.sync', { create: true });
+            const syncHandle = await rootHandle.getDirectoryHandle('.sync', { create: true });
             const fileHandle = await syncHandle.getFileHandle('journal.json', { create: true });
-            // Use withLock-like manual lock if available, or just straight write since this only runs on mount
             const writable = await fileHandle.createWritable();
             await writable.write(JSON.stringify(journal));
             await writable.close();
-            // console.log("[Sync] Audited and backfilled missing native files into local journal.");
         }
     } catch (err) {
         console.error("Failed to audit sync journal", err);
     }
 };
 
-export const setRootHandle = (handle) => { currentRootHandle = handle; };
+export const setRootHandle = (workspaceId, handle) => { rootHandles.set(workspaceId, handle); };
+export const getRootHandle = (workspaceId) => rootHandles.get(workspaceId);
 
-export const getDirHandleFromPath = async (path, create = false) => {
-    if (!path) return currentRootHandle;
+export const getDirHandleFromPath = async (workspaceId, path, create = false) => {
+    let handle = rootHandles.get(workspaceId);
+    if (!handle) throw new Error("No root handle for workspace " + workspaceId);
+    if (!path) return handle;
     const parts = path.split('/');
-    let handle = currentRootHandle;
     for (const part of parts) {
         handle = await handle.getDirectoryHandle(part, { create });
     }
     return handle;
 };
 
-export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') => {
+export const getNodes = async (workspaceId, currentPath = '', overrideHandle = null) => {
+    let dirHandle = overrideHandle || rootHandles.get(workspaceId);
     if (!dirHandle) return [];
+    
     const nodes = [];
     try {
         for await (const entry of dirHandle.values()) {
@@ -163,9 +168,19 @@ export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') 
                     parentId: currentPath || null,
                     updatedAt: file.lastModified
                 });
-            } else if (entry.kind === 'directory') {
+            } else if (entry.kind === 'file' && entry.name.includes('.')) {
+                // Keep arbitrary binary files (like images)
+                const file = await entry.getFile();
+                nodes.push({
+                    id: nodePath,
+                    name: entry.name,
+                    type: 'file',
+                    parentId: currentPath || null,
+                    updatedAt: file.lastModified
+                });
+            } else if (entry.kind === 'directory' && entry.name !== '.sync' && entry.name !== '.trash') {
                 nodes.push({ id: nodePath, name: entry.name, type: 'folder', parentId: currentPath || null, updatedAt: Date.now() });
-                const children = await getNodes(entry, nodePath);
+                const children = await getNodes(workspaceId, nodePath, entry);
                 nodes.push(...children);
             }
         }
@@ -175,12 +190,12 @@ export const getNodes = async (dirHandle = currentRootHandle, currentPath = '') 
     return nodes;
 };
 
-export const getFileContent = async (id) => {
+export const getFileContent = async (workspaceId, id) => {
     return withLock(() => withRetry(async () => {
         const parts = id.split('/');
         const fileName = parts.pop();
         const parentPath = parts.join('/');
-        const parentHandle = await getDirHandleFromPath(parentPath);
+        const parentHandle = await getDirHandleFromPath(workspaceId, parentPath);
 
         try {
             const fileHandle = await parentHandle.getFileHandle(fileName);
@@ -202,11 +217,29 @@ export const getFileContent = async (id) => {
     }));
 };
 
-export const createNode = async (node) => {
+export const getFileBlob = async (workspaceId, id) => {
     return withLock(() => withRetry(async () => {
-        const parentHandle = await getDirHandleFromPath(node.parentId, true);
+        const parts = id.split('/');
+        const fileName = parts.pop();
+        const parentPath = parts.join('/');
+        const parentHandle = await getDirHandleFromPath(workspaceId, parentPath);
+
+        const fileHandle = await parentHandle.getFileHandle(fileName);
+        return await fileHandle.getFile();
+    }));
+};
+
+export const createNode = async (workspaceId, node) => {
+    return withLock(() => withRetry(async () => {
+        const parentHandle = await getDirHandleFromPath(workspaceId, node.parentId, true);
         if (node.type === 'folder') {
             await parentHandle.getDirectoryHandle(node.name, { create: true });
+            node.id = node.parentId ? `${node.parentId}/${node.name}` : node.name;
+        } else if (node.type === 'binary') {
+            const fileHandle = await parentHandle.getFileHandle(node.name, { create: true });
+            const writable = await fileHandle.createWritable();
+            await writable.write(node.content || '');
+            await writable.close();
             node.id = node.parentId ? `${node.parentId}/${node.name}` : node.name;
         } else {
             const fileHandle = await parentHandle.getFileHandle(`${node.name}.md`, { create: true });
@@ -215,12 +248,11 @@ export const createNode = async (node) => {
             await writable.close();
             node.id = node.parentId ? `${node.parentId}/${node.name}.md` : `${node.name}.md`;
         }
-        await _logSyncAction('create', node.id, node.type);
+        await _logSyncAction(workspaceId, 'create', node.id, node.type);
         return node;
     }));
 };
 
-// Helper for recursive folder copy (fallback when .move() is unavailable)
 async function copyFolderContents(sourceHandle, targetHandle) {
     for await (const entry of sourceHandle.values()) {
         if (entry.kind === 'file') {
@@ -236,11 +268,12 @@ async function copyFolderContents(sourceHandle, targetHandle) {
     }
 }
 
-export const updateNode = async (id, updates, oldNode) => {
+export const updateNode = async (workspaceId, id, updates, oldNode) => {
     return withLock(() => withRetry(async () => {
-        const parentHandle = await getDirHandleFromPath(oldNode.parentId);
+        const parentHandle = await getDirHandleFromPath(workspaceId, oldNode.parentId);
+        const oldFileName = (oldNode.type === 'file' && !oldNode.name.includes('.')) ? `${oldNode.name}.md` : oldNode.name;
         let currentHandle = oldNode.type === 'file'
-            ? await parentHandle.getFileHandle(`${oldNode.name}.md`)
+            ? await parentHandle.getFileHandle(oldFileName)
             : await parentHandle.getDirectoryHandle(oldNode.name);
 
         let finalNode = { ...oldNode, ...updates };
@@ -249,8 +282,8 @@ export const updateNode = async (id, updates, oldNode) => {
         if ((updates.name && updates.name !== oldNode.name) || (updates.parentId !== undefined && updates.parentId !== oldNode.parentId)) {
             const newName = updates.name || oldNode.name;
             const newParentId = updates.parentId !== undefined ? updates.parentId : oldNode.parentId;
-            const newParentHandle = await getDirHandleFromPath(newParentId, true);
-            const fileName = oldNode.type === 'file' ? `${newName}.md` : newName;
+            const newParentHandle = await getDirHandleFromPath(workspaceId, newParentId, true);
+            const fileName = oldNode.type === 'file' ? (newName.includes('.') ? newName : `${newName}.md`) : newName;
 
             let moveSuccessful = false;
             if (currentHandle.move) {
@@ -276,8 +309,6 @@ export const updateNode = async (id, updates, oldNode) => {
                     await writable.write(content);
                     await writable.close();
 
-                    // Ensure we use the correct filename including extension for removal
-                    const oldFileName = oldNode.type === 'file' ? `${oldNode.name}.md` : oldNode.name;
                     await parentHandle.removeEntry(oldFileName, { recursive: oldNode.type === 'folder' });
                     currentHandle = newFileHandle;
                     // Mark content as handled so we don't write it again below
@@ -290,12 +321,10 @@ export const updateNode = async (id, updates, oldNode) => {
                 }
             }
 
-
             // Update ID
             if (oldNode.type === 'file') {
                 finalNode.id = newParentId ? `${newParentId}/${fileName}` : fileName;
             } else {
-                // For folders, we need to be careful with ID replacement if it's a nested path
                 const oldPath = oldNode.id;
                 const parentPath = oldNode.parentId || '';
                 finalNode.id = parentPath ? `${parentPath}/${newName}` : newName;
@@ -311,25 +340,23 @@ export const updateNode = async (id, updates, oldNode) => {
 
         // Update ID & Log actions
         if ((updates.name && updates.name !== oldNode.name) || (updates.parentId !== undefined && updates.parentId !== oldNode.parentId)) {
-            // It was renamed or moved. Log old as deleted, new as created/updated.
-            await _logSyncAction('delete', oldNode.id, oldNode.type);
-            await _logSyncAction('update', finalNode.id, finalNode.type);
+            await _logSyncAction(workspaceId, 'delete', oldNode.id, oldNode.type);
+            await _logSyncAction(workspaceId, 'update', finalNode.id, finalNode.type);
         } else if (updates.content !== undefined) {
-            // Just content updated
-            await _logSyncAction('update', finalNode.id, finalNode.type);
+            await _logSyncAction(workspaceId, 'update', finalNode.id, finalNode.type);
         }
 
         return finalNode;
     }));
 };
 
-export const deleteNode = async (id, type) => {
+export const deleteNode = async (workspaceId, id, type) => {
     return withLock(() => withRetry(async () => {
         const name = id.split('/').pop();
         const parentId = id.substring(0, id.lastIndexOf('/')) || null;
-        const parentHandle = await getDirHandleFromPath(parentId);
+        const parentHandle = await getDirHandleFromPath(workspaceId, parentId);
 
-        const trashHandle = await getDirHandleFromPath('.trash', true);
+        const trashHandle = await getDirHandleFromPath(workspaceId, '.trash', true);
         const timestamp = Date.now();
         const trashId = `${timestamp}-${name}`;
 
@@ -342,9 +369,7 @@ export const deleteNode = async (id, type) => {
             try {
                 await currentHandle.move(trashHandle, trashId);
                 moveSuccessful = true;
-            } catch (err) {
-                console.warn('Native move to trash failed, falling back to copy/delete:', err);
-            }
+            } catch (err) { }
         }
 
         if (!moveSuccessful) {
@@ -361,16 +386,13 @@ export const deleteNode = async (id, type) => {
             await parentHandle.removeEntry(name, { recursive: true });
         }
 
-        // Update manifest
         let manifest = [];
         try {
             const manifestHandle = await trashHandle.getFileHandle('manifest.json');
             const file = await manifestHandle.getFile();
             const text = await file.text();
             if (text) manifest = JSON.parse(text);
-        } catch (e) {
-            // manifest doesn't exist yet, we'll create it below
-        }
+        } catch (e) {}
 
         manifest.push({
             trashId,
@@ -386,20 +408,19 @@ export const deleteNode = async (id, type) => {
         await writable.write(JSON.stringify(manifest));
         await writable.close();
 
-        await _logSyncAction('delete', id, type);
+        await _logSyncAction(workspaceId, 'delete', id, type);
     }));
 };
 
-export const getTrashNodes = async () => {
+export const getTrashNodes = async (workspaceId) => {
     try {
-        const trashHandle = await getDirHandleFromPath('.trash');
+        const trashHandle = await getDirHandleFromPath(workspaceId, '.trash');
         let text = '';
         try {
             const manifestHandle = await trashHandle.getFileHandle('manifest.json');
             const file = await manifestHandle.getFile();
             text = await file.text();
         } catch (e) {
-            // File might not exist
             return [];
         }
         return text ? JSON.parse(text) : [];
@@ -408,11 +429,11 @@ export const getTrashNodes = async () => {
     }
 };
 
-export const restoreNode = async (trashId) => {
+export const restoreNode = async (workspaceId, trashId) => {
     return withLock(() => withRetry(async () => {
         let trashHandle;
         try {
-            trashHandle = await getDirHandleFromPath('.trash');
+            trashHandle = await getDirHandleFromPath(workspaceId, '.trash');
         } catch (e) { return; }
 
         let manifest = [];
@@ -428,13 +449,13 @@ export const restoreNode = async (trashId) => {
 
         let parentHandle;
         try {
-            parentHandle = await getDirHandleFromPath(item.originalParentId);
+            parentHandle = await getDirHandleFromPath(workspaceId, item.originalParentId);
         } catch (e) {
-            parentHandle = await getDirHandleFromPath(''); // root fallback
+            parentHandle = await getDirHandleFromPath(workspaceId, '');
             item.originalParentId = null;
         }
 
-        const restoreName = item.type === 'file' ? `${item.originalName}.md` : item.originalName;
+        const restoreName = item.type === 'file' ? (item.originalName.includes('.') ? item.originalName : `${item.originalName}.md`) : item.originalName;
 
         const currentHandle = item.type === 'file'
             ? await trashHandle.getFileHandle(trashId)
@@ -470,12 +491,11 @@ export const restoreNode = async (trashId) => {
     }));
 };
 
-export const emptyTrash = async () => {
+export const emptyTrash = async (workspaceId) => {
     return withLock(() => withRetry(async () => {
         try {
-            const rootHandle = await getDirHandleFromPath('');
+            const rootHandle = await getDirHandleFromPath(workspaceId, '');
             await rootHandle.removeEntry('.trash', { recursive: true });
         } catch (e) { }
     }));
 };
-

@@ -1,11 +1,11 @@
 import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
-import { loadSavedWorkspace, initWorkspace, requestLocalPermission, clearWorkspaceHandle, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getTrashNodes, restoreNode, emptyTrash, sync, migrateToGithub } from '../lib/db';
+import { loadSavedWorkspaces, initWorkspace, disconnectWorkspace, clearAllWorkspaces, getWorkspaces, getNodes, createNode, updateNode, deleteNode, buildTree, getHandle, getFileContent, getFileBlob, getTrashNodes, restoreNode, emptyTrash, sync } from '../lib/db';
 import * as localDriver from '../lib/local_driver';
 import { parseTasksFromNodes } from '../utils/taskParser';
 import { checkUpcomingTasks } from '../utils/notificationManager';
 import { buildBacklinkIndex } from '../utils/backlinkHelper';
 import * as syncEngine from '../lib/sync_engine';
-import collabManager from '../lib/collaboration_manager';
+
 
 const NotesContext = createContext(undefined);
 
@@ -20,15 +20,7 @@ export const NotesProvider = ({ children }) => {
     const [needsPermission, setNeedsPermission] = useState(false);
     const [migrationStatus, setMigrationStatus] = useState(null); // 'migrating', 'complete', or null
     const [isSyncing, setIsSyncing] = useState(false);
-    const [collaboration, setCollaboration] = useState({
-        active: false,
-        roomId: null,
-        key: null,
-        sharedNodeId: null,
-        sharedType: null, // 'file', 'folder', or 'workspace'
-        role: null, // 'host' or 'guest'
-        initialContent: null
-    });
+
 
     const [activeFileId, setActiveFileId] = useState(() => localStorage.getItem('redly_activeFileId') || null);
     const [expandedFolders, setExpandedFolders] = useState(() => {
@@ -164,31 +156,17 @@ export const NotesProvider = ({ children }) => {
                 if (wasMigrated) setMigrationStatus('complete');
                 else setMigrationStatus(null);
 
-                const status = await loadSavedWorkspace();
+                const status = await loadSavedWorkspaces();
                 if (status === true) {
                     setWorkspaceHandle(true);
-                    let mode = await getHandle('workspace_mode');
-                    if (!mode) mode = localStorage.getItem('redly_last_storage_mode');
-
-                    if (mode === 'sandbox') {
-                        if (!localStorage.getItem('redly_sandbox_start_time')) {
-                            localStorage.setItem('redly_sandbox_start_time', Date.now().toString());
-                        }
-                    }
-
-                    setStorageMode(mode || 'sandbox');
+                    
                     const nodes = await getNodes();
                     setNodes(nodes);
-                    await localDriver.auditSyncJournal(nodes);
                     setTrashNodes(await getTrashNodes());
                     syncEngine.broadcastSync();
 
-                    if (mode === 'github') {
-                        setIsSyncing(true);
-                        sync().then(() => loadNodes()).finally(() => setIsSyncing(false));
-                    }
-                } else if (status === 'requires_permission') {
-                    setNeedsPermission(true);
+                    setIsSyncing(true);
+                    sync().then(() => loadNodes()).finally(() => setIsSyncing(false));
                 }
             } catch (e) {
                 console.error("[NotesContext] Initialisation failed:", e);
@@ -229,34 +207,16 @@ export const NotesProvider = ({ children }) => {
 
     // Function to request permission on boot if returning to a local folder
     const grantLocalPermission = async () => {
-        if (await requestLocalPermission()) {
-            setNeedsPermission(false);
-            setWorkspaceHandle(true);
-            const nodes = await getNodes();
-            setNodes(nodes);
-            await localDriver.auditSyncJournal(nodes);
-            setTrashNodes(await getTrashNodes());
-            syncEngine.broadcastSync();
-        }
+        // Handled automatically via file picker if needed during workspace add
     };
 
-    // Updated to handle Tiers 1 and 2
-    const selectWorkspace = async (mode = 'sandbox', options = {}) => {
+    const addWorkspaceInstance = async (mode = 'sandbox', options = {}) => {
         try {
             await initWorkspace(mode, options);
-            localStorage.setItem('redly_last_storage_mode', mode); // Fallback for UI sync
 
-            if (mode === 'sandbox') {
-                if (!localStorage.getItem('redly_sandbox_start_time')) {
-                    localStorage.setItem('redly_sandbox_start_time', Date.now().toString());
-                }
-            }
-
-            setStorageMode(mode);
             setWorkspaceHandle(true);
             const nodes = await getNodes();
             setNodes(nodes);
-            if (mode !== 'github') await localDriver.auditSyncJournal(nodes);
             setTrashNodes(await getTrashNodes());
             syncEngine.broadcastSync();
 
@@ -268,67 +228,11 @@ export const NotesProvider = ({ children }) => {
             }
         } catch (e) {
             console.error("Workspace selection error", e);
-            throw e; // Re-throw so callers (Sidebar, WelcomeScreen) can handle auth errors
+            throw e; 
         }
     };
 
-    const startCollaboration = useCallback(async (nodeId, type) => {
-        const roomId = collabManager.constructor.generateRoomId();
-        const key = collabManager.constructor.generateEncryptionKey();
-        
-        // Find the node to grab initial content if it's a file
-        const node = nodes.find(n => n.id === nodeId);
-        let initialContent = (node && node.type === 'file') ? node.content : null;
-
-        // Guard: nodes are lazy-loaded — content may be undefined even if the node exists
-        if (node && node.type === 'file' && initialContent === undefined) {
-            try {
-                console.log('[Collab] Content not yet loaded, fetching from storage...');
-                initialContent = await getFileContent(nodeId);
-            } catch (e) {
-                console.warn('[Collab] Could not pre-load content for collaboration session:', e);
-                initialContent = '';
-            }
-        }
-
-        // Pass nodeId as the field name
-        collabManager.initSession(roomId, key, nodeId, initialContent);
-        collabManager.setPresence({ name: 'Host', color: '#2563eb', initial: 'H' });
-
-        setCollaboration({
-            active: true,
-            roomId,
-            key,
-            sharedNodeId: nodeId,
-            sharedType: type,
-            role: 'host',
-            initialContent
-        });
-        
-        return { roomId, key };
-    }, [nodes, getFileContent]);
-
-    const stopCollaboration = useCallback(() => {
-        const role = collaboration.role;
-        const sharedId = collaboration.sharedNodeId;
-        
-        collabManager.stopSession();
-        setCollaboration({ active: false, roomId: null, key: null, sharedNodeId: null, sharedType: null, role: null });
-
-        // If we were a guest, remove the virtual node we were viewing
-        if (role === 'guest' && sharedId) {
-            setNodes(prev => prev.filter(n => n.id !== sharedId));
-            if (activeFileId === sharedId) {
-                setActiveFileId(null);
-            }
-        }
-    }, [collaboration.role, collaboration.sharedNodeId, activeFileId]);
-
     const disconnectWorkspace = async () => {
-        // Stop any active collaboration session first to avoid lingering WebRTC connections
-        if (collabManager.provider) {
-            collabManager.stopSession();
-        }
 
         try {
             await clearWorkspaceHandle();
@@ -469,6 +373,15 @@ export const NotesProvider = ({ children }) => {
     };
 
     const addNode = async (name, type, parentId = null, autoOpen = true, initialContent = '') => {
+        if (!parentId) {
+            const workspaces = await getWorkspaces();
+            if (workspaces.length > 0) {
+                parentId = workspaces[0].id;
+            } else {
+                throw new Error("No active workspaces");
+            }
+        }
+
         if (!workspaceHandle) return;
         const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim();
         const extension = type === 'file' ? '.md' : '';
@@ -516,6 +429,56 @@ export const NotesProvider = ({ children }) => {
         }
     };
 
+    const addBinaryNode = async (name, parentId, binaryData) => {
+        if (!parentId) {
+            const workspaces = await getWorkspaces();
+            if (workspaces.length > 0) {
+                parentId = workspaces[0].id;
+            } else {
+                throw new Error("No active workspaces");
+            }
+        }
+        if (!workspaceHandle) return;
+        const safeName = name.replace(/[\\/:*?"<>|]/g, '-').trim();
+        const idPath = parentId ? `${parentId}/${safeName}` : `${safeName}`;
+
+        let existingNode = nodes.find(n => n.id === idPath);
+        let finalIdPath = idPath;
+        let counter = 1;
+
+        while (existingNode) {
+            const parts = safeName.split('.');
+            const ext = parts.length > 1 ? `.${parts.pop()}` : '';
+            const base = parts.join('.');
+            finalIdPath = parentId ? `${parentId}/${base} (${counter})${ext}` : `${base} (${counter})${ext}`;
+            existingNode = nodes.find(n => n.id === finalIdPath);
+            counter++;
+        }
+
+        const newNode = {
+            id: finalIdPath,
+            name: finalIdPath.split('/').pop(),
+            type: 'binary',
+            parentId,
+            content: binaryData
+        };
+
+        const previousNodes = nodes;
+        setNodes(prev => [...prev, newNode]);
+
+        try {
+            await createNode(newNode);
+            await loadNodes();
+            syncEngine.broadcastSync();
+            return newNode;
+        } catch (e) {
+            console.error("Failed to add binary node:", e);
+            setNodes(previousNodes);
+            alert("Error: Could not save image.");
+            return null;
+        }
+    };
+
     const editNode = async (id, updates) => {
         if (!workspaceHandle) return;
         const oldNode = nodes.find(n => n.id === id);
@@ -536,6 +499,29 @@ export const NotesProvider = ({ children }) => {
         }));
 
         try {
+            // Auto bi-directional linking
+            if (updates.content !== undefined) {
+                const oldContent = oldNode.content !== undefined ? oldNode.content : (await getFileContent(oldNode.id) || '');
+                if (updates.content !== oldContent) {
+                    const { extractLinks } = await import('../utils/backlinkHelper.js');
+                    const oldLinks = extractLinks(oldContent);
+                    const newLinks = extractLinks(updates.content);
+                    const addedLinks = newLinks.filter(l => !oldLinks.includes(l));
+
+                    for (const targetName of addedLinks) {
+                        const targetNode = nodes.find(n => n.name.toLowerCase() === targetName.toLowerCase() && n.type === 'file');
+                        if (targetNode && targetNode.id !== id) {
+                            const currentTargetContent = targetNode.content !== undefined ? targetNode.content : (await getFileContent(targetNode.id) || '');
+                            const targetLinks = extractLinks(currentTargetContent);
+                            if (!targetLinks.includes(oldNode.name)) {
+                                const newTargetContent = (currentTargetContent || '') + `\n\n[[${oldNode.name}]]`;
+                                await updateNode(targetNode.id, { content: newTargetContent }, targetNode);
+                            }
+                        }
+                    }
+                }
+            }
+
             const updatedNode = await updateNode(id, updates, oldNode);
             if (updatedNode && updatedNode.id !== id) {
                 // Synchronously inject the new ID into state so the eviction observer doesn't trip
@@ -576,15 +562,23 @@ export const NotesProvider = ({ children }) => {
         }
     };
 
-    const restoreNodeList = async (trashId) => {
-        if (!workspaceHandle) return;
+    const disconnectWorkspaceById = async (workspaceId) => {
+        if (collabManager.provider) {
+            stopCollaboration();
+        }
         try {
-            await restoreNode(trashId);
-            await loadNodes();
-            await loadTrashNodes();
-            syncEngine.broadcastSync();
+            await disconnectWorkspace(workspaceId);
+            const workspaces = await getWorkspaces();
+            if (workspaces.length === 0) {
+                setNodes([]);
+                setTrashNodes([]);
+                setWorkspaceHandle(false);
+                setStorageMode(null);
+            } else {
+                await loadNodes();
+            }
         } catch (e) {
-            console.error("Failed to restore node:", e);
+            console.error("Failed to disconnect workspace", e);
         }
     };
 
@@ -598,6 +592,19 @@ export const NotesProvider = ({ children }) => {
             console.error("Failed to empty trash:", e);
         }
     };
+
+    const restoreNodeList = async (trashId) => {
+        if (!workspaceHandle) return;
+        try {
+            await restoreNode(trashId);
+            await loadNodes();
+            await loadTrashNodes();
+            syncEngine.broadcastSync();
+        } catch (e) {
+            console.error("Failed to restore node:", e);
+        }
+    };
+
 
     const ensureAllContentsLoaded = async () => {
         const filesToLoad = nodes.filter(n => n.type === 'file' && n.content === undefined);
@@ -643,50 +650,7 @@ export const NotesProvider = ({ children }) => {
         }
     };
 
-    const handleAutoJoin = useCallback(() => {
-        const params = collabManager.constructor.parseUrlParams();
-        if (params && params.roomId && params.key) {
-            // If already in this room, don't re-join
-            if (collaboration.active && collaboration.roomId === params.roomId) return;
 
-            console.log(`[Collab] Auto-joining room: ${params.roomId}`);
-            collabManager.initSession(params.roomId, params.key, params.id || 'joined', null, params.signalingUrl ? [params.signalingUrl] : null);
-            collabManager.setPresence({ name: 'Guest', color: '#16a34a', initial: 'G' });
-            
-            const sharedType = params.type || 'joined';
-            const sharedId = params.id;
-
-            setCollaboration({
-                active: true,
-                roomId: params.roomId,
-                key: params.key,
-                sharedNodeId: sharedId, 
-                sharedType: sharedType,
-                role: 'guest',
-                initialContent: null
-            });
-
-            if (sharedId && (sharedType === 'file' || sharedType === 'note')) {
-                setNodes(prev => {
-                    const exists = prev.some(n => n.id === sharedId);
-                    if (!exists) {
-                        return [...prev, {
-                            id: sharedId,
-                            name: (sharedId.split('/').pop() || 'Untitled').replace(/\.md$/, ''),
-                            type: 'file',
-                            parentId: null,
-                            content: ''
-                        }];
-                    }
-                    return prev;
-                });
-                setActiveFileId(sharedId);
-            }
-
-            // Clean up the URL hash to prevent re-joining on refresh
-            window.history.replaceState(null, '', window.location.pathname + window.location.search);
-        }
-    }, [collaboration.active, collaboration.roomId, collabManager]);
 
     useEffect(() => {
         window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
@@ -708,20 +672,17 @@ export const NotesProvider = ({ children }) => {
         };
         window.addEventListener('focus', handleFocus);
 
-        handleAutoJoin(); // Run on mount
-        window.addEventListener('hashchange', handleAutoJoin);
-
         return () => {
             window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
             window.removeEventListener('appinstalled', handleAppInstalled);
             window.removeEventListener('focus', handleFocus);
-            window.removeEventListener('hashchange', handleAutoJoin);
         };
-    }, [storageMode, isSyncing, handleAutoJoin, sync, loadNodes]);
+    }, [storageMode, isSyncing, sync, loadNodes]);
 
     const value = {
         nodes, tree, trashNodes, activeFileId, setActiveFileId, expandedFolders, toggleFolder, expandAll, collapseAll, openAndExpandFile,
-        addNode, editNode, removeNode, restoreNodeList, emptyTrashList, getFileContent, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode, selectWorkspace, disconnectWorkspace,
+        addNode, addBinaryNode, editNode, removeNode, restoreNodeList, emptyTrashList, getFileContent, getFileBlob, ensureAllContentsLoaded, isInitializing, workspaceHandle, storageMode,
+        addWorkspaceInstance, disconnectWorkspaceById,
         needsPermission, grantLocalPermission, globalAddingState, setGlobalAddingState, lastInteractedNodeId, setLastInteractedNodeId,
         loadNodes,
         installApp,
@@ -730,8 +691,7 @@ export const NotesProvider = ({ children }) => {
         notificationSettings, setNotificationSettings,
         isDarkMode, setIsDarkMode,
         syncPulse, triggerSyncPulse, syncStatus, backlinkIndex,
-        isSyncing, switchWorkspaceToGithub, sync,
-        collaboration, startCollaboration, stopCollaboration
+        isSyncing, sync
     };
 
     return <NotesContext.Provider value={value}>{children}</NotesContext.Provider>;

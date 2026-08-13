@@ -10,11 +10,10 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableCell } from '@tiptap/extension-table-cell';
 import { TableHeader } from '@tiptap/extension-table-header';
 import CodeBlock from '@tiptap/extension-code-block';
+import Image from '@tiptap/extension-image';
 import CodeBlockComponent from './CodeBlockComponent';
 import { Extension, Node, mergeAttributes, InputRule } from '@tiptap/core';
-import Collaboration from '@tiptap/extension-collaboration';
-import CollaborationCursor from '@tiptap/extension-collaboration-cursor';
-import collabManager from '../lib/collaboration_manager';
+
 import { Plugin, PluginKey } from '@tiptap/pm/state';
 import { Decoration, DecorationSet } from '@tiptap/pm/view';
 import TurndownService from 'turndown';
@@ -262,6 +261,34 @@ const td = new TurndownService({
     }
 });
 td.use(gfm);
+
+td.addRule('image', {
+    filter: 'img',
+    replacement: function (content, node) {
+        var alt = node.alt || '';
+        var title = node.title || '';
+        var src = node.getAttribute('src') || '';
+        var width = node.getAttribute('width');
+        var height = node.getAttribute('height');
+
+        if (src.startsWith('blob:') && title) {
+            src = title; // Use the node id stored in title
+            title = '';
+        }
+
+        // If there's width or height, save as HTML to preserve dimensions
+        if (width || height) {
+            var widthAttr = width ? ' width="' + width + '"' : '';
+            var heightAttr = height ? ' height="' + height + '"' : '';
+            var titleAttr = title ? ' title="' + title + '"' : '';
+            var altAttr = alt ? ' alt="' + alt + '"' : '';
+            return '<img src="' + src + '"' + altAttr + titleAttr + widthAttr + heightAttr + ' />';
+        }
+
+        var titlePart = title ? ' "' + title + '"' : '';
+        return src ? '![' + alt + ']' + '(' + src + titlePart + ')' : '';
+    }
+});
 
 // Prevent Turndown from escaping wiki links [[Note Name]] when saving to markdown
 const originalEscape = td.escape;
@@ -549,8 +576,83 @@ const TableControlsMenu = ({ editor, trigger, onClose }) => {
     );
 };
 
+const CustomImageComponent = (props) => {
+    const { getFileBlob } = useNotes();
+    const [blobUrl, setBlobUrl] = useState(null);
+    const src = props.node.attrs.src;
+    const width = props.node.attrs.width;
+    const height = props.node.attrs.height;
+    
+    useEffect(() => {
+        let isMounted = true;
+        if (src && !src.startsWith('http') && !src.startsWith('data:') && !src.startsWith('blob:')) {
+            getFileBlob(src).then(blob => {
+                if (blob && isMounted) {
+                    setBlobUrl(URL.createObjectURL(blob));
+                }
+            }).catch(err => {
+                console.error('Failed to load image blob', err);
+            });
+        } else {
+            setBlobUrl(src);
+        }
+        return () => {
+            isMounted = false;
+        };
+    }, [src, getFileBlob]);
+
+    const handleResize = (e) => {
+        e.preventDefault();
+        const startX = e.clientX;
+        const startY = e.clientY;
+        const startWidth = props.node.attrs.width ? parseInt(props.node.attrs.width, 10) : e.target.parentElement.offsetWidth;
+        const startHeight = props.node.attrs.height ? parseInt(props.node.attrs.height, 10) : e.target.parentElement.offsetHeight;
+        
+        const onMouseMove = (moveEvent) => {
+            const dx = moveEvent.clientX - startX;
+            const dy = moveEvent.clientY - startY;
+            props.updateAttributes({ width: startWidth + dx, height: startHeight + dy });
+        };
+        const onMouseUp = () => {
+            document.removeEventListener('mousemove', onMouseMove);
+            document.removeEventListener('mouseup', onMouseUp);
+        };
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+    };
+
+    return (
+        <NodeViewWrapper as="span" style={{ display: 'inline-block', position: 'relative' }}>
+            <img 
+                src={blobUrl || src} 
+                alt={props.node.attrs.alt} 
+                title={props.node.attrs.title} 
+                width={width}
+                height={height}
+                className={props.selected ? 'ProseMirror-selectednode' : ''}
+                style={{ maxWidth: '100%', height: height ? height + 'px' : 'auto', width: width ? width + 'px' : 'auto', display: 'block' }}
+            />
+            {props.selected && (
+                <div
+                    style={{
+                        position: 'absolute',
+                        right: 0,
+                        bottom: 0,
+                        width: '12px',
+                        height: '12px',
+                        background: 'var(--accent-color)',
+                        cursor: 'nwse-resize',
+                        zIndex: 10
+                    }}
+                    onMouseDown={handleResize}
+                />
+            )}
+        </NodeViewWrapper>
+    );
+};
+
 export default function Editor({ fileId }) {
-    const { nodes, editNode, removeNode, getFileContent, ensureAllContentsLoaded, syncPulse, openAndExpandFile } = useNotes();
+    const { nodes, editNode, removeNode, getFileContent, ensureAllContentsLoaded, syncPulse, openAndExpandFile, addBinaryNode } = useNotes();
     const [file, setFile] = useState(null);
     const saveTimeoutRef = useRef(null);
     const lastSavedContentRef = useRef(''); // Track the last saved state to prevent echo updates
@@ -588,22 +690,6 @@ export default function Editor({ fileId }) {
     const [isTableMenuOpen, setIsTableMenuOpen] = useState(false);
     const [templateMenu, setTemplateMenu] = useState({ isOpen: false });
     const [manualDismissals, setManualDismissals] = useState({ slash: -1, tag: -1, link: -1 });
-    const { collaboration } = useNotes();
-
-    const isCollabActive = useMemo(() => {
-        if (!collaboration.active) return false;
-        if (collaboration.sharedType === 'workspace') return true;
-        if (collaboration.sharedType === 'folder') return fileId.startsWith(collaboration.sharedNodeId);
-        if (collaboration.sharedType === 'joined') return true; // Joiners see everything for now
-        return collaboration.sharedNodeId === fileId;
-    }, [collaboration, fileId]);
-
-    useEffect(() => {
-        if (isCollabActive) {
-            console.log(`[Collab] Active. Role: ${collaboration.role}, Field: ${fileId}`);
-        }
-    }, [isCollabActive, collaboration.role, fileId]);
-
     const [, setForceRender] = useState(0);
     const slashMenuListRef = useRef(null);
     const tagMenuListRef = useRef(null);
@@ -646,10 +732,6 @@ export default function Editor({ fileId }) {
     }, [nodes]);
 
     const debouncedSave = useCallback((updates) => {
-        if (isCollabActive && collaboration.role === 'guest') {
-            return;
-        }
-
         isTypingRef.current = true;
 
         // Merge new updates into the pending buffer
@@ -687,33 +769,68 @@ export default function Editor({ fileId }) {
         typingTimeoutRef.current = setTimeout(() => {
             isTypingRef.current = false;
         }, 2000);
-    }, [fileId, editNode, isCollabActive, collaboration.role]);
+    }, [fileId, editNode]);
 
     const extensions = useMemo(() => [
         TagHighlighter,
         WikiLinkHighlighter,
+        Image.extend({
+            addAttributes() {
+                return {
+                    ...this.parent?.(),
+                    width: { default: null },
+                    height: { default: null },
+                    title: { default: null }
+                };
+            },
+            addNodeView() {
+                return ReactNodeViewRenderer(CustomImageComponent);
+            },
+            addProseMirrorPlugins() {
+                return [
+                    new Plugin({
+                        key: new PluginKey('imageDropHandler'),
+                        props: {
+                            handleDrop(view, event, slice, moved) {
+                                if (!moved && event.dataTransfer && event.dataTransfer.files && event.dataTransfer.files.length > 0) {
+                                    const files = Array.from(event.dataTransfer.files);
+                                    let handled = false;
+                                    files.forEach(file => {
+                                        if (file.type.startsWith('image/')) {
+                                            handled = true;
+                                            event.preventDefault();
+                                            const reader = new FileReader();
+                                            reader.onload = async (e) => {
+                                                const buffer = e.target.result;
+                                                const parentId = fileId.includes('/') ? fileId.substring(0, fileId.lastIndexOf('/')) : null;
+                                                const newNode = await addBinaryNode(file.name, parentId, buffer);
+                                                if (newNode) {
+                                                    const blob = new Blob([buffer], { type: file.type });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
+                                                    const pos = coordinates ? coordinates.pos : view.state.selection.from;
+                                                    // Use relative path for title so we can reconstruct it on reload
+                                                    const node = view.state.schema.nodes.image.create({ src: url, alt: file.name, title: newNode.id });
+                                                    const tr = view.state.tr.insert(pos, node);
+                                                    view.dispatch(tr);
+                                                }
+                                            };
+                                            reader.readAsArrayBuffer(file);
+                                        }
+                                    });
+                                    return handled;
+                                }
+                                return false;
+                            }
+                        }
+                    })
+                ];
+            }
+        }),
         StarterKit.configure({
             heading: { levels: [1, 2, 3] },
-            history: !isCollabActive, // Disable history if collab is active (Yjs handles it)
             codeBlock: false,
         }),
-        ...(isCollabActive ? [
-            Collaboration.configure({
-                document: collabManager.doc,
-                field: fileId,
-            }),
-            CollaborationCursor.configure({
-                provider: collabManager.provider,
-                user: {
-                    name: localStorage.getItem('redly_user_name') || (collaboration.role === 'host' ? 'Host' : 'Guest'),
-                    color: (() => {
-                        const bytes = new Uint8Array(3);
-                        crypto.getRandomValues(bytes);
-                        return '#' + Array.from(bytes).map(b => b.toString(16).padStart(2, '0')).join('');
-                    })(),
-                }
-            })
-        ] : []),
         CodeBlock.extend({
             addNodeView() {
                 return ReactNodeViewRenderer(CodeBlockComponent);
@@ -947,16 +1064,9 @@ export default function Editor({ fileId }) {
 
     // Get initial content for useEditor
     const initialEditorContent = useMemo(() => {
-        if (isCollabActive && collaboration.role === 'host' && collaboration.initialContent) {
-            // Host: convert Markdown -> HTML before passing to TipTap
-            // (node.content is stored as Markdown; TipTap's content prop expects HTML)
-            const preparedContent = (collaboration.initialContent || '')
-                .replace(/^(\s*-\s*\[[ xX]\])(\S)/gm, '$1 $2');
-            return md.render(preparedContent);
-        }
         const node = nodes.find(n => n.id === fileId);
         return node ? node.content : '';
-    }, [isCollabActive, collaboration.role, collaboration.initialContent, fileId, nodes]);
+    }, [fileId, nodes]);
 
     const editor = useEditor({
         extensions,
@@ -1403,14 +1513,6 @@ export default function Editor({ fileId }) {
                 }
 
                 if (editor) {
-                    // Guests: Yjs handles all content sync — never load from local storage
-                    if (isCollabActive && collaboration.role === 'guest') return;
-
-                    // Host: on initial load, the TipTap Collaboration extension seeds the
-                    // Yjs doc via the `content` prop passed to useEditor (see initialEditorContent).
-                    // After that first seed we must NOT call setContent() again or we'll
-                    // overwrite Yjs-synced changes from the guest.
-                    if (isCollabActive && collaboration.role === 'host' && !isInitialLoad) return;
 
                     const loadContent = async () => {
                         let content = f.content;

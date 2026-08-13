@@ -9,7 +9,7 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
         tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll,
         editNode, isInitializing, globalAddingState, setGlobalAddingState,
         lastInteractedNodeId, setLastInteractedNodeId, expandedFolders,
-        toggleFolder, disconnectWorkspace, isDarkMode, syncStatus,
+        toggleFolder, isDarkMode, syncStatus,
         storageMode, isSyncing
     } = useNotes();
 
@@ -28,10 +28,16 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
 
     const handleNewItem = useCallback((type) => {
         const targetNode = nodes.find(n => n.id === lastInteractedNodeId) || nodes.find(n => n.id === activeFileId);
-        const parentId = targetNode ? (targetNode.type === 'folder' ? targetNode.id : targetNode.parentId) : null;
+        let parentId = targetNode ? (targetNode.type === 'folder' ? targetNode.id : targetNode.parentId) : null;
+        
+        // If no node is selected, default to the first workspace
+        if (!parentId && tree && tree.length > 0) {
+            parentId = tree[0].id;
+        }
+
         setGlobalAddingState({ type, parentId });
         if (parentId && !expandedFolders.has(parentId)) toggleFolder(parentId);
-    }, [nodes, lastInteractedNodeId, activeFileId, setGlobalAddingState, expandedFolders, toggleFolder]);
+    }, [nodes, lastInteractedNodeId, activeFileId, tree, setGlobalAddingState, expandedFolders, toggleFolder]);
 
     // Flatten visible nodes for keyboard navigation
     const getVisibleNodes = useCallback(() => {

@@ -46,3 +46,34 @@ export const clearHandles = async () => {
         req.onerror = () => reject('Failed to clear handles');
     });
 };
+
+// --- Multi-Workspace Management Helpers ---
+export const getWorkspaces = async () => {
+    try {
+        const ws = await getHandle('workspaces');
+        return ws || [];
+    } catch (e) {
+        return [];
+    }
+};
+
+export const saveWorkspaces = async (workspaces) => {
+    await setHandle('workspaces', workspaces);
+};
+
+export const addWorkspace = async (workspaceConfig) => {
+    const workspaces = await getWorkspaces();
+    const exists = workspaces.find(w => w.id === workspaceConfig.id);
+    if (!exists) {
+        workspaces.push(workspaceConfig);
+        await saveWorkspaces(workspaces);
+    }
+    return workspaces;
+};
+
+export const removeWorkspace = async (workspaceId) => {
+    const workspaces = await getWorkspaces();
+    const filtered = workspaces.filter(w => w.id !== workspaceId);
+    await saveWorkspaces(filtered);
+    return filtered;
+};

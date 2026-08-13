@@ -6,7 +6,7 @@ import * as syncEngine from '../lib/sync_engine';
 import { useNotes } from '../context/NotesContext';
 
 export default function SyncModal({ onClose }) {
-    const { storageMode, isSyncing, switchWorkspaceToGithub, sync, disconnectWorkspace } = useNotes();
+    const { storageMode, isSyncing, addWorkspaceInstance, sync } = useNotes();
     const [activeTab, setActiveTab] = useState(storageMode === 'github' ? 'cloud' : 'p2p');
     const [copied, setCopied] = useState(false);
     const [remoteId, setRemoteId] = useState('');
@@ -98,11 +98,13 @@ export default function SyncModal({ onClose }) {
         e.preventDefault();
         setGhStatus('Initializing...');
         try {
-            await switchWorkspaceToGithub({
-                token: ghToken.trim(),
-                owner: ghOwner.trim(),
-                repo: ghRepo.trim()
-            }, shouldMigrate);
+            await addWorkspaceInstance('github', { 
+                config: {
+                    token: ghToken.trim(),
+                    owner: ghOwner.trim(),
+                    repo: ghRepo.trim()
+                }
+            });
             setGhStatus('Connected Successfully!');
         } catch (err) {
             setGhStatus('Failed: ' + err.message);
@@ -232,33 +234,7 @@ export default function SyncModal({ onClose }) {
                     ) : (
                         /* Cloud Sync (GitHub) UI */
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                            {storageMode === 'github' ? (
-                                <div style={{ background: 'var(--bg-secondary)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                                    <div style={{ width: '48px', height: '48px', background: 'var(--bg-primary)', borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px', border: '1px solid var(--border-color)' }}>
-                                        <Cloud size={24} style={{ color: 'var(--success-color)' }} />
-                                    </div>
-                                    <h3 style={{ margin: '0 0 4px 0', fontSize: '16px' }}>Connected to GitHub</h3>
-                                    <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '0 0 20px 0' }}>Your notes are syncing and version-controlled instantly.</p>
-                                    <button 
-                                        onClick={() => { setGhStatus('Syncing...'); sync().then(() => setGhStatus('Sync Complete!')) }} 
-                                        disabled={isSyncing} 
-                                        className="primary-btn" 
-                                        style={{ width: '100%', justifyContent: 'center', background: 'var(--bg-primary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)' }}
-                                    >
-                                        <RefreshCw size={16} className={isSyncing ? 'spin' : ''} />
-                                        Force Cloud Pull
-                                    </button>
-                                    <button 
-                                        onClick={disconnectWorkspace} 
-                                        className="secondary-btn" 
-                                        style={{ width: '100%', marginTop: '12px', justifyContent: 'center', background: 'transparent', border: '1px solid var(--danger-color)', color: 'var(--danger-color)' }}
-                                    >
-                                        Disconnect & Log Out
-                                    </button>
-                                    {ghStatus && <p style={{ fontSize: '12px', color: 'var(--accent-color)', marginTop: '8px' }}>{ghStatus}</p>}
-                                </div>
-                            ) : (
-                                <>
+
                                     <div style={{ background: 'var(--bg-secondary)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border-color)', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
                                         <AlertTriangle size={20} style={{ color: 'var(--color-future)', flexShrink: 0 }} />
                                         <div>
@@ -302,15 +278,7 @@ export default function SyncModal({ onClose }) {
                                             </div>
                                         </div>
 
-                                        <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '12px', background: 'var(--bg-secondary)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ fontSize: '13px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                                    <Database size={14} /> Transfer current notes
-                                                </div>
-                                                <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>Upload your local files to GitHub now.</div>
-                                            </div>
-                                            <input type="checkbox" checked={shouldMigrate} onChange={e => setShouldMigrate(e.target.checked)} style={{ width: '18px', height: '18px', accentColor: 'var(--accent-color)' }} />
-                                        </label>
+
 
                                         <button type="submit" disabled={isSyncing} className="primary-btn" style={{ width: '100%', justifyContent: 'center', padding: '12px' }}>
                                             {isSyncing ? <RefreshCw className="spin" size={18} /> : <Github size={18} />}
@@ -318,8 +286,7 @@ export default function SyncModal({ onClose }) {
                                         </button>
                                     </form>
                                     {ghStatus && <p style={{ textAlign: 'center', fontSize: '13px', color: 'var(--accent-color)' }}>{ghStatus}</p>}
-                                </>
-                            )}
+
                         </div>
                     )}
                 </div>

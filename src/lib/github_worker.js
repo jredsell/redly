@@ -9,11 +9,12 @@ if (typeof self !== 'undefined' && !self.Buffer) {
 }
 
 const fs = new FS('redly-github');
-const dir = '/notes'; // Use a dedicated subdirectory to avoid root conflicts
 const defaultProxy = 'https://cors.isomorphic-git.org';
 
 self.onmessage = async ({ data }) => {
     const { type, payload, id } = data;
+    const workspaceId = payload?.workspaceId || 'default';
+    const dir = `/notes/${workspaceId}`;
     
     try {
         switch (type) {
