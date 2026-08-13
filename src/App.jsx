@@ -16,7 +16,7 @@ import PullToRefresh from './components/PullToRefresh';
 import { requestNotificationPermission } from './utils/notificationManager';
 import * as syncEngine from './lib/sync_engine';
 import { exportSandboxData } from './lib/db';
-import { migrateSandboxToLocal } from './lib/migration';
+
 
 function NotificationToggle() {
   const { notificationSettings, setNotificationSettings } = useNotes();

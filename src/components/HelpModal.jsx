@@ -2,7 +2,6 @@ import React from 'react';
 import { X, Command, Calendar, FolderPlus, FileText, Move, CheckSquare, Sun, HardDrive, Box, RefreshCw, Table2, Bell, LayoutList, Search, Github, Heart } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 
-import { exportSandboxToZip, importZipToSandbox, migrateLocalToSandbox, migrateSandboxToLocal } from '../lib/migration';
 import { Download, Upload, FolderUp } from 'lucide-react';
 import { createNode } from '../lib/db';
 
