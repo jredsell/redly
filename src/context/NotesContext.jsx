@@ -330,7 +330,71 @@ export const NotesProvider = ({ children }) => {
         return () => clearInterval(interval);
     }, [notificationSettings.enabled, workspaceHandle]);
 
+    // Background Image Garbage Collection
+    useEffect(() => {
+        if (!workspaceHandle) return;
+
+        const runGarbageCollection = async () => {
+            const currentNodes = nodesRef.current;
+            const binaryNodes = currentNodes.filter(n => n.type === 'binary');
+            if (binaryNodes.length === 0) return;
+
+            const referencedImages = new Set();
+            const mdNodes = currentNodes.filter(n => n.type === 'file');
+
+            for (const node of mdNodes) {
+                let content = node.content;
+                if (content === undefined) {
+                    try {
+                        content = await getFileContent(node.id);
+                    } catch (e) {
+                        continue;
+                    }
+                }
+                if (!content) continue;
+
+                // Match Markdown images: ![alt](...)
+                const imgRegex = /!\[.*?\]\((.*?)\)/g;
+                let match;
+                while ((match = imgRegex.exec(content)) !== null) {
+                    let inner = match[1].trim();
+                    if (inner.startsWith('<')) {
+                        const endIdx = inner.indexOf('>');
+                        if (endIdx !== -1) inner = inner.substring(1, endIdx);
+                    } else {
+                        const spaceIdx = inner.indexOf(' ');
+                        if (spaceIdx !== -1) inner = inner.substring(0, spaceIdx);
+                    }
+                    let decodedSrc = inner;
+                    try { decodedSrc = decodeURIComponent(inner); } catch(e) {}
+                    referencedImages.add(decodedSrc);
+                }
+            }
+
+            // Find unreferenced binaries
+            const unreferenced = binaryNodes.filter(n => !referencedImages.has(n.id) && !referencedImages.has(n.name));
+            
+            for (const node of unreferenced) {
+                try {
+                    console.log(`[GarbageCollector] Deleting unreferenced image: ${node.id}`);
+                    await removeNode(node.id);
+                } catch(e) {
+                    console.error('Failed to garbage collect', node.id, e);
+                }
+            }
+        };
+
+        const initialTimeout = setTimeout(runGarbageCollection, 5000);
+        const interval = setInterval(runGarbageCollection, 2 * 60 * 1000); // Check every 2 minutes
+
+        return () => {
+            clearTimeout(initialTimeout);
+            clearInterval(interval);
+        };
+    }, [workspaceHandle]);
+
     const tree = buildTree(nodes.filter(n => {
+        if (n.type === 'binary') return false;
         const parts = n.id.split('/');
         // Hide anything in a dot-folder (like .templates, .trash, .sync) from the main tree
         return !parts.some(p => p.startsWith('.') && p !== '.');

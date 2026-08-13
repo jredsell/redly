@@ -171,10 +171,11 @@ export const getNodes = async (workspaceId, currentPath = '', overrideHandle = n
             } else if (entry.kind === 'file' && entry.name.includes('.')) {
                 // Keep arbitrary binary files (like images)
                 const file = await entry.getFile();
+                const isMarkdownOrText = entry.name.endsWith('.md') || entry.name.endsWith('.txt');
                 nodes.push({
                     id: nodePath,
                     name: entry.name,
-                    type: 'file',
+                    type: isMarkdownOrText ? 'file' : 'binary',
                     parentId: currentPath || null,
                     updatedAt: file.lastModified
                 });

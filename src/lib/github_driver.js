@@ -135,7 +135,8 @@ export const getNodes = async (workspaceId) => {
                 nodes.push({ id, name, type: 'folder', parentId: currentDir === dir ? null : currentDir.substring(dir.length + 1) });
                 await scan(path);
             } else if (name.endsWith('.md') || name.endsWith('.json') || name.includes('.')) {
-                nodes.push({ id, name, type: 'file', parentId: currentDir === dir ? null : currentDir.substring(dir.length + 1) });
+                const isMarkdownOrJson = name.endsWith('.md') || name.endsWith('.json');
+                nodes.push({ id, name, type: isMarkdownOrJson ? 'file' : 'binary', parentId: currentDir === dir ? null : currentDir.substring(dir.length + 1) });
             }
         }
     }
