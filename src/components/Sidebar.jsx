@@ -1,10 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNotes } from '../context/NotesContext';
-import { Heart, ChevronRight, ChevronDown, FileText, Folder, Plus, Trash2, FolderPlus, MoreVertical, Edit2, Play, Settings, Menu, Settings2, Moon, Sun, HelpCircle, Activity, X, CheckSquare, ChevronsDown, ChevronsUp, RefreshCw, PanelLeftClose } from 'lucide-react';
+import { Heart, ChevronRight, ChevronDown, FileText, Folder, Plus, Trash2, FolderPlus, MoreVertical, Edit2, Play, Settings, Menu, Settings2, Moon, Sun, HelpCircle, Activity, X, CheckSquare, ChevronsDown, ChevronsUp, RefreshCw, PanelLeftClose, Layers } from 'lucide-react';
 import FileTree from './FileTree';
 import RedlyLogo from './RedlyLogo';
 
-export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOpenSync, setShowTasks, onGoHome, isSidebarCollapsed, setIsSidebarCollapsed, sidebarWidth, setSidebarWidth }) {
+export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOpenWorkspaces, setShowTasks, onGoHome, isSidebarCollapsed, setIsSidebarCollapsed, sidebarWidth, setSidebarWidth }) {
     const {
         tree, nodes, activeFileId, setActiveFileId, addNode, expandAll, collapseAll,
         editNode, isInitializing, globalAddingState, setGlobalAddingState,
@@ -324,34 +324,17 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                 flexShrink: 0
             }}>
                 <button
-                    onClick={onOpenSync}
-                    aria-label="Open Sync Center"
+                    onClick={onOpenWorkspaces}
+                    aria-label="Manage Workspaces"
                     style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                        background: isSyncing ? 'rgba(37, 99, 235, 0.05)' : 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
-                        color: isSyncing ? 'var(--accent-color)' : 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px',
+                        background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px',
                         transition: 'all 0.3s ease'
                     }}
+                    title="Manage Workspaces"
                 >
-                    {storageMode === 'github' ? (
-                        <>
-                            <RefreshCw 
-                                size={14} 
-                                className={isSyncing ? 'spin' : ''} 
-                                style={{ color: 'var(--accent-color)', animation: isSyncing ? 'spin 2s linear infinite' : 'none' }} 
-                            />
-                            {isSyncing ? 'Syncing...' : 'GitHub'}
-                        </>
-                    ) : (
-                        <>
-                            <Activity
-                                size={16}
-                                aria-hidden="true"
-                                style={{ color: syncStatus === 'error' ? 'var(--danger-color)' : (syncStatus === 'connected' ? 'var(--success-color)' : 'var(--text-tertiary)') }}
-                            /> 
-                            Sync
-                        </>
-                    )}
+                    <Layers size={16} aria-hidden="true" /> Workspaces
                 </button>
 
                 <button

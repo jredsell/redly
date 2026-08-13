@@ -4,7 +4,7 @@ import Sidebar from './components/Sidebar';
 import Editor from './components/Editor';
 import HelpModal from './components/HelpModal';
 import TrashModal from './components/TrashModal';
-import SyncModal from './components/SyncModal';
+import WorkspacesModal from './components/WorkspacesModal';
 import SyncConflictModal from './components/SyncConflictModal';
 import GlobalTasks from './components/GlobalTasks';
 import WelcomeScreen from './components/WelcomeScreen';
@@ -100,7 +100,7 @@ function App() {
 
   const [helpOpen, setHelpOpen] = useState(false);
   const [trashOpen, setTrashOpen] = useState(false);
-  const [syncOpen, setSyncOpen] = useState(false);
+  const [workspacesOpen, setWorkspacesOpen] = useState(false);
   const [storageWarningOpen, setStorageWarningOpen] = useState(false);
   const [backupWarningOpen, setBackupWarningOpen] = useState(false);
   const [pairingRequest, setPairingRequest] = useState(null);
@@ -317,13 +317,13 @@ function App() {
           setSidebarWidth={setSidebarWidth}
           onOpenHelp={() => setHelpOpen(true)}
           onOpenTrash={() => setTrashOpen(true)}
-          onOpenSync={() => setSyncOpen(true)}
+          onOpenWorkspaces={() => setWorkspacesOpen(true)}
           setShowTasks={() => { setShowTasks(true); setActiveFileId(null); setSidebarOpen(false); }}
           onGoHome={() => { setActiveFileId(null); setShowTasks(false); setSidebarOpen(false); }}
         />
-        <HelpModal isOpen={helpOpen} onClose={() => setHelpOpen(false)} />
-        <TrashModal isOpen={trashOpen} onClose={() => setTrashOpen(false)} />
-        {syncOpen && <SyncModal onClose={() => setSyncOpen(false)} />}
+        {helpOpen && <HelpModal onClose={() => setHelpOpen(false)} />}
+        {trashOpen && <TrashModal onClose={() => setTrashOpen(false)} />}
+        {workspacesOpen && <WorkspacesModal onClose={() => setWorkspacesOpen(false)} />}
 
         {syncConflicts && (
           <SyncConflictModal

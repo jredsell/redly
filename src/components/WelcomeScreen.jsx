@@ -101,86 +101,7 @@ const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
     );
 };
 
-const GitHubSetupModal = ({ isOpen, onClose, onConnect, isDarkMode }) => {
-    const [token, setToken] = React.useState('');
-    const [repo, setRepo] = React.useState('');
-    const [owner, setOwner] = React.useState('');
-    const [isConnecting, setIsConnecting] = React.useState(false);
-
-    if (!isOpen) return null;
-
-    const handleConnect = async (e) => {
-        e.preventDefault();
-        setIsConnecting(true);
-        try {
-            await onConnect({ token, repo, owner });
-        } catch (err) {
-            alert("Failed to connect: " + err.message);
-        } finally {
-            setIsConnecting(false);
-        }
-    };
-
-    return (
-        <div className="modal-overlay" onClick={onClose}>
-            <div className="modal-content" onClick={e => e.stopPropagation()}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-                    <h2 style={{ fontSize: '20px', fontWeight: '800', margin: 0 }}>Connect GitHub</h2>
-                    <button onClick={onClose} className="icon-button">
-                        <X size={20} />
-                    </button>
-                </div>
-
-                <form onSubmit={handleConnect} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    <div>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>GitHub Personal Access Token</label>
-                        <input 
-                            type="password" 
-                            value={token} 
-                            onChange={e => setToken(e.target.value)}
-                            placeholder="ghp_xxxxxxxxxxxx"
-                            style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                            required
-                        />
-                        <p style={{ fontSize: '12px', color: 'var(--text-tertiary)', marginTop: '8px' }}>
-                            Needs <code>repo</code> scope. Generate one in GitHub Settings &gt; Developer settings.
-                        </p>
-                    </div>
-
-                    <div style={{ display: 'flex', gap: '16px' }}>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Username / Org</label>
-                            <input 
-                                type="text" 
-                                value={owner} 
-                                onChange={e => setOwner(e.target.value)}
-                                placeholder="octocat"
-                                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                                required
-                            />
-                        </div>
-                        <div style={{ flex: 1 }}>
-                            <label style={{ display: 'block', fontSize: '13px', fontWeight: '700', marginBottom: '8px', color: 'var(--text-tertiary)', textTransform: 'uppercase' }}>Repository Name</label>
-                            <input 
-                                type="text" 
-                                value={repo} 
-                                onChange={e => setRepo(e.target.value)}
-                                placeholder="my-notes"
-                                style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid var(--border-color)', background: 'var(--bg-secondary)', color: 'var(--text-primary)' }}
-                                required
-                            />
-                        </div>
-                    </div>
-
-                    <button type="submit" disabled={isConnecting} className="primary-action-btn" style={{ width: '100%', justifyContent: 'center' }}>
-                        {isConnecting ? <RefreshCw className="spin" size={20} /> : <Github size={20} />}
-                        {isConnecting ? 'Cloning Repository...' : 'Connect Workspace'}
-                    </button>
-                </form>
-            </div>
-        </div>
-    );
-};
+import GitHubSetupModal from './GitHubSetupModal';
 const renderLogo = (size = 80) => (
     <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'center' }}>
         <RedlyLogo size={size} showText={true} style={{ maxWidth: '320px' }} />
@@ -303,47 +224,99 @@ export default function WelcomeScreen({ openHelp }) {
         );
     }
 
-    if (!workspaceHandle) {
-        return (
-            <div className="welcome-container">
-                <style>{SHARED_STYLES}</style>
-                {renderLogo()}
+    return (
+        <div className="welcome-container">
+            <style>{SHARED_STYLES}</style>
+            {renderLogo(workspaceHandle ? 60 : 80)}
 
-                <div style={{ display: 'flex', gap: '16px', marginBottom: '40px', width: '100%', maxWidth: '1000px', justifyContent: 'center', flexWrap: 'wrap' }}>
-                    {isInstallable && (
-                        <button
-                            onClick={installApp}
-                            className="primary-action-btn"
-                            style={{
-                                fontSize: '15px',
-                                padding: '14px 28px',
-                                justifyContent: 'center',
-                                width: '100%',
-                                maxWidth: '320px',
-                                background: 'var(--bg-secondary)',
-                                color: 'var(--accent-color)',
-                                border: '1px solid var(--border-color)',
-                                boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                            }}
-                            aria-label="Install Redly App"
-                        >
-                            <ShieldCheck size={20} />
-                            <span>Install Redly App</span>
-                        </button>
-                    )}
-                    <a href="https://github.com/sponsors/jredsell" target="_blank" rel="noopener noreferrer" className="primary-action-btn" style={{
-                        fontSize: '15px', padding: '14px 28px', justifyContent: 'center', background: 'transparent',
-                        color: '#ec4899', border: '1px solid #ec4899', boxShadow: 'none', height: 'auto', textDecoration: 'none',
-                        width: '100%', maxWidth: '320px', gap: '8px'
-                    }}>
-                        <Heart size={20} /> Support Redly
-                    </a>
-                </div>
+            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', width: '100%', maxWidth: '1000px', justifyContent: 'center', flexWrap: 'wrap' }}>
+                {isInstallable && (
+                    <button
+                        onClick={installApp}
+                        className="primary-action-btn"
+                        style={{
+                            fontSize: workspaceHandle ? '14px' : '15px',
+                            padding: workspaceHandle ? '10px 20px' : '14px 28px',
+                            justifyContent: 'center',
+                            width: workspaceHandle ? 'auto' : '100%',
+                            maxWidth: workspaceHandle ? 'none' : '320px',
+                            background: 'var(--bg-secondary)',
+                            color: 'var(--accent-color)',
+                            border: '1px solid var(--border-color)',
+                            boxShadow: workspaceHandle ? 'none' : '0 4px 12px rgba(0,0,0,0.1)'
+                        }}
+                        aria-label="Install Redly App"
+                    >
+                        <ShieldCheck size={workspaceHandle ? 18 : 20} />
+                        <span>Install Redly App</span>
+                    </button>
+                )}
+                <a href="https://github.com/sponsors/jredsell" target="_blank" rel="noopener noreferrer" className="primary-action-btn" style={{
+                    fontSize: workspaceHandle ? '14px' : '15px', 
+                    padding: workspaceHandle ? '10px 20px' : '14px 28px', 
+                    justifyContent: 'center', background: 'transparent',
+                    color: '#ec4899', border: '1px solid #ec4899', 
+                    boxShadow: 'none', height: 'auto', textDecoration: 'none',
+                    width: workspaceHandle ? 'auto' : '100%', 
+                    maxWidth: workspaceHandle ? 'none' : '320px', 
+                    gap: '8px'
+                }}>
+                    <Heart size={workspaceHandle ? 18 : 20} /> Support Redly
+                </a>
+            </div>
 
+            {!workspaceHandle ? (
                 <p style={{ fontSize: '18px', color: 'var(--text-secondary)', marginBottom: '48px', maxWidth: '550px', lineHeight: '1.5' }}>
                     Your private, offline-first Markdown knowledge base.
                 </p>
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '1000px', width: '100%' }}>
+            ) : (
+                <>
+                    <h1 style={{ fontSize: '32px', marginBottom: '16px', fontWeight: '800', letterSpacing: '-0.5px', textAlign: 'center' }}>What's next?</h1>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', width: '100%', maxWidth: '600px', marginBottom: '32px' }}>
+                        <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card" aria-label="Create a New Note">
+                            <FileText size={24} style={{ color: 'var(--accent-color)' }} aria-hidden="true" />
+                            <span style={{ fontWeight: '600' }}>New Note</span>
+                        </button>
+                        <button onClick={() => addNode('New Folder', 'folder')} className="welcome-card" aria-label="Create a New Folder">
+                            <FolderPlus size={24} style={{ color: 'var(--color-future)' }} aria-hidden="true" />
+                            <span style={{ fontWeight: '600' }}>New Folder</span>
+                        </button>
+                        <button onClick={openHelp} className="welcome-card" aria-label="Open Help and Shortcuts">
+                            <ListTodo size={24} style={{ color: 'var(--color-today)' }} aria-hidden="true" />
+                            <span style={{ fontWeight: '600' }}>Redly Guide</span>
+                        </button>
+                    </div>
+
+                    {recentFiles.length > 0 && (
+                        <div style={{ width: '100%', maxWidth: '600px', textAlign: 'left', marginBottom: '32px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px' }}>
+                                <Clock size={14} /> Recent Notes
+                            </div>
+                            <div style={{ display: 'grid', gap: '12px' }}>
+                                {recentFiles.map(file => (
+                                    <button key={file.id} onClick={() => setActiveFileId(file.id)} className="recent-file-chip">
+                                        <FileText size={16} style={{ color: 'var(--accent-color)', marginTop: '2px' }} />
+                                        <div style={{ overflow: 'hidden' }}>
+                                            <div style={{ fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</div>
+                                            <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{new Date(file.updatedAt).toLocaleDateString()}</div>
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </>
+            )}
+
+            <div style={{ marginTop: workspaceHandle ? '16px' : '0', width: '100%', maxWidth: '1000px' }}>
+                {workspaceHandle && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px', justifyContent: 'center' }}>
+                        <Plus size={14} /> Add Another Workspace
+                    </div>
+                )}
+                
+                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
                     <button onClick={handleSandboxClick} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
                         <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} aria-hidden="true" />
                         <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Browser Storage</h3>
@@ -369,86 +342,7 @@ export default function WelcomeScreen({ openHelp }) {
                         </button>
                     )}
                 </div>
-                <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
-                <GitHubSetupModal 
-                    isOpen={showGithubModal} 
-                    onClose={() => setShowGithubModal(false)} 
-                    onConnect={handleGithubConnect} 
-                    isDarkMode={isDarkMode} 
-                />
             </div>
-        );
-    }
-
-    return (
-        <div className="welcome-container">
-            <style>{SHARED_STYLES}</style>
-            {renderLogo(60)}
-
-            <h1 style={{ fontSize: '32px', marginBottom: '8px', fontWeight: '800', letterSpacing: '-0.5px', textAlign: 'center' }}>What's next?</h1>
-
-            <div style={{ display: 'flex', gap: '16px', marginBottom: '32px', justifyContent: 'center', width: '100%', flexWrap: 'wrap' }}>
-                {isInstallable && (
-                    <button
-                        onClick={installApp}
-                        className="primary-action-btn"
-                        style={{
-                            fontSize: '14px',
-                            padding: '10px 20px',
-                            justifyContent: 'center',
-                            background: 'var(--bg-secondary)',
-                            color: 'var(--accent-color)',
-                            border: '1px solid var(--border-color)',
-                            boxShadow: 'none',
-                            height: 'auto'
-                        }}
-                    >
-                        <ShieldCheck size={18} />
-                        <span>Install Redly App</span>
-                    </button>
-                )}
-                <a href="https://github.com/sponsors/jredsell" target="_blank" rel="noopener noreferrer" className="primary-action-btn" style={{
-                    fontSize: '14px', padding: '10px 20px', justifyContent: 'center', background: 'transparent',
-                    color: '#ec4899', border: '1px solid #ec4899', boxShadow: 'none', height: 'auto', textDecoration: 'none', gap: '8px'
-                }}>
-                    <Heart size={18} /> Support Redly
-                </a>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '16px', width: '100%', maxWidth: '600px', marginBottom: '48px' }}>
-                <button onClick={() => addNode('Untitled Note', 'file')} className="welcome-card" aria-label="Create a New Note">
-                    <FileText size={24} style={{ color: 'var(--accent-color)' }} aria-hidden="true" />
-                    <span style={{ fontWeight: '600' }}>New Note</span>
-                </button>
-                <button onClick={() => addNode('New Folder', 'folder')} className="welcome-card" aria-label="Create a New Folder">
-                    <FolderPlus size={24} style={{ color: 'var(--color-future)' }} aria-hidden="true" />
-                    <span style={{ fontWeight: '600' }}>New Folder</span>
-                </button>
-                <button onClick={openHelp} className="welcome-card" aria-label="Open Help and Shortcuts">
-                    <ListTodo size={24} style={{ color: 'var(--color-today)' }} aria-hidden="true" />
-                    <span style={{ fontWeight: '600' }}>Redly Guide</span>
-
-                </button>
-            </div>
-
-            {recentFiles.length > 0 && (
-                <div style={{ width: '100%', maxWidth: '600px', textAlign: 'left' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--text-tertiary)', fontSize: '13px', fontWeight: '700', textTransform: 'uppercase', marginBottom: '16px', letterSpacing: '1px' }}>
-                        <Clock size={14} /> Recent Notes
-                    </div>
-                    <div style={{ display: 'grid', gap: '12px' }}>
-                        {recentFiles.map(file => (
-                            <button key={file.id} onClick={() => setActiveFileId(file.id)} className="recent-file-chip">
-                                <FileText size={16} style={{ color: 'var(--accent-color)', marginTop: '2px' }} />
-                                <div style={{ overflow: 'hidden' }}>
-                                    <div style={{ fontWeight: '600', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{file.name}</div>
-                                    <div style={{ fontSize: '11px', color: 'var(--text-tertiary)' }}>{new Date(file.updatedAt).toLocaleDateString()}</div>
-                                </div>
-                            </button>
-                        ))}
-                    </div>
-                </div>
-            )}
 
             <InstallGuideModal isOpen={showInstallModal} onClose={() => setShowInstallModal(false)} />
             <GitHubSetupModal 
