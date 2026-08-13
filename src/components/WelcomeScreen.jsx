@@ -1,6 +1,6 @@
 import React from 'react';
 import { useNotes } from '../context/NotesContext';
-import { FileText, FolderPlus, ListTodo, Clock, HardDrive, ShieldCheck, Box, Unlock, Monitor, Share, PlusSquare, MoreVertical, X, Github, Cloud, RefreshCw, Heart } from 'lucide-react';
+import { FileText, FolderPlus, ListTodo, Clock, HardDrive, ShieldCheck, Box, Unlock, Monitor, Share, PlusSquare, MoreVertical, X, Github, Cloud, RefreshCw, Heart, Plus } from 'lucide-react';
 import RedlyLogo from './RedlyLogo';
 
 const InstallGuideModal = ({ isOpen, onClose, isDarkMode }) => {
