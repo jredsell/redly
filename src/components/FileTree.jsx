@@ -313,13 +313,6 @@ export default function FileTree({ node, depth }) {
                                     ({node.children?.length || 0})
                                 </span>
                             )}
-
-                            {isShared && (
-                                <Activity 
-                                    size={12} 
-                                    style={{ marginLeft: '6px', color: 'var(--accent-color)', animation: 'pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite' }} 
-                                />
-                            )}
                         </span>
                     )}
                 </div>
