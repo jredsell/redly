@@ -113,7 +113,7 @@ const SHARED_STYLES = `
         display: flex; 
         flex-direction: column; 
         align-items: center; 
-        justify-content: center; 
+        justify-content: flex-start; 
         height: 100%; 
         width: 100%;
         padding: 40px 20px; 
@@ -135,7 +135,7 @@ const SHARED_STYLES = `
     .welcome-card:hover { border-color: var(--accent-color); transform: translateY(-2px); }
     .welcome-card:active { transform: translateY(0); border-bottom-width: 1px; margin-top: 3px; }
 
-    .storage-option-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; cursor: pointer; text-align: left; max-width: 240px; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: flex-start; height: 100%; border-bottom-width: 4px; color: var(--text-primary); }
+    .storage-option-btn { background: var(--bg-secondary); border: 1px solid var(--border-color); padding: 16px; border-radius: 16px; cursor: pointer; text-align: left; transition: all 0.2s ease; display: flex; flex-direction: column; align-items: flex-start; height: 100%; border-bottom-width: 4px; color: var(--text-primary); width: 100%; }
     .storage-option-btn:hover { border-color: var(--accent-color); transform: translateY(-4px); }
     .storage-option-btn:active { transform: translateY(0); border-bottom-width: 1px; margin-top: 3px; }
 
@@ -316,7 +316,7 @@ export default function WelcomeScreen({ openHelp }) {
                     </div>
                 )}
                 
-                <div style={{ display: 'flex', gap: '20px', flexWrap: 'wrap', justifyContent: 'center', width: '100%' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '20px', width: '100%', maxWidth: '800px', margin: '0 auto' }}>
                     <button onClick={handleSandboxClick} className="storage-option-btn" aria-label="Select Browser Storage: Hidden browser sandbox">
                         <Box size={24} style={{ color: 'var(--color-future)', marginBottom: '12px' }} aria-hidden="true" />
                         <h3 style={{ fontWeight: '700', fontSize: '16px', marginBottom: '4px' }}>Browser Storage</h3>

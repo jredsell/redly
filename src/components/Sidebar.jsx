@@ -316,11 +316,11 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
             </div>
 
             <div className="sidebar-footer" style={{
-                padding: '12px',
+                padding: '12px 16px',
                 borderTop: '1px solid var(--border-color)',
                 display: 'flex',
-                gap: '8px',
-                justifyContent: 'center',
+                gap: '6px',
+                justifyContent: 'space-between',
                 flexShrink: 0
             }}>
                 <button
@@ -328,13 +328,13 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                     aria-label="Manage Workspaces"
                     style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                        background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px',
+                        background: 'var(--bg-accent)', border: 'none', padding: '6px 4px', borderRadius: '6px',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '11px',
                         transition: 'all 0.3s ease'
                     }}
                     title="Manage Workspaces"
                 >
-                    <Layers size={16} aria-hidden="true" /> Workspaces
+                    <Layers size={14} aria-hidden="true" /> Workspaces
                 </button>
 
                 <button
@@ -342,12 +342,12 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                     aria-label="Open Keyboard Shortcuts and Help"
                     style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                        background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
+                        background: 'var(--bg-accent)', border: 'none', padding: '6px 4px', borderRadius: '6px',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '11px'
                     }}
                     title="Shortcuts & Help"
                 >
-                    <HelpCircle size={16} aria-hidden="true" /> Guide
+                    <HelpCircle size={14} aria-hidden="true" /> Guide
                 </button>
 
                 <button
@@ -355,12 +355,12 @@ export default function Sidebar({ isOpen, onClose, onOpenHelp, onOpenTrash, onOp
                     aria-label="Open Recycle Bin"
                     style={{
                         flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px',
-                        background: 'var(--bg-accent)', border: 'none', padding: '8px', borderRadius: '6px',
-                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '13px'
+                        background: 'var(--bg-accent)', border: 'none', padding: '6px 4px', borderRadius: '6px',
+                        color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '11px'
                     }}
                     title="Recycle Bin"
                 >
-                    <Trash2 size={16} aria-hidden="true" /> Trash
+                    <Trash2 size={14} aria-hidden="true" /> Trash
                 </button>
             </div>
             </>

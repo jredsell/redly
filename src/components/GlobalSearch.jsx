@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Search, FileText, X } from 'lucide-react';
+import { Search, FileText, X, Github, HardDrive, Box, Folder, ChevronRight } from 'lucide-react';
 import { useNotes } from '../context/NotesContext';
 import { getFileContent } from '../lib/db';
 
@@ -24,6 +24,22 @@ export default function GlobalSearch() {
         window.addEventListener('keydown', handleGlobalKeyDown);
         return () => window.removeEventListener('keydown', handleGlobalKeyDown);
     }, []);
+
+    // Build path for UI
+    const getPath = (nodeId) => {
+        const path = [];
+        let currentId = nodeId;
+        while (currentId) {
+            const current = nodes.find(n => n.id === currentId);
+            if (current) {
+                path.unshift(current.name);
+                currentId = current.parentId;
+            } else {
+                break;
+            }
+        }
+        return path;
+    };
 
     // Handle clicks outside to close dropdown
     useEffect(() => {
@@ -53,6 +69,11 @@ export default function GlobalSearch() {
             const fileNodes = nodes.filter(n => n.type === 'file');
 
             for (const node of fileNodes) {
+                const workspaceId = node.id.includes('::') ? node.id.split('::')[0] : node.id;
+                const wsNode = nodes.find(n => n.id === workspaceId && n.isWorkspaceRoot);
+                const workspaceName = wsNode ? wsNode.name : 'Unknown';
+                const workspaceType = wsNode ? wsNode.workspaceType : 'local';
+
                 const nameMatch = node.name.toLowerCase().includes(lowerQuery);
                 let contentSnippet = null;
 
@@ -79,7 +100,9 @@ export default function GlobalSearch() {
                     searchResults.push({
                         ...node,
                         nameMatch,
-                        contentSnippet
+                        contentSnippet,
+                        workspaceName,
+                        workspaceType
                     });
                 }
             }
@@ -196,55 +219,74 @@ export default function GlobalSearch() {
                         padding: '4px'
                     }}
                 >
-                    {results.map((res, i) => (
-                        <div
-                            key={res.id}
-                            onClick={() => handleSelect(res)}
-                            onMouseEnter={() => setSelectedIndex(i)}
-                            style={{
-                                padding: '10px 12px',
-                                borderRadius: '6px',
-                                cursor: 'pointer',
-                                background: i === selectedIndex ? 'var(--bg-secondary)' : 'transparent',
-                                display: 'flex',
-                                flexDirection: 'column',
-                                gap: '2px',
-                                borderLeft: i === selectedIndex ? '3px solid var(--accent-color)' : '3px solid transparent',
-                                transition: 'background 0.1s ease'
-                            }}
-                        >
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                <FileText size={14} style={{ color: res.nameMatch ? 'var(--accent-color)' : 'var(--text-tertiary)' }} />
-                                <span style={{
-                                    fontSize: '14px',
-                                    fontWeight: res.nameMatch ? '600' : '400',
-                                    color: 'var(--text-primary)',
-                                    whiteSpace: 'nowrap',
-                                    overflow: 'hidden',
-                                    textOverflow: 'ellipsis'
-                                }}>
-                                    {res.name}
-                                </span>
-                                <span style={{ fontSize: '11px', color: 'var(--text-tertiary)', marginLeft: 'auto', opacity: 0.7 }}>
-                                    {res.parentId || 'root'}
-                                </span>
-                            </div>
-                            {res.contentSnippet && (
-                                <div style={{
-                                    fontSize: '12px',
-                                    color: 'var(--text-tertiary)',
-                                    marginLeft: '22px',
-                                    fontStyle: 'italic',
-                                    display: '-webkit-box',
-                                    WebkitLineClamp: 1,
-                                    WebkitBoxOrient: 'vertical',
-                                    overflow: 'hidden'
-                                }}>
-                                    {res.contentSnippet}
+                    {results.map((res, i) => {
+                        const pathSegments = getPath(res.id);
+                        const WorkspaceIcon = res.workspaceType === 'github' ? Github : res.workspaceType === 'sandbox' ? Box : HardDrive;
+                        
+                        return (
+                            <div
+                                key={res.id}
+                                onClick={() => handleSelect(res)}
+                                onMouseEnter={() => setSelectedIndex(i)}
+                                style={{
+                                    padding: '10px 12px',
+                                    borderRadius: '6px',
+                                    cursor: 'pointer',
+                                    background: i === selectedIndex ? 'var(--bg-secondary)' : 'transparent',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: '4px',
+                                    borderLeft: i === selectedIndex ? '3px solid var(--accent-color)' : '3px solid transparent',
+                                    transition: 'background 0.1s ease'
+                                }}
+                            >
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <FileText size={14} style={{ color: res.nameMatch ? 'var(--accent-color)' : 'var(--text-tertiary)' }} />
+                                    <span style={{
+                                        fontSize: '14px',
+                                        fontWeight: res.nameMatch ? '600' : '400',
+                                        color: 'var(--text-primary)',
+                                        whiteSpace: 'nowrap',
+                                        overflow: 'hidden',
+                                        textOverflow: 'ellipsis'
+                                    }}>
+                                        {res.name}
+                                    </span>
                                 </div>
-                            )}
-                        </div>
-                    ))}
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: 'var(--text-tertiary)' }}>
+                                    <WorkspaceIcon size={10} title={res.workspaceName} style={{ color: 'var(--text-secondary)' }} />
+                                    <span style={{ fontWeight: 'bold', color: 'var(--text-secondary)' }}>{res.workspaceName}</span>
+                                    <span style={{ margin: '0 2px', opacity: 0.5 }}>|</span>
+                                    {pathSegments.slice(1).map((seg, idx) => (
+                                        <React.Fragment key={idx}>
+                                            <span style={{ color: idx === pathSegments.length - 2 ? 'inherit' : 'var(--text-tertiary)' }}>
+                                                {seg}
+                                            </span>
+                                            {idx < pathSegments.length - 2 && <ChevronRight size={10} style={{ opacity: 0.5 }} />}
+                                        </React.Fragment>
+                                    ))}
+                                </div>
+                                {res.contentSnippet && (
+                                    <div style={{
+                                        fontSize: '12px',
+                                        color: 'var(--text-tertiary)',
+                                        fontStyle: 'italic',
+                                        display: '-webkit-box',
+                                        WebkitLineClamp: 1,
+                                        WebkitBoxOrient: 'vertical',
+                                        overflow: 'hidden',
+                                        marginTop: '2px',
+                                        background: 'var(--bg-primary)',
+                                        padding: '4px 8px',
+                                        borderRadius: '4px',
+                                        border: '1px solid var(--border-color)'
+                                    }}>
+                                        {res.contentSnippet}
+                                    </div>
+                                )}
+                            </div>
+                        );
+                    })}
                     <div style={{ padding: '8px 12px', borderTop: '1px solid var(--border-color)', fontSize: '11px', color: 'var(--text-tertiary)', display: 'flex', gap: '10px' }}>
                         <span><kbd>Enter</kbd> to open</span>
                         <span><kbd>↑↓</kbd> to move</span>

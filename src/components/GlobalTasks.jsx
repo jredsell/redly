@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { CheckSquare, Square, Folder, FileText, ChevronRight, LayoutList, Columns, Tag, Calendar, ChevronLeft } from 'lucide-react';
+import { CheckSquare, Square, Folder, FileText, ChevronRight, LayoutList, Columns, Tag, Calendar, ChevronLeft, Github, HardDrive, Box } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { useNotes } from '../context/NotesContext';
 import { parseTasksFromNodes } from '../utils/taskParser';
@@ -13,6 +13,7 @@ export default function GlobalTasks() {
     const [calendarView, setCalendarView] = useState('month'); // 'day', 'week', 'month'
     const [currentDate, setCurrentDate] = useState(new Date());
     const [selectedTagFilter, setSelectedTagFilter] = useState('');
+    const [selectedWorkspaceFilter, setSelectedWorkspaceFilter] = useState('All');
     const [tagFilterQuery, setTagFilterQuery] = useState('');
     const [isTagDropdownOpen, setIsTagDropdownOpen] = useState(false);
     const [tagDropdownIndex, setTagDropdownIndex] = useState(0);
@@ -102,6 +103,16 @@ export default function GlobalTasks() {
         return Array.from(tagSet).sort();
     }, [sortedTasks]);
 
+    const allAvailableWorkspaces = useMemo(() => {
+        const wsMap = new Map();
+        sortedTasks.forEach(t => {
+            if (t.workspaceId) {
+                wsMap.set(t.workspaceId, t.workspaceName || t.workspaceId);
+            }
+        });
+        return Array.from(wsMap.entries()).map(([id, name]) => ({ id, name }));
+    }, [sortedTasks]);
+
     const visibleDropdownTags = useMemo(() => {
         const query = tagFilterQuery.toLowerCase();
         let filtered = allAvailableTags;
@@ -152,9 +163,15 @@ export default function GlobalTasks() {
     };
 
     const filteredTasks = useMemo(() => {
-        if (!selectedTagFilter) return sortedTasks;
-        return sortedTasks.filter(t => t.tags && t.tags.includes(selectedTagFilter));
-    }, [sortedTasks, selectedTagFilter]);
+        let result = sortedTasks;
+        if (selectedTagFilter) {
+            result = result.filter(t => t.tags && t.tags.includes(selectedTagFilter));
+        }
+        if (selectedWorkspaceFilter !== 'All') {
+            result = result.filter(t => t.workspaceId === selectedWorkspaceFilter);
+        }
+        return result;
+    }, [sortedTasks, selectedTagFilter, selectedWorkspaceFilter]);
 
     const pendingTasks = filteredTasks.filter(t => !t.checked);
     const completedTasks = filteredTasks.filter(t => t.checked);
@@ -310,21 +327,25 @@ export default function GlobalTasks() {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-tertiary)' }}>
-                    {task.path.map((segment, idx) => (
-                        <React.Fragment key={idx}>
-                            <span style={{
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '4px',
-                                color: task.checked ? 'var(--text-tertiary)' : (idx === task.path.length - 1 && task.date ? getDateColor(task.date, task.hasTime) : 'inherit')
-                            }}>
-                                {idx === task.path.length - 1 ? <FileText size={12} /> : <Folder size={12} />}
-                                {segment}
-                            </span>
+                    {(() => {
+                        const WorkspaceIcon = task.workspaceType === 'github' ? Github : task.workspaceType === 'sandbox' ? Box : HardDrive;
+                        return task.path.map((segment, idx) => (
+                            <React.Fragment key={idx}>
+                                <span style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '4px',
+                                    color: task.checked ? 'var(--text-tertiary)' : (idx === task.path.length - 1 && task.date ? getDateColor(task.date, task.hasTime) : 'inherit'),
+                                    fontWeight: idx === 0 ? 'bold' : 'normal'
+                                }}>
+                                    {idx === 0 ? <WorkspaceIcon size={12} title={task.workspaceName} /> : (idx === task.path.length - 1 ? <FileText size={12} /> : <Folder size={12} />)}
+                                    {segment}
+                                </span>
 
-                            {idx < task.path.length - 1 && <ChevronRight size={12} style={{ opacity: 0.5 }} />}
-                        </React.Fragment>
-                    ))}
+                                {idx < task.path.length - 1 && <ChevronRight size={12} style={{ opacity: 0.5 }} />}
+                            </React.Fragment>
+                        ));
+                    })()}
 
                     {task.date && (
                         <div style={{ marginLeft: '8px', zIndex: 10 }}>
@@ -598,6 +619,22 @@ export default function GlobalTasks() {
                                 </div>
                             </div>
                         )}
+                        <select
+                            value={selectedWorkspaceFilter}
+                            onChange={(e) => setSelectedWorkspaceFilter(e.target.value)}
+                            style={{
+                                background: 'var(--bg-secondary)',
+                                color: 'var(--text-primary)',
+                                border: '1px solid var(--border-color)',
+                                borderRadius: '6px',
+                                padding: '4px 8px',
+                                fontSize: '13px',
+                                outline: 'none'
+                            }}
+                        >
+                            <option value="All">All Workspaces</option>
+                            {allAvailableWorkspaces.map(w => <option key={w.id} value={w.id}>{w.name}</option>)}
+                        </select>
                         <div style={{ display: 'flex', background: 'var(--bg-secondary)', padding: '4px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
                             <button
                                 onClick={() => setViewMode('list')}

@@ -25,7 +25,9 @@ export function parseTasksFromNodes(nodes) {
         if (n.type !== 'file' || !n.content) return false;
         
         // Exclude files in hidden dot-folders (e.g., .templates, .sync)
-        const parts = n.id.split('/');
+        // Handle global IDs like "github_123::src/.obsidian/file.md"
+        const relativePath = n.id.includes('::') ? n.id.split('::').slice(1).join('::') : n.id;
+        const parts = relativePath.split('/');
         return !parts.some(p => p.startsWith('.') && p !== '.');
     });
 
@@ -93,18 +95,24 @@ export function parseTasksFromNodes(nodes) {
                 // Remove all tags from the display text to keep UI clean
                 text = text.replace(/(?:^|\s)#([a-zA-Z0-9_-]+)/g, '').trim();
 
+                const workspaceId = file.id.includes('::') ? file.id.split('::')[0] : file.id;
+                const wsNode = nodes.find(n => n.id === workspaceId && n.isWorkspaceRoot);
+                
                 tasks.push({
                     // Stable ID based on file path and line index
                     id: `${file.id}:L${lineIndex}`,
                     fileId: file.id,
                     lineIndex: lineIndex,
                     path: breadcrumbPath,
-                    checked: isChecked,
                     text: text,
-                    date: date,
+                    checked: isChecked,
+                    date: date ? date.toISOString() : null,
                     hasTime: hasTime,
                     column: column,
-                    tags: tags
+                    tags: tags,
+                    workspaceId: workspaceId,
+                    workspaceName: wsNode ? wsNode.name : 'Unknown',
+                    workspaceType: wsNode ? wsNode.workspaceType : 'local'
                 });
             }
         });
