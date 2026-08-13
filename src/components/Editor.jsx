@@ -286,7 +286,7 @@ td.addRule('image', {
         }
 
         var titlePart = title ? ' "' + title + '"' : '';
-        return src ? '![' + alt + ']' + '(' + src + titlePart + ')' : '';
+        return src ? '![' + alt + ']' + '(<' + src + '>' + titlePart + ')' : '';
     }
 });
 
@@ -586,7 +586,13 @@ const CustomImageComponent = (props) => {
     useEffect(() => {
         let isMounted = true;
         if (src && !src.startsWith('http') && !src.startsWith('data:') && !src.startsWith('blob:')) {
-            getFileBlob(src).then(blob => {
+            let decodedSrc = src;
+            try {
+                decodedSrc = decodeURIComponent(src);
+            } catch (e) {
+                // ignore
+            }
+            getFileBlob(decodedSrc).then(blob => {
                 if (blob && isMounted) {
                     setBlobUrl(URL.createObjectURL(blob));
                 }
@@ -812,6 +818,37 @@ export default function Editor({ fileId }) {
                                                     const coordinates = view.posAtCoords({ left: event.clientX, top: event.clientY });
                                                     const pos = coordinates ? coordinates.pos : view.state.selection.from;
                                                     // Use relative path for title so we can reconstruct it on reload
+                                                    const node = view.state.schema.nodes.image.create({ src: url, alt: file.name, title: newNode.id });
+                                                    const tr = view.state.tr.insert(pos, node);
+                                                    view.dispatch(tr);
+                                                }
+                                            };
+                                            reader.readAsArrayBuffer(file);
+                                        }
+                                    });
+                                    return handled;
+                                }
+                                return false;
+                            },
+                            handlePaste(view, event) {
+                                if (event.clipboardData && event.clipboardData.files && event.clipboardData.files.length > 0) {
+                                    const files = Array.from(event.clipboardData.files);
+                                    let handled = false;
+                                    files.forEach(file => {
+                                        if (file.type.startsWith('image/')) {
+                                            handled = true;
+                                            event.preventDefault();
+                                            const reader = new FileReader();
+                                            reader.onload = async (e) => {
+                                                const buffer = e.target.result;
+                                                const parentId = fileId.includes('/') 
+                                                    ? fileId.substring(0, fileId.lastIndexOf('/')) 
+                                                    : (fileId.includes('::') ? fileId.substring(0, fileId.indexOf('::')) : null);
+                                                const newNode = await addBinaryNode(file.name, parentId, buffer);
+                                                if (newNode) {
+                                                    const blob = new Blob([buffer], { type: file.type });
+                                                    const url = URL.createObjectURL(blob);
+                                                    const pos = view.state.selection.from;
                                                     const node = view.state.schema.nodes.image.create({ src: url, alt: file.name, title: newNode.id });
                                                     const tr = view.state.tr.insert(pos, node);
                                                     view.dispatch(tr);
